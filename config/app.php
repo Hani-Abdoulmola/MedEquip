@@ -17,6 +17,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Default Currency
+    |--------------------------------------------------------------------------
+    |
+    | This value is the default currency code (ISO 4217) used throughout
+    | the application for orders, payments, and invoices.
+    |
+    */
+
+    'default_currency' => env('DEFAULT_CURRENCY', 'LYD'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

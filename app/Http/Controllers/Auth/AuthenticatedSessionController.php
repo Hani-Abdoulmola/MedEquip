@@ -28,6 +28,24 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // ✅ Check if user is supplier or buyer and needs approval
+        $user = auth()->user();
+
+        // If user has supplier profile, check verification status
+        if ($user->supplierProfile) {
+            if (!$user->supplierProfile->is_verified) {
+                return redirect()->route('auth.waiting-approval');
+            }
+        }
+
+        // If user has buyer profile, check verification status
+        if ($user->buyerProfile) {
+            if (!$user->buyerProfile->is_verified) {
+                return redirect()->route('auth.waiting-approval');
+            }
+        }
+
+        // Admin users or verified suppliers/buyers can proceed to dashboard
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

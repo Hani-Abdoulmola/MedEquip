@@ -1,0 +1,152 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="max-w-4xl mx-auto px-6 py-8" x-data="{ showPassword: false }">
+    <div class="mb-8">
+        <div class="flex items-center gap-4">
+            <a href="{{ route('admin.users') }}" class="inline-flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-lg active:scale-95 transition-all duration-200 cursor-pointer">
+                <i class="fas fa-arrow-right text-gray-600"></i>
+            </a>
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">إضافة مستخدم جديد</h1>
+                <p class="text-gray-600 mt-1">قم بإدخال بيانات المستخدم الجديد</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-8">
+        <form method="POST" action="{{ route('admin.users.store') }}">
+            @csrf
+            <div class="mb-8">
+                <h2 class="text-xl font-bold text-gray-900 mb-6 pb-3 border-b-2 border-gray-200">
+                    <i class="fas fa-user-circle ml-2 text-medical-blue-600"></i>
+                    معلومات الحساب
+                </h2>
+                <div class="space-y-6">
+                    <div>
+                        <label for="user_type_id" class="text-sm font-semibold text-gray-700 mb-2 block">
+                            نوع المستخدم <span class="text-red-500">*</span>
+                        </label>
+                        <select id="user_type_id" name="user_type_id" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-medical-blue-500 focus:ring-4 focus:ring-medical-blue-100 transition-all duration-200 cursor-pointer">
+                            <option value="">اختر نوع المستخدم</option>
+                            <option value="1">مدير النظام (Admin)</option>
+                            <option value="2">مورد (Supplier)</option>
+                            <option value="3">مشتري (Buyer)</option>
+                        </select>
+                        @error('user_type_id')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label for="name" class="text-sm font-semibold text-gray-700 mb-2 block">
+                            الاسم الكامل <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="name" name="name" value="{{ old('name') }}" required placeholder="أدخل الاسم الكامل" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-medical-blue-500 focus:ring-4 focus:ring-medical-blue-100 transition-all duration-200">
+                        @error('name')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label for="email" class="text-sm font-semibold text-gray-700 mb-2 block">
+                            البريد الإلكتروني <span class="text-red-500">*</span>
+                        </label>
+                        <input type="email" id="email" name="email" value="{{ old('email') }}" required placeholder="example@medequip.com" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-medical-blue-500 focus:ring-4 focus:ring-medical-blue-100 transition-all duration-200">
+                        @error('email')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label for="password" class="text-sm font-semibold text-gray-700 mb-2 block">
+                            كلمة المرور <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input :type="showPassword ? 'text' : 'password'" id="password" name="password" required placeholder="أدخل كلمة المرور (8 أحرف على الأقل)" class="w-full px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg focus:border-medical-blue-500 focus:ring-4 focus:ring-medical-blue-100 transition-all duration-200">
+                            <button type="button" @click="showPassword = !showPassword" class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 cursor-pointer">
+                                <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">يجب أن تحتوي كلمة المرور على 8 أحرف على الأقل، وتتضمن أحرف وأرقام</p>
+                        @error('password')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-8">
+                <h2 class="text-xl font-bold text-gray-900 mb-6 pb-3 border-b-2 border-gray-200">
+                    <i class="fas fa-phone ml-2 text-medical-blue-600"></i>
+                    معلومات الاتصال
+                </h2>
+                <div class="space-y-6">
+                    <div>
+                        <label for="phone" class="text-sm font-semibold text-gray-700 mb-2 block">
+                            رقم الهاتف
+                        </label>
+                        <input type="tel" id="phone" name="phone" value="{{ old('phone') }}" placeholder="+218 91 234 5678" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-medical-blue-500 focus:ring-4 focus:ring-medical-blue-100 transition-all duration-200">
+                        @error('phone')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-8">
+                <h2 class="text-xl font-bold text-gray-900 mb-6 pb-3 border-b-2 border-gray-200">
+                    <i class="fas fa-shield-alt ml-2 text-medical-blue-600"></i>
+                    الدور والصلاحيات
+                </h2>
+                <div class="space-y-6">
+                    <div>
+                        <label for="role" class="text-sm font-semibold text-gray-700 mb-2 block">
+                            الدور <span class="text-red-500">*</span>
+                        </label>
+                        <select id="role" name="role" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-medical-blue-500 focus:ring-4 focus:ring-medical-blue-100 transition-all duration-200 cursor-pointer">
+                            <option value="">اختر الدور</option>
+                            <option value="Admin">مدير (Admin)</option>
+                            <option value="Supplier">مورد (Supplier)</option>
+                            <option value="Buyer">مشتري (Buyer)</option>
+                        </select>
+                        @error('role')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label class="text-sm font-semibold text-gray-700 mb-3 block">
+                            حالة الحساب <span class="text-red-500">*</span>
+                        </label>
+                        <div class="space-y-3">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="status" value="active" checked class="w-5 h-5 text-medical-blue-600 border-2 border-gray-300 focus:ring-4 focus:ring-medical-blue-100 cursor-pointer">
+                                <span class="mr-3 text-gray-700">نشط (Active)</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="status" value="inactive" class="w-5 h-5 text-medical-blue-600 border-2 border-gray-300 focus:ring-4 focus:ring-medical-blue-100 cursor-pointer">
+                                <span class="mr-3 text-gray-700">غير نشط (Inactive)</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="status" value="suspended" class="w-5 h-5 text-medical-blue-600 border-2 border-gray-300 focus:ring-4 focus:ring-medical-blue-100 cursor-pointer">
+                                <span class="mr-3 text-gray-700">موقوف (Suspended)</span>
+                            </label>
+                        </div>
+                        @error('status')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-4 mt-8 pt-6 border-t-2 border-gray-200">
+                <a href="{{ route('admin.users') }}" class="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 active:scale-95 transition-all duration-200 cursor-pointer">
+                    <i class="fas fa-times ml-2"></i>
+                    إلغاء
+                </a>
+                <button type="submit" class="px-6 py-3 bg-medical-blue-600 text-white font-semibold rounded-lg hover:bg-medical-blue-700 active:scale-95 transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md">
+                    <i class="fas fa-save ml-2"></i>
+                    حفظ المستخدم
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endsection

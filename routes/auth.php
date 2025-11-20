@@ -15,7 +15,13 @@ Route::middleware('guest')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
         ->name('register');
 
-    Route::post('register', [RegisteredUserController::class, 'store']);
+    // 🏥 Buyer Registration (المشترين - المؤسسات الصحية)
+    Route::post('register/buyer', [RegisteredUserController::class, 'storeBuyer'])
+        ->name('register.buyer');
+
+    // 🏢 Supplier Registration (الموردين - شركات المعدات الطبية)
+    Route::post('register/supplier', [RegisteredUserController::class, 'storeSupplier'])
+        ->name('register.supplier');
 
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
