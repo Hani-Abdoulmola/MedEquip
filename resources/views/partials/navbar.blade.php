@@ -8,20 +8,7 @@
             {{-- Logo --}}
             <div class="flex-shrink-0">
                 <a href="{{ route('home') }}" class="flex items-center space-x-3 space-x-reverse group">
-                    {{-- Logo Icon --}}
-                    <div class="relative">
-                        <div
-                            class="absolute inset-0 bg-gradient-to-br from-medical-blue-500 to-medical-green-500 rounded-xl blur-sm opacity-50 group-hover:opacity-75 transition-opacity">
-                        </div>
-                        <div
-                            class="relative bg-gradient-to-br from-medical-blue-600 to-medical-green-600 p-2.5 rounded-xl shadow-medical">
-                            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 4v16m8-8H4" />
-                            </svg>
-                        </div>
-                    </div>
-                    {{-- Logo Text --}}
+                    <x-application-logo class="h-12 w-12 shadow-medical" />
                     <div class="flex flex-col">
                         <span
                             class="text-2xl font-bold bg-gradient-to-r from-medical-blue-600 to-medical-green-600 bg-clip-text text-transparent font-display">

@@ -21,6 +21,17 @@ class SupplierRegistrationRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     */
+    public function prepareForValidation(): void
+    {
+        $this->merge([
+            'email' => $this->has('email') ? strtolower(trim($this->email)) : null,
+            'contact_email' => $this->has('contact_email') && $this->contact_email ? strtolower(trim($this->contact_email)) : null,
+        ]);
+    }
+
+    /**
      * 📋 قواعد التحقق من البيانات
      */
     public function rules(): array

@@ -7,6 +7,7 @@ use App\Http\Requests\UserRequest;
 use App\Models\User;
 use App\Models\UserType;
 use App\Services\NotificationService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -80,7 +81,7 @@ class UserController extends Controller
         try {
             $data = $request->validated();
             $data['password'] = Hash::make($data['password']);
-            $data['created_by'] = auth()->id();
+            $data['created_by'] = Auth::id();
 
             $user = User::create($data);
 
@@ -92,7 +93,7 @@ class UserController extends Controller
             // 🧾 سجل النشاط
             activity()
                 ->performedOn($user)
-                ->causedBy(auth()->user())
+                ->causedBy(Auth::user())
                 ->withProperties([
                     'email' => $user->email,
                     'role' => $request->role ?? 'غير محدد',
@@ -154,7 +155,7 @@ class UserController extends Controller
                 unset($data['password']);
             }
 
-            $data['updated_by'] = auth()->id();
+            $data['updated_by'] = Auth::id();
             $user->update($data);
 
             // 🔄 تحديث الدور
@@ -165,7 +166,7 @@ class UserController extends Controller
             // 🧾 النشاط
             activity()
                 ->performedOn($user)
-                ->causedBy(auth()->user())
+                ->causedBy(Auth::user())
                 ->withProperties([
                     'role' => $request->role ?? 'غير محدد',
                     'email' => $user->email,
@@ -203,7 +204,7 @@ class UserController extends Controller
 
             activity()
                 ->performedOn($user)
-                ->causedBy(auth()->user())
+                ->causedBy(Auth::user())
                 ->log('🗑️ تم حذف المستخدم');
 
             return redirect()

@@ -1,0 +1,17 @@
+static:
+  enable: true
+  folders:
+    - public/storage
+
+handlers:
+  - serve: public
+    extensions:
+      - pdf
+      - jpg
+      - jpeg
+      - png
+      - webp
+      - svg
+      - zip
+      - mp4
+      - mp3

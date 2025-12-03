@@ -8,6 +8,7 @@ use App\Models\Buyer;
 use App\Models\User;
 use App\Models\UserType;
 use App\Services\NotificationService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -18,19 +19,56 @@ class BuyerController extends Controller
     // Middleware is now defined in routes/web.php for Laravel 12 compatibility
 
     /**
-     * 📜 عرض قائمة المشترين
+     *  عرض قائمة المشترين
      */
     public function index()
     {
-        $buyers = Buyer::with(['user', 'rfqs', 'orders'])
-            ->latest('id')
-            ->paginate(15);
+        $query = Buyer::with(['user', 'rfqs', 'orders']);
 
-        return view('admin.buyers.index', compact('buyers'));
+        // 🔍 Filter by search (organization name, contact email, contact phone, user name, user email)
+        if (request()->filled('search')) {
+            $search = request('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('organization_name', 'like', "%{$search}%")
+                    ->orWhere('contact_email', 'like', "%{$search}%")
+                    ->orWhere('contact_phone', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        // 🔍 Filter by active status
+        if (request()->filled('active')) {
+            $query->where('is_active', request('active') == '1' ? true : false);
+        }
+
+        // 🔍 Filter by verification status
+        if (request()->filled('verified')) {
+            $query->where('is_verified', request('verified') == '1' ? true : false);
+        }
+
+        // 🔍 Filter by organization type
+        if (request()->filled('type')) {
+            $query->where('organization_type', request('type'));
+        }
+
+        $buyers = $query->latest('id')->paginate(15)->withQueryString();
+
+        // 📊 Calculate stats
+        $stats = [
+            'total_buyers' => Buyer::count(),
+            'active_buyers' => Buyer::where('is_active', true)->count(),
+            'verified_buyers' => Buyer::where('is_verified', true)->count(),
+            'pending_buyers' => Buyer::where('is_verified', false)->count(),
+        ];
+
+        return view('admin.buyers.index', compact('buyers', 'stats'));
     }
 
     /**
-     * ➕ إنشاء مشتري جديد
+     *  إنشاء مشتري جديد
      */
     public function create()
     {
@@ -38,7 +76,7 @@ class BuyerController extends Controller
     }
 
     /**
-     * 💾 تخزين مشتري جديد
+     *  تخزين مشتري جديد
      */
     public function store(BuyerRequest $request)
     {
@@ -47,18 +85,27 @@ class BuyerController extends Controller
         try {
             $data = $request->validated();
 
-            // 1️⃣ إنشاء حساب المستخدم
+            // Get buyer user type
+            $buyerType = UserType::where('slug', 'buyer')->first();
+            if (!$buyerType) {
+                throw new \Exception('نوع المستخدم "مشتري" غير موجود في النظام');
+            }
+
+            /** @var \App\Models\User */
+            $authUser = Auth::user();
+
+            //  إنشاء حساب المستخدم
             $user = User::create([
-                'user_type_id' => UserType::where('slug', 'buyer')->first()->id, // 3
+                'user_type_id' => $buyerType->id, // 3
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'phone' => $data['phone'] ?? null,
                 'password' => Hash::make($data['password']),
                 'status' => 'active',
-                'created_by' => auth()->id(),
+                'created_by' => $authUser->id,
             ]);
 
-            // 2️⃣ إنشاء ملف المشتري
+            //  إنشاء ملف المشتري
             $buyer = Buyer::create([
                 'user_id' => $user->id,
                 'organization_name' => $data['organization_name'],
@@ -72,34 +119,34 @@ class BuyerController extends Controller
                 'is_verified' => $data['is_verified'] ?? true, // Admin-created buyers are verified by default
                 'verified_at' => ($data['is_verified'] ?? true) ? now() : null,
                 'is_active' => $data['is_active'] ?? true,
-                'created_by' => auth()->id(),
+                'created_by' => $authUser->id,
             ]);
 
-            // 3️⃣ إسناد دور Buyer للمستخدم
+            //  إسناد دور Buyer للمستخدم
             if (! $user->hasRole('Buyer')) {
                 $user->assignRole('Buyer');
             }
 
-            // 4️⃣ سجل النشاط
+            //  سجل النشاط
             activity('buyers')
                 ->performedOn($buyer)
-                ->causedBy(auth()->user())
+                ->causedBy($authUser)
                 ->withProperties([
                     'buyer_name' => $buyer->organization_name,
-                    'created_by' => auth()->user()->name,
+                    'created_by' => $authUser->name,
                 ])
-                ->log('🟢 تم إنشاء مشتري جديد');
+                ->log(' تم إنشاء مشتري جديد');
 
             // 5️⃣ إشعارات
             NotificationService::notifyAdmins(
-                '🛍️ مشتري جديد تمت إضافته',
+                ' مشتري جديد تمت إضافته',
                 "تم تسجيل مشتري جديد باسم {$buyer->organization_name}.",
                 route('admin.buyers.show', $buyer->id)
             );
 
             NotificationService::send(
                 $user,
-                '🎉 تم تسجيلك كمشتري',
+                ' تم تسجيلك كمشتري',
                 'تم ربط حسابك بنجاح كمشتري في المنصة. يمكنك الآن إنشاء طلبات عروض الأسعار (RFQs).',
                 route('dashboard')
             );
@@ -108,7 +155,7 @@ class BuyerController extends Controller
 
             return redirect()
                 ->route('admin.buyers')
-                ->with('success', '✅ تم إضافة المشتري بنجاح');
+                ->with('success', ' تم إضافة المشتري بنجاح');
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Buyer store error: '.$e->getMessage());
@@ -120,7 +167,7 @@ class BuyerController extends Controller
     }
 
     /**
-     * ✏️ تعديل مشتري
+     *  تعديل مشتري
      */
     public function edit(Buyer $buyer)
     {
@@ -130,7 +177,7 @@ class BuyerController extends Controller
     }
 
     /**
-     * 🔄 تحديث بيانات المشتري
+     *  تحديث بيانات المشتري
      */
     public function update(BuyerRequest $request, Buyer $buyer)
     {
@@ -139,12 +186,15 @@ class BuyerController extends Controller
         try {
             $data = $request->validated();
 
-            // 1️⃣ تحديث بيانات المستخدم
+            /** @var \App\Models\User */
+            $authUser = Auth::user();
+
+            //  تحديث بيانات المستخدم
             $buyer->user->update([
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'phone' => $data['phone'] ?? $buyer->user->phone,
-                'updated_by' => auth()->id(),
+                'updated_by' => $authUser->id,
             ]);
 
             // تحديث كلمة المرور إذا تم إدخالها
@@ -154,7 +204,7 @@ class BuyerController extends Controller
                 ]);
             }
 
-            // 2️⃣ تحديث بيانات المشتري
+            //  تحديث بيانات المشتري
             $buyer->update([
                 'organization_name' => $data['organization_name'],
                 'organization_type' => $data['organization_type'],
@@ -167,18 +217,18 @@ class BuyerController extends Controller
                 'is_verified' => $data['is_verified'] ?? $buyer->is_verified,
                 'verified_at' => ($data['is_verified'] ?? false) && ! $buyer->is_verified ? now() : $buyer->verified_at,
                 'is_active' => $data['is_active'] ?? $buyer->is_active,
-                'updated_by' => auth()->id(),
+                'updated_by' => $authUser->id,
             ]);
 
-            // 3️⃣ سجل النشاط
+            //  سجل النشاط`
             activity('buyers')
                 ->performedOn($buyer)
-                ->causedBy(auth()->user())
+                ->causedBy($authUser)
                 ->withProperties([
                     'buyer_name' => $buyer->organization_name,
-                    'updated_by' => auth()->user()->name,
+                    'updated_by' => $authUser->name,
                 ])
-                ->log('🟡 تم تحديث بيانات المشتري');
+                ->log(' تم تحديث بيانات المشتري');
 
             // 4️⃣ إشعار المستخدم المرتبط
             NotificationService::send(
@@ -192,7 +242,7 @@ class BuyerController extends Controller
 
             return redirect()
                 ->route('admin.buyers')
-                ->with('success', '✅ تم تحديث بيانات المشتري بنجاح');
+                ->with('success', ' تم تحديث بيانات المشتري بنجاح');
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Buyer update error: '.$e->getMessage());
@@ -204,21 +254,24 @@ class BuyerController extends Controller
     }
 
     /**
-     * 🗑️ حذف المشتري
+     *  حذف المشتري
      */
     public function destroy(Buyer $buyer)
     {
         try {
             $buyer->delete();
 
+            /** @var \App\Models\User */
+            $authUser = Auth::user();
+
             activity('buyers')
                 ->performedOn($buyer)
-                ->causedBy(auth()->user())
-                ->log('❌ تم حذف المشتري');
+                ->causedBy($authUser)
+                ->log(' تم حذف المشتري');
 
             return redirect()
                 ->route('admin.buyers')
-                ->with('success', '❌ تم حذف المشتري بنجاح');
+                ->with('success', ' تم حذف المشتري بنجاح');
         } catch (\Throwable $e) {
             Log::error('Buyer delete error: '.$e->getMessage());
 
@@ -229,12 +282,35 @@ class BuyerController extends Controller
     }
 
     /**
-     * 👁️ عرض تفاصيل المشتري
+     *  عرض تفاصيل المشتري
      */
     public function show(Buyer $buyer)
     {
         $buyer->load(['user', 'rfqs', 'orders']);
 
         return view('admin.buyers.show', compact('buyer'));
+    }
+
+    /**
+     *  تفعيل/تعطيل المشتري
+     */
+    public function toggleActive(Buyer $buyer)
+    {
+        $buyer->is_active = ! $buyer->is_active;
+        $buyer->save();
+
+        return back()->with('success', 'تم تحديث حالة المشتري بنجاح');
+    }
+
+    /**
+     *  توثيق المشتري
+     */
+    public function verifyBuyer(Buyer $buyer)
+    {
+        $buyer->is_verified = true;
+        $buyer->verified_at = now();
+        $buyer->save();
+
+        return back()->with('success', 'تم توثيق المشتري بنجاح');
     }
 }

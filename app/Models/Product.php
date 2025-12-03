@@ -24,14 +24,27 @@ class Product extends Model implements HasMedia
         'category_id',
         'description',
         'is_active',
+        'review_status',
+        'review_notes',
+        'rejection_reason',
+        'specifications',
+        'features',
+        'technical_data',
+        'certifications',
+        'installation_requirements',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+
+        'specifications' => 'array',
+        'features' => 'array',
+        'technical_data' => 'array',
+        'certifications' => 'array',
     ];
 
     /**
-     *  علاقة Many-to-Many مع الموردين عبر الجدول الوسيط (product_supplier)
+     * علاقة Many-to-Many مع الموردين
      */
     public function suppliers()
     {
@@ -48,7 +61,7 @@ class Product extends Model implements HasMedia
     }
 
     /**
-     *  عرض جميع عروض الموردين لهذا المنتج (للاستخدام في الواجهات)
+     * عروض الموردين لهذا المنتج
      */
     public function offers()
     {
@@ -65,10 +78,7 @@ class Product extends Model implements HasMedia
     }
 
     /**
-     * Get the category this product belongs to
-     * الفئة التي ينتمي إليها المنتج
-     *
-     * @return BelongsTo
+     * الفئة
      */
     public function category(): BelongsTo
     {
@@ -76,7 +86,7 @@ class Product extends Model implements HasMedia
     }
 
     /**
-     *  المستخدم الذي أنشأ المنتج
+     * منشئ المنتج
      */
     public function creator()
     {
@@ -84,7 +94,7 @@ class Product extends Model implements HasMedia
     }
 
     /**
-     *  المستخدم الذي عدّل المنتج
+     * آخر من عدل المنتج
      */
     public function updater()
     {
@@ -92,7 +102,7 @@ class Product extends Model implements HasMedia
     }
 
     /**
-     * RFQ items that reference this product
+     * RFQ items
      */
     public function rfqItems()
     {
@@ -100,25 +110,22 @@ class Product extends Model implements HasMedia
     }
 
     /**
-     *  إدارة ملفات الميديا باستخدام Spatie Media Library
+     * Media Collections
      */
     public function registerMediaCollections(): void
     {
-        //  صور المنتج
         $this->addMediaCollection('product_images')
             ->useDisk('public')
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
             ->withResponsiveImages();
 
-        //  ملفات المواصفات أو الكتالوجات
         $this->addMediaCollection('product_documents')
             ->useDisk('public')
-            ->acceptsMimeTypes(['application/pdf'])
-            ->withResponsiveImages();
+            ->acceptsMimeTypes(['application/pdf']);
     }
 
     /**
-     * ⚙️ إنشاء الصور المصغرة (Thumbnails) تلقائيًا
+     * Media Conversions
      */
     public function registerMediaConversions(?Media $media = null): void
     {

@@ -1,22 +1,54 @@
 <?php
 
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Web\ActivityLogController;
+use App\Http\Controllers\Web\RfqController;
+use App\Http\Controllers\Web\UserController;
 use App\Http\Controllers\Web\BuyerController;
 use App\Http\Controllers\Web\OrderController;
 use App\Http\Controllers\Web\ProductController;
-use App\Http\Controllers\Web\RegistrationApprovalController;
+use App\Http\Controllers\Web\SettingController;
 use App\Http\Controllers\Web\SupplierController;
-use App\Http\Controllers\Web\UserController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Web\QuotationController;
+use App\Http\Controllers\Web\ActivityLogController;
+use App\Http\Controllers\Web\NotificationController;
+use App\Http\Controllers\Web\ProductReviewController;
+use App\Http\Controllers\Web\BuyerDashboardController;
+use App\Http\Controllers\Web\Suppliers\SupplierDashboardController;
+use App\Http\Controllers\Web\Suppliers\SupplierProductController;
+
+use App\Http\Controllers\Web\RegistrationApprovalController;
 
 Route::get('/', function () {
     return view('home');
 })->name('home');
 
+// Main Dashboard Route - Only for Admins
+// Suppliers and Buyers have their own dashboard routes
 Route::get('/dashboard', function () {
+    if (!Auth::check()) {
+        return redirect()->route('login');
+    }
+
+    $user = Auth::user();
+
+    // Load relationships
+    $user->load(['supplierProfile', 'buyerProfile']);
+
+    // Redirect suppliers to their dashboard
+    if ($user->supplierProfile) {
+        return redirect()->route('supplier.dashboard');
+    }
+
+    // Redirect buyers to their dashboard
+    if ($user->buyerProfile) {
+        return redirect()->route('buyer.dashboard');
+    }
+
+    // Admin users see the admin dashboard
     return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->middleware('auth')->name('dashboard');
 
 // Waiting Approval Page (for pending/rejected suppliers and buyers)
 Route::get('/waiting-approval', function () {
@@ -34,67 +66,106 @@ Route::middleware('auth')->group(function () {
         Route::get('/users', [UserController::class, 'index'])
             ->name('users')
             ->middleware('permission:view users');
+
         Route::get('/users/create', [UserController::class, 'create'])
             ->name('users.create')
             ->middleware('permission:create users');
+
         Route::post('/users', [UserController::class, 'store'])
             ->name('users.store')
             ->middleware('permission:create users');
+
+            Route::put('/users/{user}', [UserController::class, 'update'])
+            ->name('users.update')
+            ->middleware('permission:edit users');
+
         Route::get('/users/{user}/edit', [UserController::class, 'edit'])
             ->name('users.edit')
             ->middleware('permission:edit users');
-        Route::put('/users/{user}', [UserController::class, 'update'])
-            ->name('users.update')
-            ->middleware('permission:edit users');
+
         Route::delete('/users/{user}', [UserController::class, 'destroy'])
             ->name('users.destroy')
             ->middleware('permission:delete users');
+
+
 
         // Suppliers Management
         Route::get('/suppliers', [SupplierController::class, 'index'])
             ->name('suppliers')
             ->middleware('permission:view suppliers');
+
         Route::get('/suppliers/create', [SupplierController::class, 'create'])
             ->name('suppliers.create')
             ->middleware('permission:create suppliers');
+
         Route::post('/suppliers', [SupplierController::class, 'store'])
             ->name('suppliers.store')
             ->middleware('permission:create suppliers');
+
+        Route::post('/suppliers/{supplier}/verify', [SupplierController::class, 'verify'])
+            ->name('suppliers.verify')
+            ->middleware('permission:edit suppliers');
+
+        Route::post('/suppliers/{supplier}/toggle-active', [SupplierController::class, 'toggleActive'])
+            ->name('suppliers.toggle-active')
+            ->middleware('permission:edit suppliers');
+
         Route::get('/suppliers/{supplier}', [SupplierController::class, 'show'])
             ->name('suppliers.show')
             ->middleware('permission:view suppliers');
+
         Route::get('/suppliers/{supplier}/edit', [SupplierController::class, 'edit'])
             ->name('suppliers.edit')
             ->middleware('permission:edit suppliers');
+
         Route::put('/suppliers/{supplier}', [SupplierController::class, 'update'])
             ->name('suppliers.update')
             ->middleware('permission:edit suppliers');
+
         Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy'])
             ->name('suppliers.destroy')
             ->middleware('permission:delete suppliers');
 
-        // Buyers Management
+
+
+        // Buyers Management Routes
         Route::get('/buyers', [BuyerController::class, 'index'])
             ->name('buyers')
             ->middleware('permission:view buyers');
+
         Route::get('/buyers/create', [BuyerController::class, 'create'])
             ->name('buyers.create')
             ->middleware('permission:create buyers');
+
         Route::post('/buyers', [BuyerController::class, 'store'])
             ->name('buyers.store')
             ->middleware('permission:create buyers');
+
         Route::get('/buyers/{buyer}', [BuyerController::class, 'show'])
             ->name('buyers.show')
             ->middleware('permission:view buyers');
+
         Route::get('/buyers/{buyer}/edit', [BuyerController::class, 'edit'])
             ->name('buyers.edit')
             ->middleware('permission:edit buyers');
+
         Route::put('/buyers/{buyer}', [BuyerController::class, 'update'])
             ->name('buyers.update')
             ->middleware('permission:edit buyers');
+
         Route::delete('/buyers/{buyer}', [BuyerController::class, 'destroy'])
             ->name('buyers.destroy')
             ->middleware('permission:delete buyers');
+
+        Route::post('/buyers/{buyer}/toggle-active', [BuyerController::class, 'toggleActive'])
+            ->name('buyers.toggle-active')
+            ->middleware('permission:edit buyers');
+
+        Route::post('/buyers/{buyer}/verify', [BuyerController::class, 'verifyBuyer'])
+            ->name('buyers.verify')
+            ->middleware('permission:edit buyers');
+
+
 
         // Products Management
         Route::get('/products', [ProductController::class, 'index'])
@@ -109,15 +180,23 @@ Route::middleware('auth')->group(function () {
         Route::get('/products/{product}', [ProductController::class, 'show'])
             ->name('products.show')
             ->middleware('permission:view products');
-        Route::get('/products/{product}/edit', [ProductController::class, 'edit'])
-            ->name('products.edit')
-            ->middleware('permission:edit products');
-        Route::put('/products/{product}', [ProductController::class, 'update'])
-            ->name('products.update')
-            ->middleware('permission:edit products');
+        Route::get('/products/{product}/review',
+            [ProductReviewController::class, 'review']
+        )->name('products.review');
+        Route::post('/products/{product}/approve',
+            [ProductReviewController::class, 'approve']
+        )->name('products.approve');
+        Route::post('/products/{product}/reject',
+            [ProductReviewController::class, 'reject']
+        )->name('products.reject');
+        Route::post('/products/{product}/request-changes',
+            [ProductReviewController::class, 'requestChanges']
+        )->name('products.request_changes');
         Route::delete('/products/{product}', [ProductController::class, 'destroy'])
             ->name('products.destroy')
             ->middleware('permission:delete products');
+
+
 
         // Orders Management
         Route::get('/orders', [OrderController::class, 'index'])
@@ -165,22 +244,73 @@ Route::middleware('auth')->group(function () {
             ->middleware('permission:edit users');
 
         // Settings
-        Route::get('/settings', fn() => view('admin.settings.index'))->name('settings');
+        Route::get('/settings', [SettingController::class, 'index'])
+            ->name('settings.index')
+            ->middleware('permission:view users');
+
+        Route::post('/settings/general', [SettingController::class, 'updateGeneral'])
+            ->name('settings.update.general')
+            ->middleware('permission:edit users');
+
+        Route::post('/settings/email', [SettingController::class, 'updateEmail'])
+            ->name('settings.update.email')
+            ->middleware('permission:edit users');
+
+        Route::post('/settings/payment', [SettingController::class, 'updatePayment'])
+            ->name('settings.update.payment')
+            ->middleware('permission:edit users');
+
+        Route::post('/settings/security', [SettingController::class, 'updateSecurity'])
+            ->name('settings.update.security')
+            ->middleware('permission:edit users');
+
+        Route::post('/settings/email/test', [SettingController::class, 'testEmailConnection'])
+            ->name('settings.email.test')
+            ->middleware('permission:edit users');
+
+        // Notifications
+        Route::get('/notifications', [NotificationController::class, 'index'])
+            ->name('notifications.index');
+
+        Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])
+            ->name('notifications.read');
+
+        Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])
+            ->name('notifications.read-all');
+
+        Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])
+            ->name('notifications.destroy');
+
+        Route::delete('/notifications', [NotificationController::class, 'destroyAll'])
+            ->name('notifications.destroy-all');
     });
 
-    // Supplier Routes (Placeholder)
-    Route::prefix('supplier')->name('supplier.')->group(function () {
-        Route::get('/products', fn() => view('dashboard'))->name('products');
-        Route::get('/orders', fn() => view('dashboard'))->name('orders');
-        Route::get('/sales', fn() => view('dashboard'))->name('sales');
-        Route::get('/profile', fn() => view('dashboard'))->name('profile');
+    // Supplier Routes
+    Route::prefix('supplier')->name('supplier.')->middleware('role:Supplier')->group(function () {
+        // Supplier Dashboard
+        Route::get('/dashboard', [SupplierDashboardController::class, 'index'])->name('dashboard');
+
+        // Supplier Products (Full CRUD)
+        Route::resource('products', SupplierProductController::class)->except(['destroy']);
+        Route::delete('/products/{product}', [SupplierProductController::class, 'destroy'])->name('products.destroy');
+
+        // Supplier Resources
+        Route::get('/orders', [OrderController::class, 'index'])->name('orders');
+        Route::get('/quotations', [QuotationController::class, 'index'])->name('quotations');
+        Route::get('/rfqs', [RfqController::class, 'index'])->name('rfqs');
+        Route::get('/sales', fn() => view('supplier.sales'))->name('sales');
+        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
     });
 
-    // Buyer Routes (Placeholder)
-    Route::prefix('buyer')->name('buyer.')->group(function () {
-        Route::get('/orders', fn() => view('dashboard'))->name('orders');
-        Route::get('/favorites', fn() => view('dashboard'))->name('favorites');
-        Route::get('/suppliers', fn() => view('dashboard'))->name('suppliers');
+    // Buyer Routes
+    Route::prefix('buyer')->name('buyer.')->middleware('role:Buyer')->group(function () {
+        // Buyer Dashboard
+        Route::get('/dashboard', [BuyerDashboardController::class, 'index'])->name('dashboard');
+
+        // Buyer Resources
+        Route::get('/orders', [OrderController::class, 'index'])->name('orders');
+        Route::get('/favorites', fn() => view('buyer.favorites'))->name('favorites');
+        Route::get('/suppliers', fn() => view('buyer.suppliers'))->name('suppliers');
     });
 });
 

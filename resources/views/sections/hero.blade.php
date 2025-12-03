@@ -11,7 +11,8 @@
             style="animation-delay: 1s;"></div>
 
         {{-- Medical Pattern SVG --}}
-        <svg class="absolute inset-0 w-full h-full opacity-5" xmlns="http://www.w3.org/2000/svg">
+        <svg class="absolute inset-0 w-full h-full opacity-5"
+            xmlns="https://images.pexels.com/photos/7089017/pexels-photo-7089017.jpeg">
             <defs>
                 <pattern id="medical-pattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
                     <path d="M20 15v10M15 20h10" stroke="currentColor" stroke-width="1" fill="none"
@@ -110,144 +111,102 @@
             {{-- Image/Illustration Column --}}
             <div class="relative animate-fade-in-up" style="animation-delay: 0.2s;">
                 {{-- Main Image Container --}}
-                <div class="relative">
-                    {{-- Decorative Background --}}
-                    <div
-                        class="absolute inset-0 bg-gradient-to-br from-medical-blue-500 to-medical-green-500 rounded-3xl transform rotate-3 scale-105 opacity-10">
-                    </div>
+                {{-- <div class="relative"> --}}
+                {{-- Professional Medical Equipment Image --}}
+                <div class="relative rounded-3xl shadow-medical-2xl overflow-hidden bg-white">
+                    {{-- Image Container with fixed aspect ratio --}}
+                    <div class="w-full" style="padding-bottom: 800px; position: relative;">
+                        <img src="https://images.pexels.com/photos/7089013/pexels-photo-7089013.jpeg"
+                            alt="معدات طبية حديثة" class="absolute inset-0 w-full h-full object-cover rounded-3xl"
+                            loading="eager" onload="console.log('Hero image loaded successfully');"
+                            onerror="console.error('Hero image failed to load');
+                                this.style.display='none';
+                    document.getElementById('hero-fallback-svg').style.display='flex';" />
 
-                    {{-- Professional Medical Equipment Image --}}
-                    <div class="relative rounded-3xl shadow-medical-2xl overflow-hidden bg-white">
-                        {{-- Image Container with fixed aspect ratio --}}
-                        <div class="w-full" style="padding-bottom: 100%; position: relative;">
-                            <img src="https://images.unsplash.com/photo-1584362917165-526a968579e8?w=800&h=800&fit=crop&q=80&auto=format"
-                                alt="معدات طبية حديثة - أجهزة طبية متطورة في بيئة مستشفى احترافية" class="rounded-2xl"
-                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 1;"
-                                loading="eager" onload="console.log('Hero image loaded successfully');"
-                                onerror="console.error('Hero image failed to load'); this.style.display='none'; document.getElementById('hero-fallback-svg').style.display='flex';" />
 
-                            {{-- Fallback SVG if image fails to load --}}
-                            <div id="hero-fallback-svg"
-                                style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; align-items: center; justify-content: center; padding: 2rem; background: linear-gradient(135deg, #EBF5FF 0%, #E8F5E9 100%);">
-                                <svg style="width: 100%; height: 100%; max-width: 400px; max-height: 400px;"
-                                    viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    {{-- Medical Cross --}}
-                                    <rect x="160" y="80" width="80" height="240" rx="12" fill="#2563eb"
-                                        opacity="0.2" />
-                                    <rect x="80" y="160" width="240" height="80" rx="12" fill="#10b981"
-                                        opacity="0.2" />
-                                    {{-- Stethoscope Icon --}}
-                                    <circle cx="200" cy="200" r="60" stroke="#2563eb" stroke-width="8"
-                                        fill="none" opacity="0.3" />
-                                    <text x="200" y="350" text-anchor="middle" fill="#666" font-size="16">Medical
-                                        Equipment</text>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Alternative: Animated Medical Equipment Illustration (Backup) --}}
-                    <div class="hidden">
-                        <div class="aspect-square flex items-center justify-center">
-                            <svg class="w-full h-full" viewBox="0 0 400 400" fill="none"
-                                xmlns="http://www.w3.org/2000/svg">
-
-                                {{-- Animated Stethoscope --}}
-                                <g class="animate-fade-in-up" style="animation-delay: 0.2s;">
-                                    <path
-                                        d="M120 80 Q140 60 160 80 L160 180 Q160 220 200 220 Q240 220 240 180 L240 80 Q260 60 280 80"
-                                        stroke="#2563eb" stroke-width="8" stroke-linecap="round" fill="none"
-                                        opacity="0.4" class="animate-pulse-slow" />
-                                    <circle cx="120" cy="80" r="15" fill="#2563eb" opacity="0.4"
-                                        class="animate-pulse" />
-                                    <circle cx="280" cy="80" r="15" fill="#2563eb" opacity="0.4"
-                                        class="animate-pulse" style="animation-delay: 0.5s;" />
-                                    <circle cx="200" cy="240" r="25" fill="#2563eb" opacity="0.4"
-                                        class="animate-pulse" style="animation-delay: 1s;" />
-                                </g>
-
-                                {{-- Animated Medical Cross --}}
-                                <g class="animate-fade-in-up" style="animation-delay: 0.4s;">
-                                    <rect x="180" y="100" width="40" height="120" rx="8"
-                                        fill="#10b981" opacity="0.3" class="animate-pulse-slow" />
-                                    <rect x="140" y="140" width="120" height="40" rx="8"
-                                        fill="#10b981" opacity="0.3" class="animate-pulse-slow"
-                                        style="animation-delay: 0.3s;" />
-                                </g>
-
-                                {{-- Animated Heart Monitor Line --}}
-                                <g class="animate-fade-in-up" style="animation-delay: 0.6s;">
-                                    <path d="M50 300 L100 300 L120 280 L140 320 L160 260 L180 300 L350 300"
-                                        stroke="#2563eb" stroke-width="4" stroke-linecap="round" fill="none"
-                                        opacity="0.35" class="animate-pulse">
-                                        <animate attributeName="stroke-dasharray" from="0,1000" to="1000,0"
-                                            dur="2s" repeatCount="indefinite" />
-                                    </path>
-                                </g>
-
-                                {{-- Animated Medical Pills --}}
-                                <g class="animate-fade-in-up" style="animation-delay: 0.8s;">
-                                    <ellipse cx="300" cy="150" rx="20" ry="30"
-                                        fill="#10b981" opacity="0.3" transform="rotate(45 300 150)"
-                                        class="animate-bounce" style="animation-duration: 2s;" />
-                                    <ellipse cx="330" cy="180" rx="20" ry="30"
-                                        fill="#2563eb" opacity="0.3" transform="rotate(45 330 180)"
-                                        class="animate-bounce"
-                                        style="animation-duration: 2s; animation-delay: 0.5s;" />
-                                </g>
-
-                                {{-- Animated Syringe --}}
-                                <g class="animate-fade-in-up" style="animation-delay: 1s;">
-                                    <rect x="80" y="200" width="60" height="12" rx="6" fill="#2563eb"
-                                        opacity="0.3" class="animate-pulse-slow" />
-                                    <rect x="70" y="197" width="10" height="18" rx="2" fill="#2563eb"
-                                        opacity="0.3" />
-                                    <circle cx="145" cy="206" r="8" fill="#10b981" opacity="0.3"
-                                        class="animate-ping" style="animation-duration: 3s;" />
-                                </g>
+                        {{-- Fallback SVG if image fails to load --}}
+                        <div id="hero-fallback-svg"
+                            style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; align-items: center; justify-content: center; padding: 2rem; background: linear-gradient(135deg, #EBF5FF 0%, #E8F5E9 100%);">
+                            <svg style="width: 100%; height: 100%; max-width: 400px; max-height: 400px;"
+                                viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                {{-- Medical Cross --}}
+                                <rect x="160" y="80" width="80" height="240" rx="12" fill="#2563eb"
+                                    opacity="0.2" />
+                                <rect x="80" y="160" width="240" height="80" rx="12" fill="#10b981"
+                                    opacity="0.2" />
+                                {{-- Stethoscope Icon --}}
+                                <circle cx="200" cy="200" r="60" stroke="#2563eb" stroke-width="8"
+                                    fill="none" opacity="0.3" />
+                                <text x="200" y="350" text-anchor="middle" fill="#666" font-size="16">Medical
+                                    Equipment</text>
                             </svg>
                         </div>
                     </div>
+                </div>
 
-                    {{-- Floating Cards --}}
-                    <div class="absolute -top-6 -right-6 bg-white rounded-2xl shadow-medical-xl p-4 animate-fade-in-down"
-                        style="animation-delay: 0.4s;">
-                        <div class="flex items-center space-x-3 space-x-reverse">
-                            <div
-                                class="w-12 h-12 bg-gradient-to-br from-medical-blue-500 to-medical-green-500 rounded-xl flex items-center justify-center">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <div>
-                                <div class="text-sm font-bold text-medical-gray-900">جودة معتمدة</div>
-                                <div class="text-xs text-medical-gray-600">ISO 13485</div>
-                            </div>
-                        </div>
-                    </div>
+                {{-- Alternative: Animated Medical Equipment Illustration (Backup) --}}
+                <div class="hidden">
+                    <div class="aspect-square flex items-center justify-center">
+                        <svg class="w-full h-full" viewBox="0 0 400 400" fill="none"
+                            xmlns="http://www.w3.org/2000/svg">
 
-                    <div class="absolute -bottom-6 -left-6 bg-white rounded-2xl shadow-medical-xl p-4 animate-fade-in-up"
-                        style="animation-delay: 0.6s;">
-                        <div class="flex items-center space-x-3 space-x-reverse">
-                            <div
-                                class="w-12 h-12 bg-gradient-to-br from-medical-green-500 to-medical-blue-500 rounded-xl flex items-center justify-center">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <div>
-                                <div class="text-sm font-bold text-medical-gray-900">توصيل سريع</div>
-                                <div class="text-xs text-medical-gray-600">24-48 ساعة</div>
-                            </div>
-                        </div>
+                            {{-- Animated Stethoscope --}}
+                            <g class="animate-fade-in-up" style="animation-delay: 0.2s;">
+                                <path
+                                    d="M120 80 Q140 60 160 80 L160 180 Q160 220 200 220 Q240 220 240 180 L240 80 Q260 60 280 80"
+                                    stroke="#2563eb" stroke-width="8" stroke-linecap="round" fill="none"
+                                    opacity="0.4" class="animate-pulse-slow" />
+                                <circle cx="120" cy="80" r="15" fill="#2563eb" opacity="0.4"
+                                    class="animate-pulse" />
+                                <circle cx="280" cy="80" r="15" fill="#2563eb" opacity="0.4"
+                                    class="animate-pulse" style="animation-delay: 0.5s;" />
+                                <circle cx="200" cy="240" r="25" fill="#2563eb" opacity="0.4"
+                                    class="animate-pulse" style="animation-delay: 1s;" />
+                            </g>
+
+                            {{-- Animated Medical Cross --}}
+                            <g class="animate-fade-in-up" style="animation-delay: 0.4s;">
+                                <rect x="180" y="100" width="40" height="120" rx="8" fill="#10b981"
+                                    opacity="0.3" class="animate-pulse-slow" />
+                                <rect x="140" y="140" width="120" height="40" rx="8" fill="#10b981"
+                                    opacity="0.3" class="animate-pulse-slow" style="animation-delay: 0.3s;" />
+                            </g>
+
+                            {{-- Animated Heart Monitor Line --}}
+                            <g class="animate-fade-in-up" style="animation-delay: 0.6s;">
+                                <path d="M50 300 L100 300 L120 280 L140 320 L160 260 L180 300 L350 300"
+                                    stroke="#2563eb" stroke-width="4" stroke-linecap="round" fill="none"
+                                    opacity="0.35" class="animate-pulse">
+                                    <animate attributeName="stroke-dasharray" from="0,1000" to="1000,0"
+                                        dur="2s" repeatCount="indefinite" />
+                                </path>
+                            </g>
+
+                            {{-- Animated Medical Pills --}}
+                            <g class="animate-fade-in-up" style="animation-delay: 0.8s;">
+                                <ellipse cx="300" cy="150" rx="20" ry="30" fill="#10b981"
+                                    opacity="0.3" transform="rotate(45 300 150)" class="animate-bounce"
+                                    style="animation-duration: 2s;" />
+                                <ellipse cx="330" cy="180" rx="20" ry="30" fill="#2563eb"
+                                    opacity="0.3" transform="rotate(45 330 180)" class="animate-bounce"
+                                    style="animation-duration: 2s; animation-delay: 0.5s;" />
+                            </g>
+
+                            {{-- Animated Syringe --}}
+                            <g class="animate-fade-in-up" style="animation-delay: 1s;">
+                                <rect x="80" y="200" width="60" height="12" rx="6" fill="#2563eb"
+                                    opacity="0.3" class="animate-pulse-slow" />
+                                <rect x="70" y="197" width="10" height="18" rx="2" fill="#2563eb"
+                                    opacity="0.3" />
+                                <circle cx="145" cy="206" r="8" fill="#10b981" opacity="0.3"
+                                    class="animate-ping" style="animation-duration: 3s;" />
+                            </g>
+                        </svg>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     {{-- Scroll Indicator --}}

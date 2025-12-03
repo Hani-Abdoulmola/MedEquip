@@ -8,6 +8,7 @@ use App\Models\Buyer;
 use App\Models\Order;
 use App\Models\Supplier;
 use App\Services\NotificationService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -95,7 +96,7 @@ class OrderController extends Controller
                 \App\Models\Order::class,
                 'order_number'
             );
-            $data['created_by'] = auth()->id();
+            $data['created_by'] = Auth::id();
 
             $order = Order::create($data);
 
@@ -106,26 +107,32 @@ class OrderController extends Controller
                 route('admin.orders.show', $order->id)
             );
 
-            NotificationService::send(
-                $order->buyer->user,
-                '🛒 تم إنشاء طلبك بنجاح',
-                "تم إنشاء الطلب رقم {$order->order_number}. يمكنك متابعة حالته من لوحة التحكم.",
-                route('admin.orders.show', $order->id)
-            );
+            // Send notification to buyer
+            if ($order->buyer && $order->buyer->user) {
+                NotificationService::send(
+                    $order->buyer->user,
+                    '🛒 تم إنشاء طلبك بنجاح',
+                    "تم إنشاء الطلب رقم {$order->order_number}. يمكنك متابعة حالته من لوحة التحكم.",
+                    route('admin.orders.show', $order->id)
+                );
+            }
 
-            NotificationService::send(
-                $order->supplier->user,
-                '📦 طلب جديد من مشتري',
-                "تم إرسال طلب جديد من {$order->buyer->organization_name}.",
-                route('admin.orders.show', $order->id)
-            );
+            // Send notification to supplier
+            if ($order->supplier && $order->supplier->user) {
+                NotificationService::send(
+                    $order->supplier->user,
+                    '📦 طلب جديد من مشتري',
+                    "تم إرسال طلب جديد من {$order->buyer->organization_name}.",
+                    route('admin.orders.show', $order->id)
+                );
+            }
 
             // 🧾 تسجيل النشاط
             activity()
                 ->performedOn($order)
-                ->causedBy(auth()->user())
+                ->causedBy(Auth::user())
                 ->withProperties([
-                    'created_by' => auth()->id(),
+                    'created_by' => Auth::id(),
                     'ip' => request()->ip(),
                     'user_agent' => request()->userAgent(),
                 ])
@@ -165,16 +172,16 @@ class OrderController extends Controller
             $oldStatus = $order->status;
 
             $data = $request->validated();
-            $data['updated_by'] = auth()->id();
+            $data['updated_by'] = Auth::id();
 
             $order->update($data);
 
             // 🧾 سجل النشاط
             activity()
                 ->performedOn($order)
-                ->causedBy(auth()->user())
+                ->causedBy(Auth::user())
                 ->withProperties([
-                    'updated_by' => auth()->id(),
+                    'updated_by' => Auth::id(),
                     'old_status' => $oldStatus,
                     'new_status' => $order->status,
                 ])
@@ -184,36 +191,44 @@ class OrderController extends Controller
             if ($oldStatus !== $order->status) {
                 switch ($order->status) {
                     case 'processing':
-                        NotificationService::send(
-                            $order->buyer->user,
-                            '🔄 جاري تجهيز طلبك',
-                            "طلبك رقم {$order->order_number} الآن قيد التجهيز.",
-                            route('admin.orders.show', $order->id)
-                        );
-                        NotificationService::send(
-                            $order->supplier->user,
-                            '🔄 طلب قيد التجهيز',
-                            "الطلب رقم {$order->order_number} الآن قيد التجهيز.",
-                            route('admin.orders.show', $order->id)
-                        );
+                        if ($order->buyer && $order->buyer->user) {
+                            NotificationService::send(
+                                $order->buyer->user,
+                                '🔄 جاري تجهيز طلبك',
+                                "طلبك رقم {$order->order_number} الآن قيد التجهيز.",
+                                route('admin.orders.show', $order->id)
+                            );
+                        }
+                        if ($order->supplier && $order->supplier->user) {
+                            NotificationService::send(
+                                $order->supplier->user,
+                                '🔄 طلب قيد التجهيز',
+                                "الطلب رقم {$order->order_number} الآن قيد التجهيز.",
+                                route('admin.orders.show', $order->id)
+                            );
+                        }
                         break;
 
                     case 'shipped':
-                        NotificationService::send(
-                            $order->buyer->user,
-                            '🚚 تم شحن الطلب',
-                            "طلبك رقم {$order->order_number} تم شحنه من المورد {$order->supplier->company_name}.",
-                            route('admin.orders.show', $order->id)
-                        );
+                        if ($order->buyer && $order->buyer->user) {
+                            NotificationService::send(
+                                $order->buyer->user,
+                                '🚚 تم شحن الطلب',
+                                "طلبك رقم {$order->order_number} تم شحنه من المورد {$order->supplier->company_name}.",
+                                route('admin.orders.show', $order->id)
+                            );
+                        }
                         break;
 
                     case 'delivered':
-                        NotificationService::send(
-                            $order->buyer->user,
-                            '✅ تم تسليم الطلب',
-                            "تم تأكيد تسليم الطلب رقم {$order->order_number}. شكراً لتعاملك معنا!",
-                            route('admin.orders.show', $order->id)
-                        );
+                        if ($order->buyer && $order->buyer->user) {
+                            NotificationService::send(
+                                $order->buyer->user,
+                                '✅ تم تسليم الطلب',
+                                "تم تأكيد تسليم الطلب رقم {$order->order_number}. شكراً لتعاملك معنا!",
+                                route('admin.orders.show', $order->id)
+                            );
+                        }
 
                         NotificationService::notifyAdmins(
                             '✅ طلب مكتمل',
@@ -223,18 +238,22 @@ class OrderController extends Controller
                         break;
 
                     case 'cancelled':
-                        NotificationService::send(
-                            $order->buyer->user,
-                            '❌ تم إلغاء الطلب',
-                            "تم إلغاء الطلب رقم {$order->order_number}.",
-                            route('admin.orders.show', $order->id)
-                        );
-                        NotificationService::send(
-                            $order->supplier->user,
-                            '❌ تم إلغاء الطلب',
-                            "تم إلغاء الطلب رقم {$order->order_number}.",
-                            route('admin.orders.show', $order->id)
-                        );
+                        if ($order->buyer && $order->buyer->user) {
+                            NotificationService::send(
+                                $order->buyer->user,
+                                '❌ تم إلغاء الطلب',
+                                "تم إلغاء الطلب رقم {$order->order_number}.",
+                                route('admin.orders.show', $order->id)
+                            );
+                        }
+                        if ($order->supplier && $order->supplier->user) {
+                            NotificationService::send(
+                                $order->supplier->user,
+                                '❌ تم إلغاء الطلب',
+                                "تم إلغاء الطلب رقم {$order->order_number}.",
+                                route('admin.orders.show', $order->id)
+                            );
+                        }
                         break;
                 }
             }
@@ -264,7 +283,7 @@ class OrderController extends Controller
 
             activity()
                 ->performedOn($order)
-                ->causedBy(auth()->user())
+                ->causedBy(Auth::user())
                 ->withProperties(['order_number' => $orderNumber])
                 ->log('🗑️ تم حذف أمر الشراء');
 

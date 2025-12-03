@@ -44,7 +44,9 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-medical-gray-600">موردين معلقين</p>
-                        <p class="text-3xl font-bold text-medical-gray-900 mt-2">{{ $stats['pending_suppliers'] }}</p>
+                        <p class="text-3xl font-bold text-medical-gray-900 mt-2">
+                            {{ $stats['pending_suppliers'] }}
+                        </p>
                         <p class="text-xs text-medical-gray-500 mt-1">طلبات موردين</p>
                     </div>
                     <div
@@ -63,7 +65,9 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-medical-gray-600">مشترين معلقين</p>
-                        <p class="text-3xl font-bold text-medical-gray-900 mt-2">{{ $stats['pending_buyers'] }}</p>
+                        <p class="text-3xl font-bold text-medical-gray-900 mt-2">
+                            {{ $stats['pending_buyers'] }}
+                        </p>
                         <p class="text-xs text-medical-gray-500 mt-1">طلبات مشترين</p>
                     </div>
                     <div
@@ -82,7 +86,9 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-medical-gray-600">إجمالي المرفوضة</p>
-                        <p class="text-3xl font-bold text-medical-red-600 mt-2">{{ $stats['total_rejected'] }}</p>
+                        <p class="text-3xl font-bold text-medical-red-600 mt-2">
+                            {{ $stats['total_rejected'] }}
+                        </p>
                         <p class="text-xs text-medical-gray-500 mt-1">طلبات مرفوضة</p>
                     </div>
                     <div
@@ -133,9 +139,6 @@
             </div>
         </div>
 
-
-
-
         {{-- Suppliers Tab Content --}}
         <div x-show="activeTab === 'suppliers'" x-transition:enter="transition ease-out duration-200"
             x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
@@ -175,7 +178,7 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-medical-gray-200">
-                            @forelse($suppliers as $supplier)
+                            @forelse($pendingSuppliers as $supplier)
                                 <tr class="hover:bg-medical-gray-50 transition-colors duration-150">
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm font-medium text-medical-gray-900">
@@ -207,54 +210,40 @@
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        @if ($supplier->rejection_reason)
-                                            <span
-                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-medical-red-100 text-medical-red-800">
-                                                مرفوض
-                                            </span>
-                                        @elseif($supplier->is_verified)
-                                            <span
-                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-medical-green-100 text-medical-green-800">
-                                                موافق عليه
-                                            </span>
-                                        @else
-                                            <span
-                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-medical-yellow-100 text-medical-yellow-800">
-                                                معلق
-                                            </span>
-                                        @endif
+                                        <span
+                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-medical-yellow-100 text-medical-yellow-800">
+                                            معلق
+                                        </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div class="flex items-center space-x-2 space-x-reverse">
-                                            @if (!$supplier->is_verified && !$supplier->rejection_reason)
-                                                {{-- Approve Button --}}
-                                                <form method="POST"
-                                                    action="{{ route('admin.registrations.approve', ['type' => 'supplier', 'id' => $supplier->id]) }}"
-                                                    onsubmit="return confirm('هل أنت متأكد من الموافقة على هذا الطلب؟')">
-                                                    @csrf
-                                                    <button type="submit"
-                                                        class="inline-flex items-center px-3 py-1.5 bg-medical-green-600 text-white text-xs rounded-lg hover:bg-medical-green-700 transition-all duration-200">
-                                                        <svg class="w-4 h-4 ml-1" fill="none"
-                                                            stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                stroke-width="2" d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                        موافقة
-                                                    </button>
-                                                </form>
-
-                                                {{-- Reject Button --}}
-                                                <button type="button"
-                                                    @click="showRejectModal = true; rejectType = 'supplier'; rejectId = {{ $supplier->id }}; rejectName = '{{ $supplier->company_name }}'"
-                                                    class="inline-flex items-center px-3 py-1.5 bg-medical-red-600 text-white text-xs rounded-lg hover:bg-medical-red-700 transition-all duration-200">
+                                            {{-- Approve Button --}}
+                                            <form method="POST"
+                                                action="{{ route('admin.registrations.approve', ['type' => 'supplier', 'id' => $supplier->id]) }}"
+                                                onsubmit="return confirm('هل أنت متأكد من الموافقة على هذا الطلب؟')">
+                                                @csrf
+                                                <button type="submit"
+                                                    class="inline-flex items-center px-3 py-1.5 bg-medical-green-600 text-white text-xs rounded-lg hover:bg-medical-green-700 transition-all duration-200">
                                                     <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor"
                                                         viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                            stroke-width="2" d="M5 13l4 4L19 7" />
                                                     </svg>
-                                                    رفض
+                                                    موافقة
                                                 </button>
-                                            @endif
+                                            </form>
+
+                                            {{-- Reject Button --}}
+                                            <button type="button"
+                                                @click="showRejectModal = true; rejectType = 'supplier'; rejectId = {{ $supplier->id }}; rejectName = '{{ $supplier->company_name }}'"
+                                                class="inline-flex items-center px-3 py-1.5 bg-medical-red-600 text-white text-xs rounded-lg hover:bg-medical-red-700 transition-all duration-200">
+                                                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                                رفض
+                                            </button>
 
                                             {{-- View Details Button --}}
                                             <a href="{{ route('admin.suppliers.show', $supplier) }}"
@@ -332,7 +321,7 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-medical-gray-200">
-                            @forelse($buyers as $buyer)
+                            @forelse($pendingBuyers as $buyer)
                                 <tr class="hover:bg-medical-gray-50 transition-colors duration-150">
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm font-medium text-medical-gray-900">
@@ -364,54 +353,40 @@
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        @if ($buyer->rejection_reason)
-                                            <span
-                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-medical-red-100 text-medical-red-800">
-                                                مرفوض
-                                            </span>
-                                        @elseif($buyer->is_verified)
-                                            <span
-                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-medical-green-100 text-medical-green-800">
-                                                موافق عليه
-                                            </span>
-                                        @else
-                                            <span
-                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-medical-yellow-100 text-medical-yellow-800">
-                                                معلق
-                                            </span>
-                                        @endif
+                                        <span
+                                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-medical-yellow-100 text-medical-yellow-800">
+                                            معلق
+                                        </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div class="flex items-center space-x-2 space-x-reverse">
-                                            @if (!$buyer->is_verified && !$buyer->rejection_reason)
-                                                {{-- Approve Button --}}
-                                                <form method="POST"
-                                                    action="{{ route('admin.registrations.approve', ['type' => 'buyer', 'id' => $buyer->id]) }}"
-                                                    onsubmit="return confirm('هل أنت متأكد من الموافقة على هذا الطلب؟')">
-                                                    @csrf
-                                                    <button type="submit"
-                                                        class="inline-flex items-center px-3 py-1.5 bg-medical-green-600 text-white text-xs rounded-lg hover:bg-medical-green-700 transition-all duration-200">
-                                                        <svg class="w-4 h-4 ml-1" fill="none"
-                                                            stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                                stroke-width="2" d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                        موافقة
-                                                    </button>
-                                                </form>
-
-                                                {{-- Reject Button --}}
-                                                <button type="button"
-                                                    @click="showRejectModal = true; rejectType = 'buyer'; rejectId = {{ $buyer->id }}; rejectName = '{{ $buyer->organization_name }}'"
-                                                    class="inline-flex items-center px-3 py-1.5 bg-medical-red-600 text-white text-xs rounded-lg hover:bg-medical-red-700 transition-all duration-200">
+                                            {{-- Approve Button --}}
+                                            <form method="POST"
+                                                action="{{ route('admin.registrations.approve', ['type' => 'buyer', 'id' => $buyer->id]) }}"
+                                                onsubmit="return confirm('هل أنت متأكد من الموافقة على هذا الطلب؟')">
+                                                @csrf
+                                                <button type="submit"
+                                                    class="inline-flex items-center px-3 py-1.5 bg-medical-green-600 text-white text-xs rounded-lg hover:bg-medical-green-700 transition-all duration-200">
                                                     <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor"
                                                         viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                            stroke-width="2" d="M5 13l4 4L19 7" />
                                                     </svg>
-                                                    رفض
+                                                    موافقة
                                                 </button>
-                                            @endif
+                                            </form>
+
+                                            {{-- Reject Button --}}
+                                            <button type="button"
+                                                @click="showRejectModal = true; rejectType = 'buyer'; rejectId = {{ $buyer->id }}; rejectName = '{{ $buyer->organization_name }}'"
+                                                class="inline-flex items-center px-3 py-1.5 bg-medical-red-600 text-white text-xs rounded-lg hover:bg-medical-red-700 transition-all duration-200">
+                                                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                                رفض
+                                            </button>
 
                                             {{-- View Details Button --}}
                                             <a href="{{ route('admin.buyers.show', $buyer) }}"

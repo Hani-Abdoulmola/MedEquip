@@ -7,6 +7,7 @@ use App\Models\Buyer;
 use App\Models\Supplier;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -19,29 +20,30 @@ class RegistrationApprovalController extends Controller
      */
     public function index()
     {
-        // Get pending and rejected suppliers
-        $suppliers = Supplier::with('user')
-            ->whereIn('is_verified', [false, true])
+        // Get ONLY pending suppliers (not verified AND no rejection reason)
+        $pendingSuppliers = Supplier::with('user')
+            ->where('is_verified', false)
+            ->whereNull('rejection_reason')
             ->latest('created_at')
             ->get();
 
-        // Get pending and rejected buyers
-        $buyers = Buyer::with('user')
-            ->whereIn('is_verified', [false, true])
+        // Get ONLY pending buyers (not verified AND no rejection reason)
+        $pendingBuyers = Buyer::with('user')
+            ->where('is_verified', false)
+            ->whereNull('rejection_reason')
             ->latest('created_at')
             ->get();
 
         // Calculate stats
         $stats = [
-            'total_pending' => $suppliers->where('is_verified', false)->where('rejection_reason', null)->count() +
-                              $buyers->where('is_verified', false)->where('rejection_reason', null)->count(),
-            'pending_suppliers' => $suppliers->where('is_verified', false)->where('rejection_reason', null)->count(),
-            'pending_buyers' => $buyers->where('is_verified', false)->where('rejection_reason', null)->count(),
-            'total_rejected' => $suppliers->whereNotNull('rejection_reason')->count() +
-                               $buyers->whereNotNull('rejection_reason')->count(),
+            'total_pending' => $pendingSuppliers->count() + $pendingBuyers->count(),
+            'pending_suppliers' => $pendingSuppliers->count(),
+            'pending_buyers' => $pendingBuyers->count(),
+            'total_rejected' => Supplier::whereNotNull('rejection_reason')->count() +
+                               Buyer::whereNotNull('rejection_reason')->count(),
         ];
 
-        return view('admin.registrations.pending', compact('suppliers', 'buyers', 'stats'));
+        return view('admin.registrations.pending', compact('pendingSuppliers', 'pendingBuyers', 'stats'));
     }
 
     /**
@@ -55,7 +57,7 @@ class RegistrationApprovalController extends Controller
             // Get the model based on type
             $model = $this->getModel($type, $id);
 
-            if (!$model) {
+            if (! $model) {
                 return back()->withErrors(['error' => 'السجل غير موجود']);
             }
 
@@ -73,11 +75,11 @@ class RegistrationApprovalController extends Controller
 
             activity('registrations')
                 ->performedOn($model)
-                ->causedBy(auth()->user())
+                ->causedBy(Auth::user())
                 ->withProperties([
                     'type' => $type,
                     'organization_name' => $organizationName,
-                    'approved_by' => auth()->user()->name,
+                    'approved_by' => Auth::user()->name,
                 ])
                 ->log("✅ تمت الموافقة على تسجيل {$entityName}: {$organizationName}");
 
@@ -126,7 +128,7 @@ class RegistrationApprovalController extends Controller
             // Get the model based on type
             $model = $this->getModel($type, $id);
 
-            if (!$model) {
+            if (! $model) {
                 return back()->withErrors(['error' => 'السجل غير موجود']);
             }
 
@@ -147,11 +149,11 @@ class RegistrationApprovalController extends Controller
 
             activity('registrations')
                 ->performedOn($model)
-                ->causedBy(auth()->user())
+                ->causedBy(Auth::user())
                 ->withProperties([
                     'type' => $type,
                     'organization_name' => $organizationName,
-                    'rejected_by' => auth()->user()->name,
+                    'rejected_by' => Auth::user()->name,
                     'rejection_reason' => $request->rejection_reason,
                 ])
                 ->log("❌ تم رفض تسجيل {$entityName}: {$organizationName}");

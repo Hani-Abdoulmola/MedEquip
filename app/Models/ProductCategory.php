@@ -21,6 +21,8 @@ class ProductCategory extends Model
         'description',
         'parent_id',
         'is_active',
+        'review_status',
+        'review_note',
         'sort_order',
         'created_by',
         'updated_by',
@@ -28,6 +30,7 @@ class ProductCategory extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'review_status' => 'string',
         'sort_order' => 'integer',
     ];
 

@@ -12,6 +12,17 @@ class SupplierRequest extends FormRequest
         return true; // التحكم في الصلاحيات يتم عبر Middleware و Spatie
     }
 
+    /**
+     * Prepare the data for validation.
+     */
+    public function prepareForValidation(): void
+    {
+        $this->merge([
+            'email' => $this->has('email') ? strtolower(trim($this->email)) : null,
+            'contact_email' => $this->has('contact_email') ? strtolower(trim($this->contact_email)) : null,
+        ]);
+    }
+
     public function rules(): array
     {
         $id = $this->route('supplier')?->id;
@@ -64,6 +75,7 @@ class SupplierRequest extends FormRequest
             'is_verified' => ['boolean'],
             'is_active' => ['boolean'],
             'verified_at' => ['nullable', 'date'],
+            'verification_document' => ['nullable', 'file', 'max:5120', 'mimetypes:application/pdf,image/jpeg,image/png'],
         ];
     }
 

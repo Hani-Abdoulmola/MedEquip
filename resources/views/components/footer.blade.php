@@ -8,8 +8,8 @@
             {{-- Company Info --}}
             <div class="lg:col-span-2">
                 <div class="flex items-center gap-3 mb-6">
-                    <img src="{{ asset('assets/img/logo.webp') }}" alt="MediTrust Logo" class="h-10 w-auto" width="120" height="40">
-                    <span class="text-2xl font-bold">MediTrust</span>
+                    <x-application-logo class="h-12 w-12" />
+                    <span class="text-2xl font-bold">MediEquip</span>
                 </div>
                 <p class="text-gray-300 mb-6 leading-relaxed max-w-md">
                     منصة رائدة في تجارة المعدات والأجهزة الطبية، نربط الموردين بالمؤسسات الطبية في العالم العربي من خلال حلول رقمية مبتكرة وآمنة.

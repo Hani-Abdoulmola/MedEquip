@@ -89,7 +89,7 @@
         "name": "MediEquip",
         "description": "منصة المعدات الطبية الرائدة في العالم العربي",
         "url": "{{ url('/') }}",
-        "logo": "{{ asset('images/logo.png') }}",
+        "logo": "{{ asset('assets/img/Caduceus Icon.png') }}",
         "contactPoint": {
             "@@type": "ContactPoint",
             "telephone": "+966-XX-XXX-XXXX",

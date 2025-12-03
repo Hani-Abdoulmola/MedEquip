@@ -6,59 +6,84 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * إنشاء جدول المنتجات (Products)
-     */
     public function up(): void
     {
         Schema::create('products', function (Blueprint $table) {
             $table->id()->comment('🔑 المعرّف الأساسي للمنتج');
 
-            //  المستخدمين الذين أنشأوا أو عدّلوا المنتج
+            // المستخدمين
             $table->foreignId('created_by')
                 ->nullable()
                 ->constrained('users')
                 ->nullOnDelete()
-                ->comment(' المستخدم الذي أضاف المنتج (عادة مدير النظام أو المورد)');
+                ->comment('المستخدم الذي أضاف المنتج');
 
             $table->foreignId('updated_by')
                 ->nullable()
                 ->constrained('users')
                 ->nullOnDelete()
-                ->comment('✏️ آخر من قام بتعديل بيانات المنتج');
+                ->comment('✏️ آخر من عدل المنتج');
 
-            //  البيانات الأساسية للمنتج
-            $table->string('name', 200)->comment('📦 اسم المنتج الطبي مثل: جهاز تخدير، مضخة حقن، إلخ');
-            $table->string('model', 100)->nullable()->comment('🔢 رقم أو موديل المنتج');
-            $table->string('brand', 100)->nullable()->comment('🏷️ العلامة التجارية للمنتج');
+            // البيانات الأساسية
+            $table->string('name', 200)->comment('📦 اسم المنتج');
+            $table->string('model', 100)->nullable()->comment('🔢 الموديل');
+            $table->string('brand', 100)->nullable()->comment('🏷️ العلامة التجارية');
 
-            // 📂 الفئة (علاقة مع جدول product_categories)
+            // الفئة
             $table->foreignId('category_id')
                 ->nullable()
                 ->constrained('product_categories')
                 ->nullOnDelete()
-                ->comment('📂 فئة المنتج (علاقة مع جدول الفئات الهرمي)');
+                ->comment('📂 الفئة');
 
-            $table->text('description')->nullable()->comment('📝 وصف تفصيلي للمنتج ومواصفاته التقنية');
+            $table->text('description')->nullable()->comment('📝 الوصف العام للمنتج');
 
-            //  حالة المنتج العامة (متاح أو غير متاح للعرض)
             $table->boolean('is_active')
                 ->default(true)
                 ->index()
-                ->comment(' حالة المنتج: متاح / غير متاح للعرض');
+                ->comment('نشط / غير نشط');
 
-            $table->timestamps(); // created_at, updated_at
-            $table->softDeletes()->comment('🗑️ الحذف المنطقي دون فقد البيانات');
+            $table->enum('review_status', ['pending', 'approved', 'needs_update', 'rejected'])
+                ->default('pending')
+                ->comment('حالة المراجعة من الإدارة');
 
-            // 🔍 فهارس لتحسين البحث والأداء
+            $table->text('review_notes')
+                ->nullable()
+                ->comment('ملاحظات الإدارة للمورد عند طلب تعديل');
+
+            $table->text('rejection_reason')
+                ->nullable()
+                ->comment('سبب الرفض عند تغيير الحالة إلى rejected');
+
+            $table->json('specifications')
+                ->nullable()
+                ->comment('مواصفات المنتج (key/value)');
+
+            $table->json('features')
+                ->nullable()
+                ->comment('مميزات المنتج (list of strings)');
+
+            $table->json('technical_data')
+                ->nullable()
+                ->comment('بيانات تقنية إضافية');
+
+            $table->json('certifications')
+                ->nullable()
+                ->comment('الشهادات والاعتمادات');
+
+            $table->text('installation_requirements')
+                ->nullable()
+                ->comment('متطلبات التركيب والتشغيل');
+
+            $table->timestamps();
+            $table->softDeletes()->comment('🗑️ الحذف المنطقي');
+
+            // فهارس
             $table->index(['name', 'brand'], 'product_search_index');
             $table->index(['category_id', 'is_active'], 'product_category_index');
         });
     }
 
-    /**
-     * حذف الجدول عند التراجع عن الترحيل
-     */
     public function down(): void
     {
         Schema::dropIfExists('products');

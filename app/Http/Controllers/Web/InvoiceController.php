@@ -8,6 +8,7 @@ use App\Models\Invoice;
 use App\Models\Order;
 use App\Services\NotificationService;
 use App\Services\ReferenceCodeService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -54,7 +55,7 @@ class InvoiceController extends Controller
                 \App\Models\Invoice::class,
                 'invoice_number'
             );
-            $data['created_by'] = auth()->id();
+            $data['created_by'] = Auth::id();
 
             $invoice = Invoice::create($data);
 
@@ -65,25 +66,31 @@ class InvoiceController extends Controller
                 route('invoices.show', $invoice->id)
             );
 
-            NotificationService::send(
-                $invoice->order->buyer->user,
-                '📄 فاتورة جديدة لطلبك',
-                "تم إصدار فاتورة جديدة للطلب رقم {$invoice->order->order_number}.",
-                route('invoices.show', $invoice->id)
-            );
+            // Send notification to buyer
+            if ($invoice->order && $invoice->order->buyer && $invoice->order->buyer->user) {
+                NotificationService::send(
+                    $invoice->order->buyer->user,
+                    '📄 فاتورة جديدة لطلبك',
+                    "تم إصدار فاتورة جديدة للطلب رقم {$invoice->order->order_number}.",
+                    route('invoices.show', $invoice->id)
+                );
+            }
 
-            NotificationService::send(
-                $invoice->order->supplier->user,
-                '💰 فاتورة جديدة',
-                "تم إنشاء فاتورة متعلقة بطلبك رقم {$invoice->order->order_number}.",
-                route('invoices.show', $invoice->id)
-            );
+            // Send notification to supplier
+            if ($invoice->order && $invoice->order->supplier && $invoice->order->supplier->user) {
+                NotificationService::send(
+                    $invoice->order->supplier->user,
+                    '💰 فاتورة جديدة',
+                    "تم إنشاء فاتورة متعلقة بطلبك رقم {$invoice->order->order_number}.",
+                    route('invoices.show', $invoice->id)
+                );
+            }
 
             activity()
                 ->performedOn($invoice)
-                ->causedBy(auth()->user())
+                ->causedBy(Auth::user())
                 ->withProperties([
-                    'created_by' => auth()->id(),
+                    'created_by' => Auth::id(),
                     'ip' => request()->ip(),
                     'user_agent' => request()->userAgent(),
                 ])
@@ -121,25 +128,28 @@ class InvoiceController extends Controller
 
         try {
             $data = $request->validated();
-            $data['updated_by'] = auth()->id();
+            $data['updated_by'] = Auth::id();
 
             $invoice->update($data);
 
             // 🧾 سجل النشاط
             activity()
                 ->performedOn($invoice)
-                ->causedBy(auth()->user())
-                ->withProperties(['updated_by' => auth()->id()])
+                ->causedBy(Auth::user())
+                ->withProperties(['updated_by' => Auth::id()])
                 ->log('🧾 تم تحديث الفاتورة');
 
             // 🔔 إشعار عند الدفع الكامل
             if ($invoice->payment_status === 'paid') {
-                NotificationService::send(
-                    $invoice->order->buyer->user,
-                    '✅ تم تأكيد الدفع',
-                    "تم تأكيد دفع الفاتورة رقم {$invoice->invoice_number}. شكراً لتعاملكم.",
-                    route('invoices.show', $invoice->id)
-                );
+                // Send notification to buyer
+                if ($invoice->order && $invoice->order->buyer && $invoice->order->buyer->user) {
+                    NotificationService::send(
+                        $invoice->order->buyer->user,
+                        '✅ تم تأكيد الدفع',
+                        "تم تأكيد دفع الفاتورة رقم {$invoice->invoice_number}. شكراً لتعاملكم.",
+                        route('invoices.show', $invoice->id)
+                    );
+                }
 
                 NotificationService::notifyAdmins(
                     '💰 فاتورة مدفوعة',

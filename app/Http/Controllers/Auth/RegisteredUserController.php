@@ -43,9 +43,15 @@ class RegisteredUserController extends Controller
         try {
             DB::beginTransaction();
 
+            // Get buyer user type
+            $buyerType = UserType::where('slug', 'buyer')->first();
+            if (! $buyerType) {
+                throw new \Exception('نوع المستخدم "مشتري" غير موجود في النظام');
+            }
+
             // 1️⃣ إنشاء حساب المستخدم
             $user = User::create([
-                'user_type_id' => UserType::where('slug', 'buyer')->first()->id, // 3
+                'user_type_id' => $buyerType->id, // 3
                 'name' => $request->name,
                 'email' => $request->email,
                 'phone' => $request->phone,
@@ -67,10 +73,15 @@ class RegisteredUserController extends Controller
                 'is_verified' => false, // يحتاج موافقة الإدارة
             ]);
 
-            // 3️⃣ إطلاق حدث التسجيل
+            // 3️⃣ إسناد دور Buyer للمستخدم
+            if (!$user->hasRole('Buyer')) {
+                $user->assignRole('Buyer');
+            }
+
+            // 4️⃣ إطلاق حدث التسجيل
             event(new Registered($user));
 
-            // 4️⃣ تسجيل الدخول تلقائيًا
+            // 5️⃣ تسجيل الدخول تلقائيًا
             Auth::login($user);
 
             DB::commit();
@@ -109,8 +120,12 @@ class RegisteredUserController extends Controller
             DB::beginTransaction();
             \Log::info('Database transaction started');
 
-            // 1️⃣ إنشاء حساب المستخدم
-            $userTypeId = UserType::where('slug', 'supplier')->first()->id;
+            // Get supplier user type
+            $supplierType = UserType::where('slug', 'supplier')->first();
+            if (! $supplierType) {
+                throw new \Exception('نوع المستخدم "مورد" غير موجود في النظام');
+            }
+            $userTypeId = $supplierType->id;
             \Log::info('User type ID for supplier:', ['user_type_id' => $userTypeId]);
 
             $user = User::create([
@@ -138,11 +153,16 @@ class RegisteredUserController extends Controller
             ]);
             \Log::info('Supplier created successfully:', ['supplier_id' => $supplier->id, 'company_name' => $supplier->company_name]);
 
-            // 3️⃣ إطلاق حدث التسجيل
+            // 3️⃣ إسناد دور Supplier للمستخدم
+            if (!$user->hasRole('Supplier')) {
+                $user->assignRole('Supplier');
+            }
+
+            // 4️⃣ إطلاق حدث التسجيل
             event(new Registered($user));
             \Log::info('Registered event fired');
 
-            // 4️⃣ تسجيل الدخول تلقائيًا
+            // 5️⃣ تسجيل الدخول تلقائيًا
             Auth::login($user);
             \Log::info('User logged in successfully');
 

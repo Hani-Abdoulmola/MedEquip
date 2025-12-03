@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use App\Notifications\SystemNotification;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class NotificationService
@@ -34,7 +35,7 @@ class NotificationService
         self::send($admins, $title, $message, $url, $icon, 'primary');
 
         activity('notifications')
-            ->causedBy(auth()->user() ?? null)
+            ->causedBy(Auth::user() ?? null)
             ->withProperties(['audience' => 'admins'])
             ->log('📣 تم إرسال إشعار إلى جميع المدراء');
     }
@@ -48,7 +49,7 @@ class NotificationService
         self::send($suppliers, $title, $message, $url, $icon, 'success');
 
         activity('notifications')
-            ->causedBy(auth()->user() ?? null)
+            ->causedBy(Auth::user() ?? null)
             ->withProperties(['audience' => 'suppliers'])
             ->log('📦 تم إرسال إشعار إلى جميع الموردين');
     }
@@ -62,7 +63,7 @@ class NotificationService
         self::send($buyers, $title, $message, $url, $icon, 'info');
 
         activity('notifications')
-            ->causedBy(auth()->user() ?? null)
+            ->causedBy(Auth::user() ?? null)
             ->withProperties(['audience' => 'buyers'])
             ->log('🛒 تم إرسال إشعار إلى جميع المشترين');
     }

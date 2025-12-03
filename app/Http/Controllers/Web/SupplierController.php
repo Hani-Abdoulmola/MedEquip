@@ -8,6 +8,8 @@ use App\Models\Supplier;
 use App\Models\User;
 use App\Models\UserType;
 use App\Services\NotificationService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -18,15 +20,54 @@ class SupplierController extends Controller
     // Middleware is now defined in routes/web.php for Laravel 12 compatibility
 
     /**
-     * 📜 عرض قائمة الموردين
+     *  عرض قائمة الموردين مع فلاتر إدارية بسيطة
      */
-    public function index()
+    public function index(Request $request)
     {
-        $suppliers = Supplier::with(['user', 'products'])
-            ->orderByDesc('id')
-            ->paginate(15);
+        $query = Supplier::with(['user', 'products']);
 
-        return view('admin.suppliers.index', compact('suppliers'));
+        // البحث بالاسم أو المدينة
+        if ($search = $request->get('q')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('company_name', 'like', "%{$search}%")
+                    ->orWhere('city', 'like', "%{$search}%");
+            });
+        }
+
+        // فلتر الحالة
+        if ($status = $request->get('status')) {
+            if ($status === 'active') {
+                $query->where('is_active', true);
+            } elseif ($status === 'pending') {
+                $query->where('is_verified', false);
+            } elseif ($status === 'suspended') {
+                $query->where('is_active', false);
+            }
+        }
+
+        // فلتر المدينة
+        if ($city = $request->get('city')) {
+            $query->where('city', $city);
+        }
+
+        $suppliers = $query->orderByDesc('id')
+            ->paginate(15)
+            ->withQueryString();
+
+        $stats = [
+            'total' => Supplier::count(),
+            'active' => Supplier::where('is_active', true)->count(),
+            'pending' => Supplier::where('is_verified', false)->count(),
+            'suspended' => Supplier::where('is_active', false)->count(),
+        ];
+
+        $cities = Supplier::select('city')
+            ->whereNotNull('city')
+            ->distinct()
+            ->orderBy('city')
+            ->pluck('city');
+
+        return view('admin.suppliers.index', compact('suppliers', 'stats', 'cities'));
     }
 
     /**
@@ -47,18 +88,27 @@ class SupplierController extends Controller
         try {
             $data = $request->validated();
 
-            // 1️⃣ إنشاء حساب المستخدم
+            // Get supplier user type
+            $supplierType = UserType::where('slug', 'supplier')->first();
+            if (!$supplierType) {
+                throw new \Exception('نوع المستخدم "مورد" غير موجود في النظام');
+            }
+
+            /** @var \App\Models\User */
+            $authUser = Auth::user();
+
+            // 1️ إنشاء حساب المستخدم
             $user = User::create([
-                'user_type_id' => UserType::where('slug', 'supplier')->first()->id, // 2
+                'user_type_id' => $supplierType->id, // 2
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'phone' => $data['phone'] ?? null,
                 'password' => Hash::make($data['password']),
                 'status' => 'active',
-                'created_by' => auth()->id(),
+                'created_by' => $authUser->id,
             ]);
 
-            // 2️⃣ إنشاء ملف المورد
+            //  إنشاء ملف المورد
             $supplier = Supplier::create([
                 'user_id' => $user->id,
                 'company_name' => $data['company_name'],
@@ -72,34 +122,40 @@ class SupplierController extends Controller
                 'is_verified' => $data['is_verified'] ?? true, // Admin-created suppliers are verified by default
                 'verified_at' => ($data['is_verified'] ?? true) ? now() : null,
                 'is_active' => $data['is_active'] ?? true,
-                'created_by' => auth()->id(),
+                'created_by' => $authUser->id,
             ]);
 
-            // 3️⃣ إسناد دور Supplier للمستخدم
+            // .ب  حفظ مستند التوثيق (إن وجد)
+            if ($request->hasFile('verification_document')) {
+                $supplier->addMediaFromRequest('verification_document')
+                    ->toMediaCollection('verification_documents');
+            }
+
+            //  إسناد دور Supplier للمستخدم
             if (! $user->hasRole('Supplier')) {
                 $user->assignRole('Supplier');
             }
 
-            // 4️⃣ سجل النشاط
+            //  سجل النشاط
             activity('suppliers')
                 ->performedOn($supplier)
-                ->causedBy(auth()->user())
+                ->causedBy($authUser)
                 ->withProperties([
                     'company_name' => $supplier->company_name,
-                    'created_by' => auth()->user()->name,
+                    'created_by' => $authUser->name,
                 ])
-                ->log('🟢 تم إنشاء مورد جديد');
+                ->log(' تم إنشاء مورد جديد');
 
-            // 5️⃣ إشعارات
+            //  إشعارات
             NotificationService::notifyAdmins(
-                '🏭 مورد جديد تمت إضافته',
+                ' مورد جديد تمت إضافته',
                 "تم تسجيل مورد جديد باسم {$supplier->company_name}.",
                 route('admin.suppliers.show', $supplier->id)
             );
 
             NotificationService::send(
                 $user,
-                '🎉 تم تسجيلك كمورد',
+                ' تم تسجيلك كمورد',
                 'تم ربط حسابك بنجاح كمورد في المنصة. يمكنك الآن إضافة منتجاتك وتقديم عروض الأسعار.',
                 route('dashboard')
             );
@@ -108,7 +164,7 @@ class SupplierController extends Controller
 
             return redirect()
                 ->route('admin.suppliers')
-                ->with('success', '✅ تم إضافة المورد بنجاح');
+                ->with('success', ' تم إضافة المورد بنجاح');
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Supplier store error: '.$e->getMessage());
@@ -120,7 +176,7 @@ class SupplierController extends Controller
     }
 
     /**
-     * ✏️ صفحة تعديل المورد
+     *  صفحة تعديل المورد
      */
     public function edit(Supplier $supplier)
     {
@@ -130,7 +186,7 @@ class SupplierController extends Controller
     }
 
     /**
-     * 🔄 تحديث بيانات المورد
+     *  تحديث بيانات المورد
      */
     public function update(SupplierRequest $request, Supplier $supplier)
     {
@@ -139,12 +195,15 @@ class SupplierController extends Controller
         try {
             $data = $request->validated();
 
-            // 1️⃣ تحديث بيانات المستخدم
+            /** @var \App\Models\User */
+            $authUser = Auth::user();
+
+            //  تحديث بيانات المستخدم
             $supplier->user->update([
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'phone' => $data['phone'] ?? $supplier->user->phone,
-                'updated_by' => auth()->id(),
+                'updated_by' => $authUser->id,
             ]);
 
             // تحديث كلمة المرور إذا تم إدخالها
@@ -154,7 +213,7 @@ class SupplierController extends Controller
                 ]);
             }
 
-            // 2️⃣ تحديث بيانات المورد
+            //  تحديث بيانات المورد
             $supplier->update([
                 'company_name' => $data['company_name'],
                 'commercial_register' => $data['commercial_register'],
@@ -167,23 +226,23 @@ class SupplierController extends Controller
                 'is_verified' => $data['is_verified'] ?? $supplier->is_verified,
                 'verified_at' => ($data['is_verified'] ?? false) && ! $supplier->is_verified ? now() : $supplier->verified_at,
                 'is_active' => $data['is_active'] ?? $supplier->is_active,
-                'updated_by' => auth()->id(),
+                'updated_by' => $authUser->id,
             ]);
 
-            // 3️⃣ سجل النشاط
+            //  سجل النشاط
             activity('suppliers')
                 ->performedOn($supplier)
-                ->causedBy(auth()->user())
+                ->causedBy($authUser)
                 ->withProperties([
                     'company_name' => $supplier->company_name,
-                    'updated_by' => auth()->user()->name,
+                    'updated_by' => $authUser->name,
                 ])
-                ->log('🟡 تم تحديث بيانات المورد');
+                ->log(' تم تحديث بيانات المورد');
 
-            // 4️⃣ إشعار المستخدم المرتبط
+            //  إشعار المستخدم المرتبط
             NotificationService::send(
                 $supplier->user,
-                '✏️ تم تحديث بيانات حسابك كمورد',
+                ' تم تحديث بيانات حسابك كمورد',
                 'تم تعديل بيانات حسابك من قبل الإدارة.',
                 route('dashboard')
             );
@@ -192,7 +251,7 @@ class SupplierController extends Controller
 
             return redirect()
                 ->route('admin.suppliers')
-                ->with('success', '✅ تم تحديث بيانات المورد بنجاح');
+                ->with('success', ' تم تحديث بيانات المورد بنجاح');
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Supplier update error: '.$e->getMessage());
@@ -204,7 +263,7 @@ class SupplierController extends Controller
     }
 
     /**
-     * 🗑️ حذف المورد
+     *  حذف المورد
      */
     public function destroy(Supplier $supplier)
     {
@@ -213,15 +272,18 @@ class SupplierController extends Controller
 
             $supplier->delete();
 
+            /** @var \App\Models\User */
+            $authUser = Auth::user();
+
             activity('suppliers')
                 ->performedOn($supplier)
-                ->causedBy(auth()->user())
+                ->causedBy($authUser)
                 ->withProperties(['company_name' => $companyName])
-                ->log('❌ تم حذف المورد');
+                ->log(' تم حذف المورد');
 
             return redirect()
                 ->route('admin.suppliers')
-                ->with('success', '❌ تم حذف المورد بنجاح');
+                ->with('success', ' تم حذف المورد بنجاح');
         } catch (\Throwable $e) {
             Log::error('Supplier delete error: '.$e->getMessage());
 
@@ -232,12 +294,72 @@ class SupplierController extends Controller
     }
 
     /**
-     * 👁️ عرض تفاصيل المورد
+     *  عرض تفاصيل المورد
      */
     public function show(Supplier $supplier)
     {
-        $supplier->load(['user', 'products']);
+        $supplier->load(['user', 'products', 'quotations']);
 
         return view('admin.suppliers.show', compact('supplier'));
+    }
+
+    /**
+     *  توثيق المورد من قبل الإدارة
+     */
+    public function verify(Supplier $supplier)
+    {
+        if (! $supplier->is_verified) {
+            /** @var \App\Models\User */
+            $authUser = Auth::user();
+
+            $supplier->update([
+                'is_verified' => true,
+                'verified_at' => now(),
+                'rejection_reason' => null,
+                'updated_by' => $authUser->id,
+            ]);
+
+            activity('suppliers')
+                ->performedOn($supplier)
+                ->causedBy($authUser)
+                ->withProperties(['company_name' => $supplier->company_name])
+                ->log(' تم توثيق المورد من قبل الإدارة');
+
+            NotificationService::send(
+                $supplier->user,
+                ' تم توثيق حسابك كمورد',
+                'تمت مراجعة وتوثيق حسابك من قبل إدارة المنصة. يمكنك الآن استخدام جميع المميزات المتاحة للموردين.',
+                route('dashboard')
+            );
+        }
+
+        return back()->with('success', ' تم توثيق المورد بنجاح');
+    }
+
+    /**
+     *  تفعيل / إيقاف حساب المورد
+     */
+    public function toggleActive(Supplier $supplier)
+    {
+        $newStatus = ! $supplier->is_active;
+
+        /** @var \App\Models\User */
+        $authUser = Auth::user();
+
+        $supplier->update([
+            'is_active' => $newStatus,
+            'updated_by' => $authUser->id,
+        ]);
+
+        activity('suppliers')
+            ->performedOn($supplier)
+            ->causedBy($authUser)
+            ->withProperties([
+                'company_name' => $supplier->company_name,
+                'is_active' => $newStatus,
+            ])
+            ->log($newStatus ? ' تم تفعيل حساب المورد' : ' تم إيقاف حساب المورد');
+
+        return back()->with('success', $newStatus ? ' تم تفعيل المورد' : ' تم إيقاف المورد');
     }
 }

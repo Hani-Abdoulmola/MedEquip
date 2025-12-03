@@ -19,7 +19,6 @@ class Buyer extends Model implements HasMedia
         'organization_name',
         'organization_type',
         'license_number',
-        // Removed: 'license_document' - use Media Library 'license_documents' collection
         'country',
         'city',
         'address',
@@ -126,5 +125,11 @@ class Buyer extends Model implements HasMedia
     public function isVerified(): bool
     {
         return $this->is_verified === true;
+    }
+
+    public function activities()
+    {
+        return $this->morphMany
+        (\Spatie\Activitylog\Models\Activity::class, 'subject')->latest();
     }
 }

@@ -9,6 +9,16 @@ use Illuminate\Validation\Rule;
 class ProfileUpdateRequest extends FormRequest
 {
     /**
+     * Prepare the data for validation.
+     */
+    public function prepareForValidation(): void
+    {
+        $this->merge([
+            'email' => $this->has('email') ? strtolower(trim($this->email)) : null,
+        ]);
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>

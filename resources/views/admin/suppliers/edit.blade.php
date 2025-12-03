@@ -160,6 +160,20 @@
                         @enderror
                     </div>
 
+                    {{-- Email  --}}
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-medical-gray-700 mb-2">
+                            البريد الإلكتروني لحساب الدخول <span class="text-red-500">*</span>
+                        </label>
+                        <input type="email" id="email" name="email" value="{{ old('email') }}" required
+                            class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl
+                                   focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500
+                                   transition-all duration-200 @error('email') border-red-500 @enderror">
+                        @error('email')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     {{-- Password --}}
                     <div>
                         <label for="password" class="block text-sm font-medium text-medical-gray-700 mb-2">

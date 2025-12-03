@@ -48,15 +48,7 @@
         {{-- Logo --}}
         <div class="mb-8 animate-fade-in-down">
             <a href="/" class="flex flex-col items-center space-y-2">
-                {{-- Logo Icon --}}
-                <div
-                    class="w-16 h-16 bg-gradient-to-br from-medical-blue-600 to-medical-green-600 rounded-2xl flex items-center justify-center shadow-medical-lg">
-                    <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-                {{-- Logo Text --}}
+                <x-application-logo class="h-20 w-20 shadow-medical-xl" />
                 <div class="text-center">
                     <h1
                         class="text-2xl font-bold bg-gradient-to-r from-medical-blue-600 to-medical-green-600 bg-clip-text text-transparent font-display">

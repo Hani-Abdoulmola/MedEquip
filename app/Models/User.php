@@ -38,10 +38,24 @@ class User extends Authenticatable implements HasMedia
 
     /**
      * تشفير كلمة المرور تلقائيًا
+     * Note: Controllers already hash passwords with Hash::make(), so this mutator
+     * only hashes if the password is not already hashed (to prevent double hashing)
      */
     public function setPasswordAttribute($value)
     {
-        if (! empty($value)) {
+        if (empty($value)) {
+            return;
+        }
+
+        // Use password_get_info() to check if password is already hashed
+        // This is more reliable than checking string patterns
+        $passwordInfo = password_get_info($value);
+
+        if ($passwordInfo['algo'] !== null) {
+            // Password is already hashed (bcrypt, argon2, etc.), use as-is
+            $this->attributes['password'] = $value;
+        } else {
+            // Password is plain text, hash it
             $this->attributes['password'] = bcrypt($value);
         }
     }
@@ -123,4 +137,10 @@ class User extends Authenticatable implements HasMedia
             ->width(800)
             ->height(600);
     }
+
+    public function setEmailAttribute($value)
+    {
+        $this->attributes['email'] = strtolower(trim($value));
+    }
+
 }

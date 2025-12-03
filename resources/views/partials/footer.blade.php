@@ -8,12 +8,7 @@
             {{-- Company Info --}}
             <div class="space-y-6">
                 <div class="flex items-center space-x-3 space-x-reverse">
-                    <div
-                        class="bg-gradient-to-br from-medical-blue-500 to-medical-green-500 p-2.5 rounded-xl shadow-medical">
-                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                        </svg>
-                    </div>
+                    <x-application-logo class="h-12 w-12 shadow-medical" />
                     <span class="text-2xl font-bold font-display">MediEquip</span>
                 </div>
                 <p class="text-medical-gray-300 leading-relaxed">

@@ -10,6 +10,7 @@ use App\Models\Supplier;
 use App\Services\NotificationService;
 use App\Services\ReferenceCodeService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -25,9 +26,10 @@ class RfqController extends Controller
         $query = Rfq::with(['buyer'])->latest('id');
 
         // 🧠 فلترة حسب نوع المستخدم
-        if (auth()->user()->hasRole('Buyer') && auth()->user()->buyerProfile) {
-            $query->where('buyer_id', auth()->user()->buyerProfile->id);
-        } elseif (auth()->user()->hasRole('Supplier')) {
+        $user = auth()->user();
+        if ($user && $user->hasRole('Buyer') && $user->buyerProfile) {
+            $query->where('buyer_id', $user->buyerProfile->id);
+        } elseif ($user && $user->hasRole('Supplier')) {
             $query->where('status', 'open');
         }
 
@@ -72,7 +74,7 @@ class RfqController extends Controller
 
         try {
             $data = $request->validated();
-            $data['created_by'] = auth()->id();
+            $data['created_by'] = Auth::id();
             $data['reference_code'] = ReferenceCodeService::generateUnique(
                 ReferenceCodeService::PREFIX_RFQ,
                 \App\Models\Rfq::class
@@ -113,7 +115,7 @@ class RfqController extends Controller
             // 🧾 سجل النشاط
             activity()
                 ->performedOn($rfq)
-                ->causedBy(auth()->user())
+                ->causedBy(Auth::user())
                 ->withProperties([
                     'buyer_id' => $rfq->buyer_id,
                     'status' => $rfq->status,
@@ -153,7 +155,7 @@ class RfqController extends Controller
 
         try {
             $data = $request->validated();
-            $data['updated_by'] = auth()->id();
+            $data['updated_by'] = Auth::id();
 
             if (($data['status'] ?? null) === 'closed' && is_null($rfq->closed_at)) {
                 $data['closed_at'] = now();
@@ -178,8 +180,8 @@ class RfqController extends Controller
 
             activity()
                 ->performedOn($rfq)
-                ->causedBy(auth()->user())
-                ->withProperties(['updated_by' => auth()->id()])
+                ->causedBy(Auth::user())
+                ->withProperties(['updated_by' => Auth::id()])
                 ->log('✏️ تم تحديث RFQ');
 
             DB::commit();
@@ -205,7 +207,7 @@ class RfqController extends Controller
 
             activity()
                 ->performedOn($rfq)
-                ->causedBy(auth()->user())
+                ->causedBy(Auth::user())
                 ->log('🗑️ تم حذف RFQ');
 
             return redirect()

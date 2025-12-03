@@ -26,7 +26,8 @@
 
     {{-- Create Supplier Form --}}
     <div class="bg-white rounded-2xl shadow-medical p-8">
-        <form method="POST" action="{{ route('admin.suppliers.store') }}">
+
+        <form method="POST" action="{{ route('admin.suppliers.store') }}" enctype="multipart/form-data">
             @csrf
 
             {{-- Basic Information Section --}}
@@ -156,6 +157,20 @@
                         @enderror
                     </div>
 
+                    {{-- Email  --}}
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-medical-gray-700 mb-2">
+                            البريد الإلكتروني لحساب الدخول <span class="text-red-500">*</span>
+                        </label>
+                        <input type="email" id="email" name="email" value="{{ old('email') }}" required
+                            class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl
+                                   focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500
+                                   transition-all duration-200 @error('email') border-red-500 @enderror">
+                        @error('email')
+                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     {{-- Password --}}
                     <div>
                         <label for="password" class="block text-sm font-medium text-medical-gray-700 mb-2">
@@ -170,10 +185,10 @@
                 </div>
             </div>
 
-            {{-- Status Section --}}
+            {{-- Status & Verification Section --}}
             <div class="mb-8">
-                <h2 class="text-xl font-bold text-medical-gray-900 mb-6 pb-3 border-b border-medical-gray-200">الحالة
-                    والتوثيق</h2>
+                <h2 class="text-xl font-bold text-medical-gray-900 mb-6 pb-3 border-b border-medical-gray-200">
+                    الحالة والتوثيق</h2>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {{-- Is Active --}}
@@ -196,6 +211,22 @@
                         </label>
                         <p class="mt-1 text-xs text-medical-gray-500">عند التفعيل، سيتمكن المورد من الدخول مباشرة</p>
                     </div>
+                </div>
+
+                {{-- Verification Document Upload --}}
+                <div class="mt-6">
+                    <label for="verification_document" class="block text-sm font-medium text-medical-gray-700 mb-2">
+                        مستند التوثيق (سجل تجاري / ترخيص) <span class="text-medical-gray-400">(اختياري)</span>
+                    </label>
+                    <input type="file" id="verification_document" name="verification_document"
+                        accept=".pdf,image/jpeg,image/png"
+                        class="block w-full text-sm text-medical-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-medical-blue-50 file:text-medical-blue-700 hover:file:bg-medical-blue-100 cursor-pointer @error('verification_document') border border-red-500 rounded-xl @enderror">
+                    <p class="mt-1 text-xs text-medical-gray-500">
+                        يسمح برفع ملفات PDF أو صور (JPG، PNG) بحد أقصى 5 ميجابايت.
+                    </p>
+                    @error('verification_document')
+                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
             </div>
 

@@ -1,4 +1,4 @@
-<x-auth-layout>
+<br><x-auth-layout><br>
     <x-slot name="title">إنشاء حساب جديد</x-slot>
 
     {{-- Page Title --}}

@@ -11,6 +11,7 @@ use App\Models\Payment;
 use App\Models\Supplier;
 use App\Services\NotificationService;
 use App\Services\ReferenceCodeService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -63,7 +64,7 @@ class PaymentController extends Controller
                 \App\Models\Payment::class,
                 'payment_reference'
             );
-            $data['processed_by'] = auth()->id();
+            $data['processed_by'] = Auth::id();
 
             $payment = Payment::create($data);
 
@@ -109,9 +110,9 @@ class PaymentController extends Controller
             // 🧾 سجل النشاط
             activity()
                 ->performedOn($payment)
-                ->causedBy(auth()->user())
+                ->causedBy(Auth::user())
                 ->withProperties([
-                    'processed_by' => auth()->id(),
+                    'processed_by' => Auth::id(),
                     'amount' => $payment->amount,
                     'currency' => $payment->currency,
                     'invoice_id' => $payment->invoice_id,
@@ -158,8 +159,8 @@ class PaymentController extends Controller
 
             activity()
                 ->performedOn($payment)
-                ->causedBy(auth()->user())
-                ->withProperties(['updated_by' => auth()->id()])
+                ->causedBy(Auth::user())
+                ->withProperties(['updated_by' => Auth::id()])
                 ->log('💵 تم تعديل الدفعة المالية');
 
             DB::commit();

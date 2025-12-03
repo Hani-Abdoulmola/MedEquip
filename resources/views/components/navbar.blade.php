@@ -5,9 +5,9 @@
             
             {{-- Brand Logo --}}
             <div class="navbar-brand-container">
-                <a href="{{ url('/') }}" class="navbar-brand flex items-center gap-3" aria-label="MediTrust - الصفحة الرئيسية">
-                    <img src="{{ asset('assets/img/logo.webp') }}" alt="MediTrust Logo" class="h-10 w-auto" width="120" height="40">
-                    <span class="font-bold text-xl text-gray-900 hidden sm:block">MediTrust</span>
+                <a href="{{ url('/') }}" class="navbar-brand flex items-center gap-3" aria-label="MediEquip - الصفحة الرئيسية">
+                    <x-application-logo class="h-10 w-10" />
+                    <span class="font-bold text-xl text-gray-900 hidden sm:block">MediEquip</span>
                 </a>
             </div>
 

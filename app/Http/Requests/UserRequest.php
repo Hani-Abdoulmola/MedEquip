@@ -12,6 +12,16 @@ class UserRequest extends FormRequest
         return true; // الصلاحيات تدار عبر Middleware و Spatie Permission
     }
 
+    /**
+     * Prepare the data for validation.
+     */
+    public function prepareForValidation(): void
+    {
+        $this->merge([
+            'email' => $this->has('email') ? strtolower(trim($this->email)) : null,
+        ]);
+    }
+
     public function rules(): array
     {
         $id = $this->route('user')?->id;

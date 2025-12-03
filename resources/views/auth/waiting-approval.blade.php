@@ -20,11 +20,19 @@
 
     <div class="max-w-2xl w-full">
         <div class="text-center mb-8">
-            <a href="{{ route('home') }}"><img src="{{ asset('images/logo.webp') }}" alt="MediTrust"
-                    class="h-16 mx-auto"></a>
+            <a href="{{ route('home') }}" class="inline-flex justify-center">
+                <x-application-logo class="h-16 w-16" />
+            </a>
         </div>
 
         <div class="bg-white rounded-2xl shadow-xl p-8 md:p-12">
+            {{-- Session Messages --}}
+            @if (session('message'))
+                <div class="mb-6 bg-medical-blue-50 border-r-4 border-medical-blue-600 rounded-xl p-4 text-right">
+                    <p class="text-medical-blue-800">{{ session('message') }}</p>
+                </div>
+            @endif
+
             @if ($isPending)
                 <div class="text-center">
                     <div

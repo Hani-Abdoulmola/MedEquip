@@ -1,9 +1,9 @@
-{{-- Admin Products Management - Edit Product --}}
+{{-- Admin Products Management - Edit Product
 <x-dashboard.layout title="تعديل منتج" userRole="admin" :userName="auth()->user()->name" userType="مدير النظام">
 
     <div class="max-w-4xl mx-auto px-6 py-8">
 
-        {{-- Page Header --}}
+        Page Header
         <div class="mb-6">
             <div class="flex items-center justify-between">
                 <div>
@@ -21,19 +21,19 @@
             </div>
         </div>
 
-        {{-- Edit Product Form --}}
+        Edit Product Form
         <div class="bg-white rounded-2xl shadow-medical p-8">
             <form method="POST" action="{{ route('admin.products.update', $product->id) }}" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
 
-                {{-- Basic Information Section --}}
+                Basic Information Section
                 <div class="mb-8">
                     <h2 class="text-xl font-bold text-medical-gray-900 mb-6 pb-3 border-b border-medical-gray-200 font-display">
                         المعلومات الأساسية</h2>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {{-- Product Name --}}
+                        Product Name
                         <div class="md:col-span-2">
                             <label for="name" class="block text-sm font-semibold text-medical-gray-700 mb-2">
                                 اسم المنتج <span class="text-red-500">*</span>
@@ -46,7 +46,7 @@
                             @enderror
                         </div>
 
-                        {{-- Model --}}
+                        Model
                         <div>
                             <label for="model" class="block text-sm font-semibold text-medical-gray-700 mb-2">
                                 الموديل
@@ -58,7 +58,7 @@
                             @enderror
                         </div>
 
-                        {{-- Brand --}}
+                        Brand
                         <div>
                             <label for="brand" class="block text-sm font-semibold text-medical-gray-700 mb-2">
                                 العلامة التجارية
@@ -70,7 +70,7 @@
                             @enderror
                         </div>
 
-                        {{-- Category --}}
+                        Category
                         <div>
                             <label for="category_id" class="block text-sm font-semibold text-medical-gray-700 mb-2">
                                 الفئة
@@ -90,7 +90,7 @@
                             @enderror
                         </div>
 
-                        {{-- Status --}}
+                        Status
                         <div>
                             <label for="is_active" class="block text-sm font-semibold text-medical-gray-700 mb-2">
                                 الحالة
@@ -107,7 +107,7 @@
                             @enderror
                         </div>
 
-                        {{-- Description --}}
+                        Description
                         <div class="md:col-span-2">
                             <label for="description" class="block text-sm font-semibold text-medical-gray-700 mb-2">
                                 الوصف
@@ -119,7 +119,7 @@
                             @enderror
                         </div>
 
-                        {{-- Product Image --}}
+                        Product Image
                         <div class="md:col-span-2">
                             <label for="image" class="block text-sm font-semibold text-medical-gray-700 mb-2">
                                 صورة المنتج
@@ -141,7 +141,7 @@
                     </div>
                 </div>
 
-                {{-- Form Actions --}}
+                Form Actions
                 <div class="flex items-center justify-end gap-4 pt-6 border-t border-medical-gray-200">
                     <a href="{{ route('admin.products') }}"
                         class="px-6 py-3 bg-medical-gray-200 text-medical-gray-700 rounded-xl hover:bg-medical-gray-300 transition-all duration-200 font-semibold">
@@ -158,4 +158,4 @@
     </div>
 
 </x-dashboard.layout>
-
+ --}}

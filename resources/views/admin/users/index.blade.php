@@ -18,7 +18,7 @@
                 <button @click="showFilters = !showFilters"
                     class="inline-flex items-center space-x-2 space-x-reverse
                         px-6 py-3 rounded-xl font-medium shadow-sm transition-all duration-200
-                        border border-medical-blue-600 text-medical-blue-600 
+                        border border-medical-blue-600 text-medical-blue-600
                         hover:bg-medical-blue-50">
 
                     <svg class="w-5 h-5" fill="none" stroke="currentColor">
@@ -63,7 +63,7 @@
                 </div>
 
                 <div
-                    class="w-12 h-12 bg-gradient-to-br from-medical-blue-100 to-medical-blue-200 
+                    class="w-12 h-12 bg-gradient-to-br from-medical-blue-100 to-medical-blue-200
                         rounded-xl flex items-center justify-center">
                     <svg class="w-6 h-6 text-medical-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -89,7 +89,7 @@
                 </div>
 
                 <div
-                    class="w-12 h-12 bg-gradient-to-br from-medical-green-100 to-medical-green-200 
+                    class="w-12 h-12 bg-gradient-to-br from-medical-green-100 to-medical-green-200
                         rounded-xl flex items-center justify-center">
                     <svg class="w-6 h-6 text-medical-green-600" fill="none" stroke="currentColor"
                         viewBox="0 0 24 24">
@@ -116,7 +116,7 @@
                 </div>
 
                 <div
-                    class="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 
+                    class="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200
                         rounded-xl flex items-center justify-center">
                     <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -142,7 +142,7 @@
                 </div>
 
                 <div
-                    class="w-12 h-12 bg-gradient-to-br from-medical-blue-100 to-medical-blue-200 
+                    class="w-12 h-12 bg-gradient-to-br from-medical-blue-100 to-medical-blue-200
                         rounded-xl flex items-center justify-center">
                     <svg class="w-6 h-6 text-medical-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -187,7 +187,7 @@
                 <div>
                     <label class="text-sm font-medium text-medical-gray-700 mb-2 block">نوع المستخدم</label>
                     <select name="user_type"
-                        class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl 
+                        class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl
                            focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500">
                         <option value="">الكل</option>
                         <option value="1" @selected(request('user_type') == 1)>مدير النظام</option>
@@ -200,7 +200,7 @@
                 <div>
                     <label class="text-sm font-medium text-medical-gray-700 mb-2 block">الحالة</label>
                     <select name="status"
-                        class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl 
+                        class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl
                            focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500">
                         <option value="">الكل</option>
                         <option value="active" @selected(request('status') == 'active')>نشط</option>
@@ -215,7 +215,7 @@
                     <div class="relative">
                         <input type="text" name="search" value="{{ request('search') }}"
                             placeholder="ابحث بالاسم أو البريد الإلكتروني..."
-                            class="w-full px-4 py-3 pl-12 border border-medical-gray-300 rounded-xl 
+                            class="w-full px-4 py-3 pl-12 border border-medical-gray-300 rounded-xl
                                focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500">
                         <svg class="w-5 h-5 text-medical-gray-400 absolute left-4 top-1/2 -translate-y-1/2"
                             fill="none" stroke="currentColor">
@@ -230,7 +230,7 @@
 
                     {{-- Apply --}}
                     <button type="submit"
-                        class="inline-flex items-center gap-2 px-6 py-3 bg-medical-blue-600 text-white rounded-xl 
+                        class="inline-flex items-center gap-2 px-6 py-3 bg-medical-blue-600 text-white rounded-xl
                            hover:bg-medical-blue-700 transition-all font-medium shadow-medical">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -241,7 +241,7 @@
 
                     {{-- Reset --}}
                     <a href="{{ route('admin.users') }}"
-                        class="inline-flex items-center gap-2 px-6 py-3 bg-medical-gray-100 text-medical-gray-700 
+                        class="inline-flex items-center gap-2 px-6 py-3 bg-medical-gray-100 text-medical-gray-700
                            rounded-xl hover:bg-medical-gray-200 transition-all font-medium">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -268,6 +268,7 @@
                 {{-- Table Head --}}
                 <thead class="bg-medical-gray-50 border-b border-medical-gray-200">
                     <tr>
+                        <th class="w-12 px-3 py-4 text-right text-sm font-medium text-medical-gray-700">#</th>
                         <th class="px-6 py-4 text-right text-sm font-medium text-medical-gray-700">الاسم</th>
                         <th class="px-6 py-4 text-right text-sm font-medium text-medical-gray-700">البريد الإلكتروني
                         </th>
@@ -284,6 +285,7 @@
                     {{-- LOOP EACH USER --}}
                     @forelse ($users as $user)
                         <tr class="hover:bg-medical-gray-50 transition-all duration-200">
+                            <td class="px-3 py-4">{{ $loop->iteration }}</td>
 
                             {{-- Name + Avatar --}}
                             <td class="px-6 py-4">
@@ -310,7 +312,7 @@
 
                                     <div>
                                         <p class="text-sm font-medium text-medical-gray-900">{{ $user->name }}</p>
-                                        <p class="text-xs text-medical-gray-500">ID: {{ $user->id }}</p>
+                                        {{-- <p class="text-xs text-medical-gray-500">ID: {{ $user->id }}</p> --}}
                                     </div>
 
                                 </div>
@@ -325,10 +327,22 @@
                             <td class="px-6 py-4">
                                 @php
                                     $typeLabel = match ($user->user_type) {
-                                        1 => ['مدير النظام', 'bg-medical-blue-100 text-medical-blue-700'],
-                                        2 => ['مورد', 'bg-purple-100 text-purple-700'],
-                                        3 => ['مشتري', 'bg-medical-green-100 text-medical-green-700'],
-                                        default => ['غير محدد', 'bg-medical-gray-100 text-medical-gray-700'],
+                                        1 => [
+                                            'مدير النظام',
+                                            'bg-white border border-medical-blue-600 text-medical-blue-600 hover:bg-medical-blue-50',
+                                        ],
+                                        2 => [
+                                            'مورد',
+                                            'bg-white border border-purple-600 text-purple-700 hover:bg-purple-100',
+                                        ],
+                                        3 => [
+                                            'مشتري',
+                                            'bg-white border border-medical-green-600 text-medical-green-700 hover:bg-medical-green-50',
+                                        ],
+                                        default => [
+                                            'غير محدد',
+                                            'bg-white border border-medical-gray-300 text-medical-gray-600',
+                                        ],
                                     };
                                 @endphp
 
@@ -342,7 +356,8 @@
                             <td class="px-6 py-4">
                                 @php
                                     $statusColors = [
-                                        'active' => 'bg-medical-green-100 text-medical-green-700',
+                                        'active' =>
+                                            'bg-white border border-medical-green-600 text-medical-green-700 hover:bg-medical-green-50',
                                         'inactive' => 'bg-medical-gray-100 text-medical-gray-700',
                                         'suspended' => 'bg-medical-red-100 text-medical-red-700',
                                     ];

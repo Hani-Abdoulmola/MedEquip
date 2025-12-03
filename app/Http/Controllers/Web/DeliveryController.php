@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\Supplier;
 use App\Services\NotificationService;
 use App\Services\ReferenceCodeService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -60,7 +61,9 @@ class DeliveryController extends Controller
                 \App\Models\Delivery::class,
                 'delivery_number'
             );
-            $data['created_by'] = auth()->id();
+            /** @var \App\Models\User */
+            $authUser = Auth::user();
+            $data['created_by'] = $authUser->id;
 
             // ✅ تحقق من أن الطلب غير مرتبط بتسليم سابق
             if (Delivery::where('order_id', $data['order_id'])->exists()) {
@@ -79,24 +82,30 @@ class DeliveryController extends Controller
                 route('deliveries.show', $delivery->id)
             );
 
-            NotificationService::send(
-                $delivery->buyer->user,
-                'عملية تسليم جديدة',
-                'تم إنشاء تسليم جديد لطلبك.',
-                route('deliveries.show', $delivery->id)
-            );
+            // Send notification to buyer
+            if ($delivery->buyer && $delivery->buyer->user) {
+                NotificationService::send(
+                    $delivery->buyer->user,
+                    'عملية تسليم جديدة',
+                    'تم إنشاء تسليم جديد لطلبك.',
+                    route('deliveries.show', $delivery->id)
+                );
+            }
 
-            NotificationService::send(
-                $delivery->supplier->user,
-                'تأكيد التسليم',
-                'يرجى مراجعة تفاصيل التسليم.',
-                route('deliveries.show', $delivery->id)
-            );
+            // Send notification to supplier
+            if ($delivery->supplier && $delivery->supplier->user) {
+                NotificationService::send(
+                    $delivery->supplier->user,
+                    'تأكيد التسليم',
+                    'يرجى مراجعة تفاصيل التسليم.',
+                    route('deliveries.show', $delivery->id)
+                );
+            }
 
             // 🧾 تسجيل النشاط
             activity()
                 ->performedOn($delivery)
-                ->withProperties(['created_by' => auth()->id()])
+                ->withProperties(['created_by' => $authUser->id])
                 ->log('🚚 تم تسجيل عملية تسليم جديدة');
 
             DB::commit();
@@ -133,30 +142,38 @@ class DeliveryController extends Controller
 
         try {
             $data = $request->validated();
-            $data['updated_by'] = auth()->id();
+            /** @var \App\Models\User */
+            $authUser = Auth::user();
+            $data['updated_by'] = $authUser->id;
 
             $delivery->update($data);
 
             activity()
                 ->performedOn($delivery)
-                ->withProperties(['updated_by' => auth()->id()])
+                ->withProperties(['updated_by' => $authUser->id])
                 ->log('🚚 تم تحديث عملية التسليم');
 
             // 🔔 إشعارات ذكية عند تغيير الحالة إلى "delivered"
             if ($delivery->status === 'delivered') {
-                NotificationService::send(
-                    $delivery->buyer->user,
-                    '📦 تم تسليم طلبك',
-                    "تم تأكيد تسليم طلبك رقم {$delivery->order->order_number} بنجاح.",
-                    route('deliveries.show', $delivery->id)
-                );
+                // Send notification to buyer
+                if ($delivery->buyer && $delivery->buyer->user) {
+                    NotificationService::send(
+                        $delivery->buyer->user,
+                        '📦 تم تسليم طلبك',
+                        "تم تأكيد تسليم طلبك رقم {$delivery->order->order_number} بنجاح.",
+                        route('deliveries.show', $delivery->id)
+                    );
+                }
 
-                NotificationService::send(
-                    $delivery->supplier->user,
-                    '✅ تم تأكيد عملية التسليم',
-                    "تم تأكيد تسليم الطلب رقم {$delivery->order->order_number} إلى المشتري.",
-                    route('deliveries.show', $delivery->id)
-                );
+                // Send notification to supplier
+                if ($delivery->supplier && $delivery->supplier->user) {
+                    NotificationService::send(
+                        $delivery->supplier->user,
+                        '✅ تم تأكيد عملية التسليم',
+                        "تم تأكيد تسليم الطلب رقم {$delivery->order->order_number} إلى المشتري.",
+                        route('deliveries.show', $delivery->id)
+                    );
+                }
 
                 NotificationService::notifyAdmins(
                     'تأكيد تسليم مكتمل',
@@ -205,7 +222,7 @@ class DeliveryController extends Controller
      */
     public function show(Delivery $delivery)
     {
-        $delivery->load(['order', 'supplier', 'buyer', 'creator', 'verifier', 'files']);
+        $delivery->load(['order', 'supplier', 'buyer', 'creator', 'verifier']);
 
         return view('deliveries.show', compact('delivery'));
     }

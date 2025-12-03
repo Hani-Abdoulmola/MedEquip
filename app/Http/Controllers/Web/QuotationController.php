@@ -9,6 +9,7 @@ use App\Models\Rfq;
 use App\Models\Supplier;
 use App\Services\NotificationService;
 use App\Services\ReferenceCodeService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -24,12 +25,13 @@ class QuotationController extends Controller
         $query = Quotation::with(['rfq.buyer', 'supplier'])->latest('id');
 
         // 🧩 فلترة حسب نوع المستخدم
-        if (auth()->user()->hasRole('Supplier') && auth()->user()->supplierProfile) {
-            $query->where('supplier_id', auth()->user()->supplierProfile->id);
+        $user = auth()->user();
+        if ($user && $user->hasRole('Supplier') && $user->supplierProfile) {
+            $query->where('supplier_id', $user->supplierProfile->id);
         }
 
-        if (auth()->user()->hasRole('Buyer') && auth()->user()->buyerProfile) {
-            $buyerId = auth()->user()->buyerProfile->id;
+        if ($user && $user->hasRole('Buyer') && $user->buyerProfile) {
+            $buyerId = $user->buyerProfile->id;
             $query->whereHas('rfq', fn ($q) => $q->where('buyer_id', $buyerId));
         }
 
@@ -66,7 +68,7 @@ class QuotationController extends Controller
                 ReferenceCodeService::PREFIX_QUOTATION,
                 \App\Models\Quotation::class
             );
-            $data['created_by'] = auth()->id();
+            $data['created_by'] = Auth::id();
 
             $quotation = Quotation::create($data);
 
@@ -100,7 +102,7 @@ class QuotationController extends Controller
             // 🧾 سجل النشاط
             activity()
                 ->performedOn($quotation)
-                ->causedBy(auth()->user())
+                ->causedBy(Auth::user())
                 ->withProperties([
                     'rfq_id' => $quotation->rfq_id,
                     'supplier_id' => $quotation->supplier_id,
@@ -141,7 +143,7 @@ class QuotationController extends Controller
 
         try {
             $data = $request->validated();
-            $data['updated_by'] = auth()->id();
+            $data['updated_by'] = Auth::id();
 
             $quotation->update($data);
 
@@ -157,8 +159,8 @@ class QuotationController extends Controller
 
             activity()
                 ->performedOn($quotation)
-                ->causedBy(auth()->user())
-                ->withProperties(['updated_by' => auth()->id()])
+                ->causedBy(Auth::user())
+                ->withProperties(['updated_by' => Auth::id()])
                 ->log('✏️ تم تعديل عرض السعر');
 
             DB::commit();
@@ -184,7 +186,7 @@ class QuotationController extends Controller
 
             activity()
                 ->performedOn($quotation)
-                ->causedBy(auth()->user())
+                ->causedBy(Auth::user())
                 ->log('🗑️ تم حذف عرض السعر');
 
             // إشعار المورد بالحذف (اختياري)

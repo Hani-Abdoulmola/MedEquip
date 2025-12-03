@@ -23,7 +23,7 @@
     @include('sections.partners')
 
     {{-- Gallery Section --}}
-    @include('sections.gallery')
+    {{-- @include('sections.gallery') --}}
 
     {{-- FAQ Section --}}
     @include('sections.faq')

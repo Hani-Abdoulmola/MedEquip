@@ -19,7 +19,6 @@ class Supplier extends Model implements HasMedia
         'company_name',
         'commercial_register',
         'tax_number',
-        // Removed: 'verification_document' - use Media Library 'verification_documents' collection
         'country',
         'city',
         'address',

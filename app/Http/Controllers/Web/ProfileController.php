@@ -13,10 +13,10 @@ use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth'); // فقط المستخدمين المسجلين
-    }
+    // public function __construct()
+    // {
+    //     $this->middleware('auth'); // فقط المستخدمين المسجلين
+    // }
 
     /**
      * 👁️ عرض صفحة تعديل البروفايل
