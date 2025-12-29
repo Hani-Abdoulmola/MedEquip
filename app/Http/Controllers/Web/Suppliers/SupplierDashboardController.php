@@ -69,11 +69,11 @@ class SupplierDashboardController extends Controller
                                         ->where('status', Order::STATUS_DELIVERED)
                                         ->sum('total_amount'),
 
-            'pending_rfqs'        => Rfq::whereHas('items.product.suppliers', function ($q) use ($supplier) {
-                                        $q->where('suppliers.id', $supplier->id);
-                                    })
-                                    ->where('status', 'open')
-                                    ->count(),
+            'pending_rfqs'        => Rfq::availableFor($supplier->id)
+                                        ->where('status', 'open')
+                                        ->whereDoesntHave('quotations', fn($q) => $q->where('supplier_id', $supplier->id))
+                                        ->count(),
+            'total_rfqs'          => Rfq::availableFor($supplier->id)->count(),
         ];
 
         // ========================

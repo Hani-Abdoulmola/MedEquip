@@ -47,7 +47,7 @@ class QuotationRequest extends FormRequest
             // 🏷️ الحالة
             'status' => [
                 'required',
-                Rule::in(['pending', 'reviewed', 'accepted', 'rejected', 'cancelled']),
+                Rule::in(['pending', 'accepted', 'rejected']),
             ],
 
             // 📅 صلاحية العرض

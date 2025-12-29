@@ -1,6 +1,6 @@
 # MedEquip Codebase Index
 
-**Last Updated:** 2025-11-26  
+**Last Updated:** 2025-01-27  
 **Project Type:** Laravel 12 Medical Equipment E-Commerce Platform  
 **Language:** PHP 8.2+ with Blade Templates, JavaScript, Tailwind CSS
 
@@ -82,8 +82,48 @@ MedEquip/
 │
 ├── database/
 │   ├── factories/            # Model factories
-│   ├── migrations/           # Database migrations (28 files)
-│   ├── seeders/              # Database seeders (4 files)
+│   ├── migrations/           # Database migrations (33 files)
+│   │   ├── 2025_10_31_000001_create_user_types_table.php
+│   │   ├── 2025_10_31_000002_create_users_table.php
+│   │   ├── 2025_10_31_000003_create_password_reset_tokens_table.php
+│   │   ├── 2025_10_31_000004_create_sessions_table.php
+│   │   ├── 2025_10_31_000005_create_cache_table.php
+│   │   ├── 2025_10_31_000006_create_cache_locks_table.php
+│   │   ├── 2025_10_31_000007_create_jobs_table.php
+│   │   ├── 2025_10_31_000008_create_job_batches_table.php
+│   │   ├── 2025_10_31_000009_create_failed_jobs_table.php
+│   │   ├── 2025_10_31_000010_create_personal_access_tokens_table.php
+│   │   ├── 2025_10_31_000011_create_permission_tables.php
+│   │   ├── 2025_10_31_000012_create_media_table.php
+│   │   ├── 2025_10_31_000013_create_activity_log_table.php
+│   │   ├── 2025_10_31_000014_create_suppliers_table.php
+│   │   ├── 2025_10_31_000015_create_product_categories_table.php
+│   │   ├── 2025_10_31_000016_create_buyers_table.php
+│   │   ├── 2025_10_31_000018_create_products_table.php
+│   │   ├── 2025_10_31_000019_create_product_supplier_table.php
+│   │   ├── 2025_10_31_000020_create_rfqs_table.php
+│   │   ├── 2025_10_31_000021_create_quotations_table.php
+│   │   ├── 2025_10_31_000022_create_orders_table.php
+│   │   ├── 2025_10_31_000023_create_invoices_table.php
+│   │   ├── 2025_10_31_000024_create_payments_table.php
+│   │   ├── 2025_10_31_000025_create_deliveries_table.php
+│   │   ├── 2025_11_02_191341_create_rfq_items_table.php
+│   │   ├── 2025_11_03_130302_create_notifications_table.php
+│   │   ├── 2025_11_13_000004_create_quotation_items_table.php
+│   │   ├── 2025_11_13_000005_create_order_items_table.php
+│   │   ├── 2025_11_30_163947_create_settings_table.php
+│   │   ├── 2025_12_02_125526_add_review_status_to_products_table.php
+│   │   ├── 2025_12_04_183056_create_manufacturers_table.php
+│   │   ├── 2025_12_23_add_missing_columns_to_products_table.php
+│   │   └── 2025_12_23_create_rfq_supplier_table.php
+│   ├── seeders/              # Database seeders (7 files)
+│   │   ├── AdminSeeder.php - Create admin user
+│   │   ├── DatabaseSeeder.php - Main seeder
+│   │   ├── ManufacturerSeeder.php - Seed manufacturers
+│   │   ├── ProductCategorySeeder.php - Seed product categories
+│   │   ├── RolePermissionSeeder.php - Seed roles and permissions
+│   │   ├── SettingsSeeder.php - Seed system settings
+│   │   └── UserTypeSeeder.php - Seed user types
 │   └── database.sqlite       # SQLite database
 │
 ├── resources/
@@ -122,48 +162,131 @@ MedEquip/
 
 ### Controllers
 
-#### Web Controllers (`app/Http/Controllers/Web/`)
-1. **ActivityLogController.php** - Activity logging and audit trails
-2. **BuyerController.php** - Buyer management (CRUD operations)
-3. **DeliveryController.php** - Delivery tracking and management
-4. **InvoiceController.php** - Invoice generation and management
-5. **OrderController.php** - Order processing and management
-6. **PaymentController.php** - Payment processing
-7. **ProductController.php** - Product catalog management
-8. **ProfileController.php** - User profile management
-9. **QuotationController.php** - Quotation creation and management
-10. **RegistrationApprovalController.php** - Approve/reject supplier/buyer registrations
-11. **RfqController.php** - Request for Quotation management
-12. **SupplierController.php** - Supplier management (CRUD operations)
-13. **UserController.php** - User administration
+#### Web Controllers (`app/Http/Controllers/Web/`) - 20 Controllers
 
-#### Auth Controllers (`app/Http/Controllers/Auth/`)
-Standard Laravel Breeze authentication controllers for login, registration, password reset, etc.
+**Admin Controllers:**
+1. **ActivityLogController.php** - Activity logging and audit trails viewing
+2. **AdminQuotationController.php** - Admin monitoring and management of quotations
+3. **AdminRfqController.php** - Admin monitoring and management of RFQs
+4. **BuyerController.php** - Buyer management (CRUD operations)
+5. **BuyerDashboardController.php** - Buyer dashboard overview
+6. **NotificationController.php** - System notifications management
+7. **OrderController.php** - Order processing and management
+8. **ProductCategoryController.php** - Product category management
+9. **ProductController.php** - Product catalog management
+10. **ProductReviewController.php** - Product review and approval workflow
+11. **RegistrationApprovalController.php** - Approve/reject supplier/buyer registrations
+12. **SettingController.php** - System settings management
+13. **SupplierController.php** - Supplier management (CRUD operations)
+14. **UserController.php** - User administration
 
-### Models (`app/Models/`)
+**General Controllers:**
+15. **DeliveryController.php** - Delivery tracking and management
+16. **InvoiceController.php** - Invoice generation and management
+17. **PaymentController.php** - Payment processing
+18. **ProfileController.php** - User profile management
+19. **QuotationController.php** - Quotation creation and management
+20. **RfqController.php** - Request for Quotation management
 
-1. **User.php** - User accounts (admins, suppliers, buyers)
-2. **UserType.php** - User role types
-3. **Supplier.php** - Supplier entities
-4. **Buyer.php** - Buyer/healthcare institution entities
-5. **Product.php** - Medical equipment products
+#### Supplier Controllers (`app/Http/Controllers/Web/Suppliers/`) - 9 Controllers
+
+1. **SupplierDashboardController.php** - Supplier dashboard overview
+2. **SupplierDeliveryController.php** - Supplier delivery management
+3. **SupplierInvoiceController.php** - Supplier invoice viewing
+4. **SupplierNotificationController.php** - Supplier notifications
+5. **SupplierOrderController.php** - Supplier order management
+6. **SupplierProductController.php** - Supplier product catalog management
+7. **SupplierProfileController.php** - Supplier profile management
+8. **SupplierRfqController.php** - Supplier RFQ viewing and quotation creation
+
+#### Auth Controllers (`app/Http/Controllers/Auth/`) - 9 Controllers
+
+1. **AuthenticatedSessionController.php** - Login/logout handling
+2. **ConfirmablePasswordController.php** - Password confirmation
+3. **EmailVerificationNotificationController.php** - Email verification notifications
+4. **EmailVerificationPromptController.php** - Email verification prompt
+5. **NewPasswordController.php** - Password reset handling
+6. **PasswordController.php** - Password update
+7. **PasswordResetLinkController.php** - Password reset link generation
+8. **RegisteredUserController.php** - User registration (suppliers & buyers)
+9. **VerifyEmailController.php** - Email verification
+
+**Total Controllers: 39**
+
+### Models (`app/Models/`) - 19 Models
+
+**User Management:**
+1. **User.php** - User accounts (admins, suppliers, buyers) with relationships
+2. **UserType.php** - User role types (Admin, Supplier, Buyer)
+
+**Business Entities:**
+3. **Supplier.php** - Supplier entities with approval workflow
+4. **Buyer.php** - Buyer/healthcare institution entities with approval workflow
+5. **Product.php** - Medical equipment products with categories and suppliers
 6. **ProductCategory.php** - Product categorization with hierarchical structure
-7. **ProductSupplier.php** - Pivot table for product-supplier relationships
-8. **Rfq.php** - Request for Quotations
-9. **RfqItem.php** - Individual items in RFQs
-10. **Quotation.php** - Supplier quotations
-11. **QuotationItem.php** - Individual items in quotations
-12. **Order.php** - Purchase orders
-13. **OrderItem.php** - Individual items in orders
-14. **Invoice.php** - Invoices
-15. **Payment.php** - Payment records
-16. **Delivery.php** - Delivery tracking
-17. **ActivityLog.php** - Activity log entries
+7. **ProductSupplier.php** - Pivot model for product-supplier relationships
+8. **Manufacturer.php** - Product manufacturer information
 
-### Services (`app/Services/`)
+**Transaction Flow:**
+9. **Rfq.php** - Request for Quotations from buyers
+10. **RfqItem.php** - Individual items in RFQs
+11. **Quotation.php** - Supplier quotations in response to RFQs
+12. **QuotationItem.php** - Individual items in quotations
+13. **Order.php** - Purchase orders
+14. **OrderItem.php** - Individual items in orders
+15. **Invoice.php** - Generated invoices
+16. **Payment.php** - Payment records
+17. **Delivery.php** - Delivery tracking
 
-1. **NotificationService.php** - Centralized notification handling
-2. **ReferenceCodeService.php** - Generate unique reference codes for entities
+**System:**
+18. **ActivityLog.php** - Activity log entries (Spatie Activity Log)
+19. **Setting.php** - System settings configuration
+
+### Services (`app/Services/`) - 2 Services
+
+1. **NotificationService.php** - Centralized notification handling and dispatch
+2. **ReferenceCodeService.php** - Generate unique reference codes for entities (RFQs, Orders, Invoices, etc.)
+
+### Traits (`app/Traits/`) - 1 Trait
+
+1. **Auditable.php** - Trait for models that need activity logging
+
+### Filters (`app/Filters/`) - 1 Filter
+
+1. **ActivityLogFilter.php** - Query filtering for activity logs
+
+### Form Requests (`app/Http/Requests/`) - 17 Requests
+
+**Auth Requests:**
+1. **Auth/LoginRequest.php** - Login form validation
+
+**Registration Requests:**
+2. **BuyerRegistrationRequest.php** - Buyer registration validation
+3. **SupplierRegistrationRequest.php** - Supplier registration validation
+
+**Resource Requests:**
+4. **BuyerRequest.php** - Buyer CRUD validation
+5. **SupplierRequest.php** - Supplier CRUD validation
+6. **UserRequest.php** - User CRUD validation
+7. **ProductRequest.php** - Product CRUD validation
+8. **OrderRequest.php** - Order CRUD validation
+9. **QuotationRequest.php** - Quotation CRUD validation
+10. **RfqRequest.php** - RFQ CRUD validation
+11. **InvoiceRequest.php** - Invoice CRUD validation
+12. **PaymentRequest.php** - Payment CRUD validation
+13. **DeliveryRequest.php** - Delivery CRUD validation
+
+**Supplier-Specific Requests:**
+14. **Suppliers/SupplierProductRequest.php** - Supplier product validation
+15. **Suppliers/SupplierQuotationRequest.php** - Supplier quotation validation
+
+**Other:**
+16. **FileRequest.php** - File upload validation
+17. **ProfileUpdateRequest.php** - Profile update validation
+
+### Middleware (`app/Http/Middleware/`) - 1 Custom Middleware
+
+1. **EnsureUserIsVerified.php** - Ensures user email is verified
 
 ---
 
@@ -233,23 +356,162 @@ Standard Laravel Breeze authentication controllers for login, registration, pass
 - `GET /dashboard` - Main dashboard (role-based view)
 
 #### Admin Routes (`/admin/*`)
-**Permissions:** Various granular permissions for each resource
+**Middleware:** `auth`, `role:Admin`
 
-- **Users:** CRUD operations for user management
-- **Suppliers:** CRUD operations with approval workflow
-- **Buyers:** CRUD operations with approval workflow
-- **Products:** CRUD operations for product catalog
-- **Orders:** CRUD operations for order management
-- **Reports:** Reporting dashboard
-- **Activity:** Activity log viewing
-- **Registrations:** Approve/reject pending supplier/buyer registrations
-- **Settings:** System settings
+**User Management:**
+- `GET /admin/users` - List all users
+- `GET /admin/users/create` - Create user form
+- `POST /admin/users` - Store new user
+- `GET /admin/users/{user}/edit` - Edit user form
+- `PUT /admin/users/{user}` - Update user
+- `DELETE /admin/users/{user}` - Delete user
 
-#### Supplier Routes (`/supplier/*`) - Placeholder
-- Products, Orders, Sales, Profile
+**Supplier Management:**
+- `GET /admin/suppliers` - List all suppliers
+- `GET /admin/suppliers/create` - Create supplier form
+- `POST /admin/suppliers` - Store new supplier
+- `GET /admin/suppliers/{supplier}` - View supplier details
+- `GET /admin/suppliers/{supplier}/edit` - Edit supplier form
+- `PUT /admin/suppliers/{supplier}` - Update supplier
+- `DELETE /admin/suppliers/{supplier}` - Delete supplier
+- `POST /admin/suppliers/{supplier}/verify` - Verify supplier
+- `POST /admin/suppliers/{supplier}/toggle-active` - Toggle supplier active status
 
-#### Buyer Routes (`/buyer/*`) - Placeholder
-- Orders, Favorites, Suppliers
+**Buyer Management:**
+- `GET /admin/buyers` - List all buyers
+- `GET /admin/buyers/create` - Create buyer form
+- `POST /admin/buyers` - Store new buyer
+- `GET /admin/buyers/{buyer}` - View buyer details
+- `GET /admin/buyers/{buyer}/edit` - Edit buyer form
+- `PUT /admin/buyers/{buyer}` - Update buyer
+- `DELETE /admin/buyers/{buyer}` - Delete buyer
+- `POST /admin/buyers/{buyer}/toggle-active` - Toggle buyer active status
+- `POST /admin/buyers/{buyer}/verify` - Verify buyer
+
+**Product Management:**
+- `GET /admin/products` - List all products
+- `GET /admin/products/{product}` - View product details
+- `GET /admin/products/{product}/review` - Review product form
+- `POST /admin/products/{product}/approve` - Approve product
+- `POST /admin/products/{product}/reject` - Reject product
+- `POST /admin/products/{product}/request-changes` - Request product changes
+- `DELETE /admin/products/{product}` - Delete product
+
+**Product Categories:**
+- `GET /admin/categories` - List all categories
+- `GET /admin/categories/create` - Create category form
+- `POST /admin/categories` - Store new category
+- `GET /admin/categories/{category}` - View category details
+- `GET /admin/categories/{category}/edit` - Edit category form
+- `PUT /admin/categories/{category}` - Update category
+- `DELETE /admin/categories/{category}` - Delete category
+
+**Order Management:**
+- `GET /admin/orders` - List all orders
+- `GET /admin/orders/create` - Create order form
+- `POST /admin/orders` - Store new order
+- `GET /admin/orders/{order}` - View order details
+- `GET /admin/orders/{order}/edit` - Edit order form
+- `PUT /admin/orders/{order}` - Update order
+- `DELETE /admin/orders/{order}` - Delete order
+
+**RFQ Management (Admin Monitoring):**
+- `GET /admin/rfqs` - List all RFQs
+- `GET /admin/rfqs/{rfq}` - View RFQ details
+- `PATCH /admin/rfqs/{rfq}/status` - Update RFQ status
+- `PATCH /admin/rfqs/{rfq}/visibility` - Toggle RFQ visibility
+- `POST /admin/rfqs/{rfq}/assign-suppliers` - Assign suppliers to RFQ
+
+**Quotation Management (Admin Monitoring):**
+- `GET /admin/quotations` - List all quotations
+- `GET /admin/quotations/compare` - Compare quotations
+- `GET /admin/quotations/{quotation}` - View quotation details
+- `POST /admin/quotations/{quotation}/accept` - Accept quotation
+- `POST /admin/quotations/{quotation}/reject` - Reject quotation
+
+**Other Admin Routes:**
+- `GET /admin/reports` - Reporting dashboard
+- `GET /admin/activity` - Activity log index
+- `GET /admin/activity/{activity}` - View activity log entry
+- `GET /admin/registrations/pending` - Pending registrations
+- `POST /admin/registrations/{type}/{id}/approve` - Approve registration
+- `POST /admin/registrations/{type}/{id}/reject` - Reject registration
+- `GET /admin/settings` - System settings
+- `POST /admin/settings/general` - Update general settings
+- `POST /admin/settings/email` - Update email settings
+- `POST /admin/settings/payment` - Update payment settings
+- `POST /admin/settings/security` - Update security settings
+- `POST /admin/settings/email/test` - Test email connection
+- `GET /admin/notifications` - System notifications
+- `POST /admin/notifications/{id}/read` - Mark notification as read
+- `POST /admin/notifications/read-all` - Mark all notifications as read
+- `DELETE /admin/notifications/{id}` - Delete notification
+- `DELETE /admin/notifications` - Delete all notifications
+
+#### Supplier Routes (`/supplier/*`)
+**Middleware:** `auth`, `role:Supplier`
+
+**Dashboard:**
+- `GET /supplier/dashboard` - Supplier dashboard
+
+**Products:**
+- `GET /supplier/products` - List supplier products
+- `GET /supplier/products/create` - Create product form
+- `POST /supplier/products` - Store new product
+- `GET /supplier/products/{product}` - View product details
+- `GET /supplier/products/{product}/edit` - Edit product form
+- `PUT /supplier/products/{product}` - Update product
+- `DELETE /supplier/products/{product}` - Delete product
+
+**RFQs & Quotations:**
+- `GET /supplier/rfqs` - List assigned RFQs
+- `GET /supplier/rfqs/{rfq}` - View RFQ details
+- `GET /supplier/rfqs/{rfq}/quote` - Create quotation form
+- `POST /supplier/rfqs/{rfq}/quote` - Store quotation
+- `GET /supplier/quotations` - List supplier quotations
+- `GET /supplier/quotations/{quotation}/edit` - Edit quotation form
+- `PUT /supplier/quotations/{quotation}` - Update quotation
+- `DELETE /supplier/quotations/{quotation}` - Delete quotation
+
+**Orders:**
+- `GET /supplier/orders` - List supplier orders
+- `GET /supplier/orders/{order}` - View order details
+- `PATCH /supplier/orders/{order}/status` - Update order status
+
+**Deliveries:**
+- `GET /supplier/deliveries` - List deliveries
+- `GET /supplier/deliveries/create/{order}` - Create delivery form
+- `POST /supplier/deliveries/{order}` - Store delivery
+- `GET /supplier/deliveries/{delivery}` - View delivery details
+- `PATCH /supplier/deliveries/{delivery}/status` - Update delivery status
+- `POST /supplier/deliveries/{delivery}/proof` - Upload delivery proof
+
+**Invoices:**
+- `GET /supplier/invoices` - List invoices
+- `GET /supplier/invoices/{invoice}` - View invoice details
+
+**Profile:**
+- `GET /supplier/profile` - View supplier profile
+- `GET /supplier/profile/edit` - Edit profile form
+- `PUT /supplier/profile` - Update profile
+- `PUT /supplier/profile/password` - Update password
+- `POST /supplier/profile/document` - Upload document
+- `DELETE /supplier/profile/document/{mediaId}` - Delete document
+
+**Notifications:**
+- `GET /supplier/notifications` - List notifications
+- `POST /supplier/notifications/{id}/read` - Mark as read
+- `POST /supplier/notifications/read-all` - Mark all as read
+- `DELETE /supplier/notifications/{id}` - Delete notification
+- `DELETE /supplier/notifications` - Delete all notifications
+
+#### Buyer Routes (`/buyer/*`)
+**Middleware:** `auth`, `role:Buyer`
+
+- `GET /buyer/dashboard` - Buyer dashboard
+- `GET /buyer/orders` - List buyer orders
+- `GET /buyer/favorites` - Favorites list
+- `GET /buyer/suppliers` - Supplier directory
 
 ---
 
@@ -297,15 +559,78 @@ Standard Laravel Breeze authentication controllers for login, registration, pass
 
 ### Admin Views (`resources/views/admin/`)
 
-- **activity/** - Activity logs
+- **activity/** - Activity logs (index, show)
 - **buyers/** - Buyer management (index, create, edit, show)
-- **orders/** - Order management
-- **products/** - Product management
-- **registrations/** - Pending registrations
-- **reports/** - Reporting interfaces
-- **settings/** - System settings
-- **suppliers/** - Supplier management (index, create, edit, show, documents)
-- **users/** - User management (index, create, edit, show, permissions)
+- **categories/** - Category management (index, create, edit, show)
+- **notifications/** - Notifications index
+- **orders/** - Order management (index, edit, show)
+- **products/** - Product management (index, edit, review, show)
+- **quotations/** - Quotation management (index, compare, show)
+- **registrations/** - Pending registrations (pending)
+- **reports/** - Reporting interfaces (index)
+- **rfqs/** - RFQ management (index, show)
+- **settings/** - System settings (index)
+- **suppliers/** - Supplier management (index, create, edit, show)
+- **users/** - User management (index, create, edit)
+
+### Supplier Views (`resources/views/supplier/`)
+
+- **dashboard.blade.php** - Supplier dashboard
+- **deliveries/** - Delivery management (index, create, show)
+- **invoices/** - Invoice viewing (index, show)
+- **notifications/** - Notifications (index)
+- **orders/** - Order management (index, show)
+- **products/** - Product management (index, create, edit, show)
+- **profile/** - Profile management (edit, show)
+- **quotations/** - Quotation management (index)
+- **rfqs/** - RFQ viewing and quotation (index, show, quote, quote-edit)
+
+### Buyer Views (`resources/views/buyer/`)
+
+- **dashboard.blade.php** - Buyer dashboard
+- **favorites.blade.php** - Favorites list
+- **suppliers.blade.php** - Supplier directory
+
+### Authentication Views (`resources/views/auth/`)
+
+- **confirm-password.blade.php** - Password confirmation
+- **forgot-password.blade.php** - Password reset request
+- **login.blade.php** - Login form
+- **register.blade.php** - Registration form
+- **reset-password.blade.php** - Password reset form
+- **verify-email.blade.php** - Email verification
+- **waiting-approval.blade.php** - Waiting approval page
+
+### Component Views (`resources/views/components/`)
+
+**Admin Components:**
+- **admin/review/** - Product review components (block, field, list)
+
+**Dashboard Components:**
+- **dashboard/** - Dashboard UI components (activity-list, calendar-card, chart-card, header, layout, quick-actions, sidebar, stat-card, welcome-card)
+
+**Form Components:**
+- **text-input.blade.php** - Text input field
+- **input-label.blade.php** - Form labels
+- **input-error.blade.php** - Validation errors
+- **primary-button.blade.php** - Primary action button
+- **secondary-button.blade.php** - Secondary button
+- **danger-button.blade.php** - Destructive action button
+
+**UI Components:**
+- **application-logo.blade.php** - Application logo
+- **auth-layout.blade.php** - Authentication layout wrapper
+- **auth-session-status.blade.php** - Session status display
+- **dropdown.blade.php** - Dropdown menu
+- **dropdown-link.blade.php** - Dropdown link item
+- **footer.blade.php** - Footer component
+- **modal.blade.php** - Modal dialogs
+- **nav-link.blade.php** - Navigation link
+- **navbar.blade.php** - Main navigation bar
+- **responsive-nav-link.blade.php** - Responsive navigation link
+
+**Section Components:**
+- **sections/** - Landing page sections (about, categories, contact, faq, gallery, hero, services, team)
 
 ---
 
@@ -552,4 +877,61 @@ The project includes extensive documentation:
 
 ---
 
-*This index was automatically generated on 2025-11-26 and should be updated as the codebase evolves.*
+## 📊 Codebase Statistics
+
+- **Total Controllers:** 39
+  - Web Controllers: 20
+  - Supplier Controllers: 9
+  - Auth Controllers: 9
+  - Base Controller: 1
+
+- **Total Models:** 19
+- **Total Services:** 2
+- **Total Traits:** 1
+- **Total Filters:** 1
+- **Total Form Requests:** 17
+- **Total Middleware:** 1 custom
+- **Total Migrations:** 33
+- **Total Seeders:** 7
+- **Total Views:** 150+ Blade templates
+
+## 🔍 Quick Reference
+
+### Finding Files by Purpose
+
+**Authentication:**
+- Controllers: `app/Http/Controllers/Auth/`
+- Views: `resources/views/auth/`
+- Routes: `routes/auth.php`
+
+**Admin Panel:**
+- Controllers: `app/Http/Controllers/Web/` (Admin* controllers)
+- Views: `resources/views/admin/`
+- Routes: `routes/web.php` (prefix: `/admin`)
+
+**Supplier Features:**
+- Controllers: `app/Http/Controllers/Web/Suppliers/`
+- Views: `resources/views/supplier/`
+- Routes: `routes/web.php` (prefix: `/supplier`)
+
+**Buyer Features:**
+- Controllers: `app/Http/Controllers/Web/Buyer*`
+- Views: `resources/views/buyer/`
+- Routes: `routes/web.php` (prefix: `/buyer`)
+
+**Business Logic:**
+- Services: `app/Services/`
+- Traits: `app/Traits/`
+- Filters: `app/Filters/`
+
+**Validation:**
+- Form Requests: `app/Http/Requests/`
+
+**Database:**
+- Migrations: `database/migrations/`
+- Seeders: `database/seeders/`
+- Models: `app/Models/`
+
+---
+
+*This index was last updated on 2025-01-27 and should be updated as the codebase evolves.*

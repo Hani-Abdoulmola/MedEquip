@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
@@ -141,6 +142,11 @@ class ActivityLog extends SpatieActivity
     public function scopeForSubjectType($query, string $subjectType)
     {
         return $query->where('subject_type', 'LIKE', "%{$subjectType}%");
+    }
+
+    public function scopeForEvent(Builder $query, string $event): Builder
+    {
+        return $query->where('event', $event);
     }
 
     public function scopeBetweenDates($query, ?string $from, ?string $to)

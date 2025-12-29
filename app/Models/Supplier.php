@@ -89,11 +89,49 @@ class Supplier extends Model implements HasMedia
     }
 
     /**
+     *  طلبات عروض الأسعار المعينة للمورد
+     */
+    public function assignedRfqs()
+    {
+        return $this->belongsToMany(Rfq::class, 'rfq_supplier')
+            ->withPivot(['status', 'invited_at', 'viewed_at', 'notes'])
+            ->withTimestamps();
+    }
+
+    /**
+     *  RFQs المتاحة للمورد (معين له أو قدم عرض عليها)
+     */
+    public function availableRfqs()
+    {
+        return Rfq::where('status', 'open')
+            ->where(function ($q) {
+                $q->whereHas('assignedSuppliers', fn($sub) => $sub->where('suppliers.id', $this->id))
+                  ->orWhereHas('quotations', fn($sub) => $sub->where('supplier_id', $this->id));
+            });
+    }
+
+    /**
+     *  الطلبات الواردة للمورد
+     */
+    public function orders()
+    {
+        return $this->hasMany(Order::class, 'supplier_id');
+    }
+
+    /**
      *  عمليات التسليم الخاصة بالمورد
      */
     public function deliveries()
     {
         return $this->hasMany(Delivery::class, 'supplier_id');
+    }
+
+    /**
+     *  الفواتير المرتبطة بالمورد عبر الطلبات
+     */
+    public function invoices()
+    {
+        return $this->hasManyThrough(Invoice::class, Order::class, 'supplier_id', 'order_id');
     }
 
     /**

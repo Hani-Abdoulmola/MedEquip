@@ -60,8 +60,8 @@ return new class extends Migration
 
             //  فهارس الأداء والقيود
             $table->unique(['product_id', 'supplier_id'], 'unique_product_supplier');
-            $table->index(['supplier_id', 'status'], 'supplier_status_index');
-            $table->index(['product_id', 'price'], 'product_price_index');
+            $table->index(['status', 'supplier_id'], 'status_supplier_index');
+            $table->index(['price', 'product_id'], 'price_product_index');
         });
     }
 

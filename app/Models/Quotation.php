@@ -22,6 +22,8 @@ class Quotation extends Model implements HasMedia
         'terms',
         'status',
         'valid_until',
+        'rejection_reason',
+        'updated_by',
     ];
 
     protected $casts = [

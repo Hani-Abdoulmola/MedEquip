@@ -24,6 +24,12 @@ return new class extends Migration
                 ->nullOnDelete()
                 ->comment('✏️ آخر من عدل المنتج');
 
+            $table->foreignId('manufacturer_id')
+            ->nullable()
+            ->constrained('manufacturers')
+            ->nullOnDelete()
+            ->comment('الشركة المصنّعة الحقيقية للمنتج');
+
             // البيانات الأساسية
             $table->string('name', 200)->comment('📦 اسم المنتج');
             $table->string('model', 100)->nullable()->comment('🔢 الموديل');
@@ -81,6 +87,8 @@ return new class extends Migration
             // فهارس
             $table->index(['name', 'brand'], 'product_search_index');
             $table->index(['category_id', 'is_active'], 'product_category_index');
+            $table->index(['manufacturer_id', 'category_id'], 'product_manufacturer_category_index');
+
         });
     }
 

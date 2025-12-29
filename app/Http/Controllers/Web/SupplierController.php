@@ -8,12 +8,17 @@ use App\Models\Supplier;
 use App\Models\User;
 use App\Models\UserType;
 use App\Services\NotificationService;
+use App\Exports\AdminSuppliersExport;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SupplierController extends Controller
 {
@@ -22,7 +27,7 @@ class SupplierController extends Controller
     /**
      *  عرض قائمة الموردين مع فلاتر إدارية بسيطة
      */
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         $query = Supplier::with(['user', 'products']);
 
@@ -73,7 +78,7 @@ class SupplierController extends Controller
     /**
      * ➕ صفحة إنشاء مورد جديد
      */
-    public function create()
+    public function create(): View
     {
         return view('admin.suppliers.create');
     }
@@ -81,7 +86,7 @@ class SupplierController extends Controller
     /**
      * 💾 تخزين المورد الجديد
      */
-    public function store(SupplierRequest $request)
+    public function store(SupplierRequest $request): RedirectResponse
     {
         DB::beginTransaction();
 
@@ -178,7 +183,7 @@ class SupplierController extends Controller
     /**
      *  صفحة تعديل المورد
      */
-    public function edit(Supplier $supplier)
+    public function edit(Supplier $supplier): View
     {
         $supplier->load('user');
 
@@ -188,7 +193,7 @@ class SupplierController extends Controller
     /**
      *  تحديث بيانات المورد
      */
-    public function update(SupplierRequest $request, Supplier $supplier)
+    public function update(SupplierRequest $request, Supplier $supplier): RedirectResponse
     {
         DB::beginTransaction();
 
@@ -265,7 +270,7 @@ class SupplierController extends Controller
     /**
      *  حذف المورد
      */
-    public function destroy(Supplier $supplier)
+    public function destroy(Supplier $supplier): RedirectResponse
     {
         try {
             $companyName = $supplier->company_name;
@@ -296,7 +301,7 @@ class SupplierController extends Controller
     /**
      *  عرض تفاصيل المورد
      */
-    public function show(Supplier $supplier)
+    public function show(Supplier $supplier): View
     {
         $supplier->load(['user', 'products', 'quotations']);
 
@@ -306,7 +311,7 @@ class SupplierController extends Controller
     /**
      *  توثيق المورد من قبل الإدارة
      */
-    public function verify(Supplier $supplier)
+    public function verify(Supplier $supplier): RedirectResponse
     {
         if (! $supplier->is_verified) {
             /** @var \App\Models\User */
@@ -339,7 +344,7 @@ class SupplierController extends Controller
     /**
      *  تفعيل / إيقاف حساب المورد
      */
-    public function toggleActive(Supplier $supplier)
+    public function toggleActive(Supplier $supplier): RedirectResponse
     {
         $newStatus = ! $supplier->is_active;
 
@@ -361,5 +366,18 @@ class SupplierController extends Controller
             ->log($newStatus ? ' تم تفعيل حساب المورد' : ' تم إيقاف حساب المورد');
 
         return back()->with('success', $newStatus ? ' تم تفعيل المورد' : ' تم إيقاف المورد');
+    }
+
+    /**
+     * 📥 تصدير الموردين إلى Excel
+     */
+    public function export(): BinaryFileResponse
+    {
+        $filters = request()->only(['q', 'status', 'city', 'country']);
+        
+        return Excel::download(
+            new AdminSuppliersExport($filters),
+            'suppliers_' . date('Y-m-d_His') . '.xlsx'
+        );
     }
 }

@@ -10,7 +10,7 @@
                     <h1 class="text-3xl font-bold text-medical-gray-900 font-display">تعديل منتج</h1>
                     <p class="mt-2 text-medical-gray-600">تعديل بيانات المنتج: {{ $product->name }}</p>
                 </div>
-                <a href="{{ route('admin.products') }}"
+                <a href="{{ route('admin.products.index') }}"
                     class="inline-flex items-center space-x-2 space-x-reverse px-6 py-3 bg-medical-gray-100 text-medical-gray-700 rounded-xl hover:bg-medical-gray-200 transition-all duration-200 font-semibold">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -143,7 +143,7 @@
 
                 Form Actions
                 <div class="flex items-center justify-end gap-4 pt-6 border-t border-medical-gray-200">
-                    <a href="{{ route('admin.products') }}"
+                    <a href="{{ route('admin.products.index') }}"
                         class="px-6 py-3 bg-medical-gray-200 text-medical-gray-700 rounded-xl hover:bg-medical-gray-300 transition-all duration-200 font-semibold">
                         إلغاء
                     </a>

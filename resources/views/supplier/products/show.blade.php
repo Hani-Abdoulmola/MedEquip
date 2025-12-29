@@ -30,6 +30,30 @@
             </div>
         </div>
 
+        {{-- Flash Messages --}}
+        @if (session('success'))
+            <div class="bg-medical-green-50 border border-medical-green-200 text-medical-green-700 px-6 py-4 rounded-xl mb-6 flex items-center gap-3">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if (session('error') || $errors->any())
+            <div class="bg-medical-red-50 border border-medical-red-200 text-medical-red-700 px-6 py-4 rounded-xl mb-6 flex items-center gap-3">
+                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                    {{ session('error') }}
+                    @foreach ($errors->all() as $error)
+                        <div>{{ $error }}</div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {{-- Product Image and Basic Info --}}
             <div class="lg:col-span-1">
@@ -107,41 +131,41 @@
                         <div class="p-4 bg-medical-blue-50 rounded-xl">
                             <p class="text-sm text-medical-gray-600 font-semibold">السعر</p>
                             <p class="text-3xl font-bold text-medical-blue-600 mt-2">
-                                {{ number_format($pivotData->price, 2) }} د.ل
+                                {{ number_format($pivot->price, 2) }} د.ل
                             </p>
                         </div>
                         <div class="p-4 bg-medical-green-50 rounded-xl">
                             <p class="text-sm text-medical-gray-600 font-semibold">الكمية المتوفرة</p>
                             <p class="text-3xl font-bold text-medical-green-600 mt-2">
-                                {{ $pivotData->stock_quantity }}
+                                {{ $pivot->stock_quantity }}
                             </p>
                         </div>
-                        @if ($pivotData->lead_time)
+                        @if ($pivot->lead_time)
                             <div class="p-4 bg-medical-yellow-50 rounded-xl">
                                 <p class="text-sm text-medical-gray-600 font-semibold">مدة التوصيل</p>
                                 <p class="text-xl font-bold text-medical-yellow-600 mt-2">
-                                    {{ $pivotData->lead_time }}
+                                    {{ $pivot->lead_time }}
                                 </p>
                             </div>
                         @endif
-                        @if ($pivotData->warranty)
+                        @if ($pivot->warranty)
                             <div class="p-4 bg-medical-purple-50 rounded-xl">
                                 <p class="text-sm text-medical-gray-600 font-semibold">الضمان</p>
                                 <p class="text-xl font-bold text-medical-purple-600 mt-2">
-                                    {{ $pivotData->warranty }}
+                                    {{ $pivot->warranty }}
                                 </p>
                             </div>
                         @endif
                         <div class="p-4 bg-medical-gray-50 rounded-xl">
                             <p class="text-sm text-medical-gray-600 font-semibold">الحالة</p>
                             <div class="mt-2">
-                                @if ($pivotData->status == 'available')
+                                @if ($pivot->status == 'available')
                                     <span
                                         class="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-full bg-medical-green-100 text-medical-green-700">
                                         <span class="w-2 h-2 bg-medical-green-600 rounded-full mr-2"></span>
                                         متوفر
                                     </span>
-                                @elseif($pivotData->status == 'out_of_stock')
+                                @elseif($pivot->status == 'out_of_stock')
                                     <span
                                         class="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-full bg-medical-red-100 text-medical-red-700">
                                         <span class="w-2 h-2 bg-medical-red-600 rounded-full mr-2"></span>
@@ -157,12 +181,68 @@
                             </div>
                         </div>
                     </div>
-                    @if ($pivotData->notes)
+                    @if ($pivot->notes)
                         <div class="mt-6 pt-6 border-t border-medical-gray-200">
                             <p class="text-sm text-medical-gray-600 font-semibold mb-2">ملاحظات</p>
-                            <p class="text-medical-gray-900">{{ $pivotData->notes }}</p>
+                            <p class="text-medical-gray-900">{{ $pivot->notes }}</p>
                         </div>
                     @endif
+                </div>
+
+                {{-- Review Status --}}
+                <div class="bg-white rounded-2xl shadow-medical p-6">
+                    <h3 class="text-lg font-semibold text-medical-gray-900 mb-4 font-display">حالة المراجعة</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-sm text-medical-gray-600 font-semibold mb-2">الحالة</p>
+                            @switch($product->review_status)
+                                @case('pending')
+                                    <span class="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-full bg-medical-yellow-100 text-medical-yellow-700">
+                                        <span class="w-2 h-2 bg-medical-yellow-600 rounded-full mr-2"></span>
+                                        قيد المراجعة
+                                    </span>
+                                    @break
+                                @case('approved')
+                                    <span class="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-full bg-medical-green-100 text-medical-green-700">
+                                        <span class="w-2 h-2 bg-medical-green-600 rounded-full mr-2"></span>
+                                        معتمد
+                                    </span>
+                                    @break
+                                @case('needs_update')
+                                    <span class="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-full bg-medical-blue-100 text-medical-blue-700">
+                                        <span class="w-2 h-2 bg-medical-blue-600 rounded-full mr-2"></span>
+                                        يحتاج تعديل
+                                    </span>
+                                    @break
+                                @case('rejected')
+                                    <span class="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-full bg-medical-red-100 text-medical-red-700">
+                                        <span class="w-2 h-2 bg-medical-red-600 rounded-full mr-2"></span>
+                                        مرفوض
+                                    </span>
+                                    @break
+                                @default
+                                    <span class="text-sm text-medical-gray-500">غير محدد</span>
+                            @endswitch
+                        </div>
+
+                        @if($product->review_notes)
+                            <div>
+                                <p class="text-sm text-medical-gray-600 font-semibold mb-2">ملاحظات المراجعة</p>
+                                <div class="p-4 bg-medical-blue-50 rounded-xl border border-medical-blue-200">
+                                    <p class="text-medical-gray-900 whitespace-pre-line">{{ $product->review_notes }}</p>
+                                </div>
+                            </div>
+                        @endif
+
+                        @if($product->rejection_reason)
+                            <div>
+                                <p class="text-sm text-medical-gray-600 font-semibold mb-2">سبب الرفض</p>
+                                <div class="p-4 bg-medical-red-50 rounded-xl border border-medical-red-200">
+                                    <p class="text-medical-gray-900 whitespace-pre-line">{{ $product->rejection_reason }}</p>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
                 </div>
 
                 {{-- Product Documents --}}

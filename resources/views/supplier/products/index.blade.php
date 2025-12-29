@@ -18,6 +18,30 @@
         </div>
     </div>
 
+    {{-- Flash Messages --}}
+    @if (session('success'))
+        <div class="bg-medical-green-50 border border-medical-green-200 text-medical-green-700 px-6 py-4 rounded-xl mb-6 flex items-center gap-3">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if (session('error') || $errors->any())
+        <div class="bg-medical-red-50 border border-medical-red-200 text-medical-red-700 px-6 py-4 rounded-xl mb-6 flex items-center gap-3">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+                {{ session('error') }}
+                @foreach ($errors->all() as $error)
+                    <div>{{ $error }}</div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     {{-- Stats Cards (حسب حالة المراجعة) --}}
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         {{-- Total Products --}}
@@ -169,6 +193,20 @@
                         </option>
                     </select>
                 </div>
+
+                {{-- Date From --}}
+                <div>
+                    <label class="block text-sm font-medium text-medical-gray-700 mb-2">من تاريخ</label>
+                    <input type="date" name="date_from" value="{{ request('date_from') }}"
+                        class="w-full px-4 py-2.5 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 transition-all">
+                </div>
+
+                {{-- Date To --}}
+                <div>
+                    <label class="block text-sm font-medium text-medical-gray-700 mb-2">إلى تاريخ</label>
+                    <input type="date" name="date_to" value="{{ request('date_to') }}"
+                        class="w-full px-4 py-2.5 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 transition-all">
+                </div>
             </div>
 
             <div class="mt-4 flex justify-end">
@@ -236,7 +274,11 @@
                                         @endif
                                         @if ($product->category)
                                             <span
-                                                class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-medical-blue-100 text-medical-blue-700 mt-1">
+                                                class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-medical-blue-100 text-medical-blue-700 mt-1"
+                                                title="{{ $product->category->full_path }}">
+                                                <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c1.1046 0 2 .8954 2 2v0c0 1.1046-.8954 2-2 2H9m-2 4h.01"></path>
+                                                </svg>
                                                 {{ $product->category->name }}
                                             </span>
                                         @endif

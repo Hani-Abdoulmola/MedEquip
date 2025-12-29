@@ -8,11 +8,16 @@ use App\Models\Buyer;
 use App\Models\User;
 use App\Models\UserType;
 use App\Services\NotificationService;
+use App\Exports\AdminBuyersExport;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class BuyerController extends Controller
 {
@@ -21,7 +26,7 @@ class BuyerController extends Controller
     /**
      *  عرض قائمة المشترين
      */
-    public function index()
+    public function index(): View
     {
         $query = Buyer::with(['user', 'rfqs', 'orders']);
 
@@ -70,7 +75,7 @@ class BuyerController extends Controller
     /**
      *  إنشاء مشتري جديد
      */
-    public function create()
+    public function create(): View
     {
         return view('admin.buyers.create');
     }
@@ -78,7 +83,7 @@ class BuyerController extends Controller
     /**
      *  تخزين مشتري جديد
      */
-    public function store(BuyerRequest $request)
+    public function store(BuyerRequest $request): RedirectResponse
     {
         DB::beginTransaction();
 
@@ -169,7 +174,7 @@ class BuyerController extends Controller
     /**
      *  تعديل مشتري
      */
-    public function edit(Buyer $buyer)
+    public function edit(Buyer $buyer): View
     {
         $buyer->load('user');
 
@@ -179,7 +184,7 @@ class BuyerController extends Controller
     /**
      *  تحديث بيانات المشتري
      */
-    public function update(BuyerRequest $request, Buyer $buyer)
+    public function update(BuyerRequest $request, Buyer $buyer): RedirectResponse
     {
         DB::beginTransaction();
 
@@ -256,7 +261,7 @@ class BuyerController extends Controller
     /**
      *  حذف المشتري
      */
-    public function destroy(Buyer $buyer)
+    public function destroy(Buyer $buyer): RedirectResponse
     {
         try {
             $buyer->delete();
@@ -284,7 +289,7 @@ class BuyerController extends Controller
     /**
      *  عرض تفاصيل المشتري
      */
-    public function show(Buyer $buyer)
+    public function show(Buyer $buyer): View
     {
         $buyer->load(['user', 'rfqs', 'orders']);
 
@@ -294,7 +299,7 @@ class BuyerController extends Controller
     /**
      *  تفعيل/تعطيل المشتري
      */
-    public function toggleActive(Buyer $buyer)
+    public function toggleActive(Buyer $buyer): RedirectResponse
     {
         $buyer->is_active = ! $buyer->is_active;
         $buyer->save();
@@ -305,12 +310,25 @@ class BuyerController extends Controller
     /**
      *  توثيق المشتري
      */
-    public function verifyBuyer(Buyer $buyer)
+    public function verifyBuyer(Buyer $buyer): RedirectResponse
     {
         $buyer->is_verified = true;
         $buyer->verified_at = now();
         $buyer->save();
 
         return back()->with('success', 'تم توثيق المشتري بنجاح');
+    }
+
+    /**
+     * 📥 تصدير المشترين إلى Excel
+     */
+    public function export(): BinaryFileResponse
+    {
+        $filters = request()->only(['search', 'country', 'status', 'verified']);
+        
+        return Excel::download(
+            new AdminBuyersExport($filters),
+            'buyers_' . date('Y-m-d_His') . '.xlsx'
+        );
     }
 }

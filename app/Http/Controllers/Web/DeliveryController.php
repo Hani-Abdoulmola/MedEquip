@@ -10,9 +10,14 @@ use App\Models\Order;
 use App\Models\Supplier;
 use App\Services\NotificationService;
 use App\Services\ReferenceCodeService;
+use App\Exports\AdminDeliveriesExport;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class DeliveryController extends Controller
 {
@@ -21,25 +26,76 @@ class DeliveryController extends Controller
     /**
      * 🚚 عرض كل عمليات التسليم
      */
-    public function index()
+    public function index(): View
     {
-        $deliveries = Delivery::with(['order', 'supplier', 'buyer'])
-            ->latest('id')
-            ->paginate(20);
+        $query = Delivery::with(['order', 'supplier', 'buyer']);
 
-        return view('deliveries.index', compact('deliveries'));
+        // Apply filters
+        if (request()->filled('search')) {
+            $search = request('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('delivery_number', 'like', "%{$search}%")
+                  ->orWhereHas('order', fn($sub) => $sub->where('order_number', 'like', "%{$search}%"))
+                  ->orWhereHas('buyer', fn($sub) => $sub->where('organization_name', 'like', "%{$search}%"))
+                  ->orWhereHas('supplier', fn($sub) => $sub->where('company_name', 'like', "%{$search}%"));
+            });
+        }
+
+        if (request()->filled('status')) {
+            $query->where('status', request('status'));
+        }
+
+        if (request()->filled('from_date')) {
+            $query->whereDate('delivery_date', '>=', request('from_date'));
+        }
+
+        if (request()->filled('to_date')) {
+            $query->whereDate('delivery_date', '<=', request('to_date'));
+        }
+
+        $deliveries = $query->latest('delivery_date')->paginate(20)->withQueryString();
+
+        // Calculate stats
+        $stats = Delivery::selectRaw('
+            COUNT(*) as total,
+            SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as in_transit,
+            SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as delivered,
+            SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as failed
+        ', [
+            Delivery::STATUS_PENDING,
+            Delivery::STATUS_IN_TRANSIT,
+            Delivery::STATUS_DELIVERED,
+            Delivery::STATUS_FAILED,
+        ])->first();
+
+        $stats = [
+            'total' => $stats->total ?? 0,
+            'pending' => $stats->pending ?? 0,
+            'in_transit' => $stats->in_transit ?? 0,
+            'delivered' => $stats->delivered ?? 0,
+            'failed' => $stats->failed ?? 0,
+        ];
+
+        // Check if admin or supplier view
+        $view = auth()->user()->hasRole('Admin') ? 'admin.deliveries.index' : 'deliveries.index';
+        
+        return view($view, compact('deliveries', 'stats'));
     }
 
     /**
      * ➕ إنشاء عملية تسليم جديدة
      */
-    public function create()
+    public function create(): View
     {
         $orders = Order::pluck('order_number', 'id');
         $suppliers = Supplier::pluck('company_name', 'id');
         $buyers = Buyer::pluck('organization_name', 'id');
 
-        return view('deliveries.form', [
+        // Check if admin or supplier view
+        $view = auth()->user()->hasRole('Admin') ? 'admin.deliveries.create' : 'deliveries.form';
+        
+        return view($view, [
             'delivery' => new Delivery,
             'orders' => $orders,
             'suppliers' => $suppliers,
@@ -50,7 +106,7 @@ class DeliveryController extends Controller
     /**
      * 💾 تخزين عملية تسليم جديدة
      */
-    public function store(DeliveryRequest $request)
+    public function store(DeliveryRequest $request): RedirectResponse
     {
         DB::beginTransaction();
 
@@ -110,8 +166,9 @@ class DeliveryController extends Controller
 
             DB::commit();
 
+            $route = auth()->user()->hasRole('Admin') ? 'admin.deliveries.index' : 'deliveries.index';
             return redirect()
-                ->route('deliveries.index')
+                ->route($route)
                 ->with('success', '✅ تم تسجيل عملية التسليم بنجاح.');
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -124,19 +181,22 @@ class DeliveryController extends Controller
     /**
      * ✏️ تعديل عملية تسليم
      */
-    public function edit(Delivery $delivery)
+    public function edit(Delivery $delivery): View
     {
         $orders = Order::pluck('order_number', 'id');
         $suppliers = Supplier::pluck('company_name', 'id');
         $buyers = Buyer::pluck('organization_name', 'id');
 
-        return view('deliveries.form', compact('delivery', 'orders', 'suppliers', 'buyers'));
+        // Check if admin or supplier view
+        $view = auth()->user()->hasRole('Admin') ? 'admin.deliveries.edit' : 'deliveries.form';
+        
+        return view($view, compact('delivery', 'orders', 'suppliers', 'buyers'));
     }
 
     /**
      * 🔄 تحديث عملية تسليم (بما في ذلك إشعار عند التأكيد)
      */
-    public function update(DeliveryRequest $request, Delivery $delivery)
+    public function update(DeliveryRequest $request, Delivery $delivery): RedirectResponse
     {
         DB::beginTransaction();
 
@@ -184,8 +244,9 @@ class DeliveryController extends Controller
 
             DB::commit();
 
+            $route = auth()->user()->hasRole('Admin') ? 'admin.deliveries.index' : 'deliveries.index';
             return redirect()
-                ->route('deliveries.index')
+                ->route($route)
                 ->with('success', '✅ تم تحديث بيانات التسليم بنجاح.');
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -198,7 +259,7 @@ class DeliveryController extends Controller
     /**
      * 🗑️ حذف عملية تسليم
      */
-    public function destroy(Delivery $delivery)
+    public function destroy(Delivery $delivery): RedirectResponse
     {
         try {
             $delivery->delete();
@@ -207,8 +268,9 @@ class DeliveryController extends Controller
                 ->performedOn($delivery)
                 ->log('🗑️ تم حذف عملية التسليم');
 
+            $route = auth()->user()->hasRole('Admin') ? 'admin.deliveries.index' : 'deliveries.index';
             return redirect()
-                ->route('deliveries.index')
+                ->route($route)
                 ->with('success', '❌ تم حذف عملية التسليم بنجاح.');
         } catch (\Throwable $e) {
             Log::error('Delivery delete error: '.$e->getMessage());
@@ -220,10 +282,30 @@ class DeliveryController extends Controller
     /**
      * 👁️ عرض تفاصيل عملية التسليم
      */
-    public function show(Delivery $delivery)
+    public function show(Delivery $delivery): View
     {
         $delivery->load(['order', 'supplier', 'buyer', 'creator', 'verifier']);
 
-        return view('deliveries.show', compact('delivery'));
+        // Check if admin or supplier view
+        $view = auth()->user()->hasRole('Admin') ? 'admin.deliveries.show' : 'deliveries.show';
+        
+        return view($view, compact('delivery'));
+    }
+
+    /**
+     * 📥 تصدير التسليمات إلى Excel
+     */
+    public function export(): BinaryFileResponse
+    {
+        if (!auth()->user()->hasRole('Admin')) {
+            abort(403);
+        }
+
+        $filters = request()->only(['search', 'status', 'supplier', 'buyer', 'from_date', 'to_date']);
+        
+        return Excel::download(
+            new AdminDeliveriesExport($filters),
+            'deliveries_' . date('Y-m-d_His') . '.xlsx'
+        );
     }
 }

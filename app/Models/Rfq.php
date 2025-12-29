@@ -47,6 +47,52 @@ class Rfq extends Model implements HasMedia
         return $this->hasMany(RfqItem::class, 'rfq_id');
     }
 
+    // 🏭 الموردون المعينون لهذا الطلب
+    public function assignedSuppliers()
+    {
+        return $this->belongsToMany(Supplier::class, 'rfq_supplier')
+            ->withPivot(['status', 'invited_at', 'viewed_at', 'notes'])
+            ->withTimestamps();
+    }
+
+    // ✅ Scopes
+    public function scopeOpen($query)
+    {
+        return $query->where('status', 'open');
+    }
+
+    public function scopeAssignedTo($query, $supplierId)
+    {
+        return $query->whereHas('assignedSuppliers', function ($q) use ($supplierId) {
+            $q->where('suppliers.id', $supplierId);
+        });
+    }
+
+    public function scopeAvailableFor($query, $supplierId)
+    {
+        return $query->where('status', 'open') // Only show open RFQs
+            ->where(function ($q) use ($supplierId) {
+                // Public RFQs (visible to all verified suppliers)
+                $q->where('is_public', true)
+                  // OR assigned to this supplier
+                  ->orWhereHas('assignedSuppliers', fn($sub) => $sub->where('suppliers.id', $supplierId))
+                  // OR has already submitted a quotation
+                  ->orWhereHas('quotations', fn($sub) => $sub->where('supplier_id', $supplierId));
+            });
+    }
+
+    // 🔍 Check if supplier is assigned
+    public function isAssignedTo($supplierId): bool
+    {
+        return $this->assignedSuppliers()->where('suppliers.id', $supplierId)->exists();
+    }
+
+    // 🔍 Check if supplier has quoted
+    public function hasQuotationFrom($supplierId): bool
+    {
+        return $this->quotations()->where('supplier_id', $supplierId)->exists();
+    }
+
     // 📎 ملفات RFQ — مستندات أو صور عبر Spatie Media Library
     public function registerMediaCollections(): void
     {

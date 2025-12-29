@@ -270,7 +270,7 @@
             </a>
 
             {{-- Orders --}}
-            <a href="{{ route('supplier.orders') }}"
+            <a href="{{ route('supplier.orders.index') }}"
                 class="group relative bg-gradient-to-br from-medical-blue-50 to-white rounded-xl p-6 border-2 border-medical-blue-200 hover:border-medical-blue-400 transition-all hover:shadow-lg">
                 <div class="flex items-center gap-4">
                     <div
@@ -288,7 +288,7 @@
             </a>
 
             {{-- RFQs --}}
-            <a href="{{ route('supplier.rfqs') }}"
+            <a href="{{ route('supplier.rfqs.index') }}"
                 class="group relative bg-gradient-to-br from-medical-red-50 to-white rounded-xl p-6 border-2 border-medical-red-200 hover:border-medical-red-400 transition-all hover:shadow-lg">
                 <div class="flex items-center gap-4">
                     <div

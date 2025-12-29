@@ -44,7 +44,7 @@ class RfqRequest extends FormRequest
             // ⚙️ الحالة
             'status' => [
                 'required',
-                Rule::in(['draft', 'open', 'under_review', 'closed', 'cancelled']),
+                Rule::in(['draft', 'open', 'under_review', 'closed', 'awarded', 'cancelled']),
             ],
 
             // 👁️ هل الطلب عام أم خاص

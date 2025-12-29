@@ -96,6 +96,29 @@
                 </div>
             </div>
 
+            {{-- Role Selection Section --}}
+            <div class="mt-8 pt-8 border-t border-medical-gray-200">
+                <h3 class="text-lg font-semibold text-medical-gray-900 mb-4">الدور</h3>
+
+                <div class="max-w-md">
+                    <label for="role" class="block text-sm font-medium text-medical-gray-700 mb-2">
+                        تعيين دور
+                    </label>
+                    <select id="role" name="role"
+                        class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent transition-all duration-200">
+                        <option value="">بدون دور</option>
+                        @foreach ($roles as $roleName => $roleLabel)
+                            <option value="{{ $roleName }}"
+                                {{ old('role', $user->roles->first()?->name) === $roleName ? 'selected' : '' }}>
+                                {{ $roleLabel }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="mt-2 text-xs text-medical-gray-500">الدور اختياري - يمكن تعيين الصلاحيات مباشرة أدناه</p>
+                </div>
+            </div>
+
+
             {{-- Password Change Section --}}
             <div class="mt-8 pt-8 border-t border-medical-gray-200">
                 <h3 class="text-lg font-semibold text-medical-gray-900 mb-4">تغيير كلمة المرور (اختياري)</h3>
@@ -182,6 +205,79 @@
             @csrf
             @method('DELETE')
         </form>
+
+        {{-- Permission Update Form (Separate) --}}
+        @can('users.manage_permissions')
+            <form method="POST" action="{{ route('admin.users.update-permissions', $user) }}" class="mt-8 pt-8 border-t border-medical-gray-200">
+                @csrf
+                @method('PUT')
+                
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-medical-gray-900">إدارة الصلاحيات</h3>
+                            <p class="text-sm text-medical-gray-600 mt-1">تعيين الصلاحيات مباشرة لهذا المستخدم</p>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <button type="button" onclick="selectAllPermissions()"
+                                class="text-sm text-medical-blue-600 hover:text-medical-blue-700 font-medium">
+                                تحديد الكل
+                            </button>
+                            <button type="button" onclick="deselectAllPermissions()"
+                                class="text-sm text-medical-gray-600 hover:text-medical-gray-700 font-medium">
+                                إلغاء التحديد
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        @foreach ($permissions as $module => $modulePermissions)
+                            <div class="border border-medical-gray-200 rounded-xl p-6">
+                                <h4 class="text-lg font-semibold text-medical-gray-900 mb-4 capitalize">
+                                    {{ $module }}
+                                </h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    @foreach ($modulePermissions as $permission)
+                                        <label
+                                            class="flex items-center space-x-3 space-x-reverse p-3 rounded-lg hover:bg-medical-gray-50 cursor-pointer transition-colors duration-200">
+                                            <input type="checkbox" name="permissions[]" value="{{ $permission->id }}"
+                                                {{ in_array($permission->id, old('permissions', $userPermissions ?? [])) ? 'checked' : '' }}
+                                                class="w-5 h-5 text-medical-blue-600 border-medical-gray-300 rounded focus:ring-2 focus:ring-medical-blue-500">
+                                            <span class="text-sm font-medium text-medical-gray-700">{{ $permission->name }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end pt-4 border-t border-medical-gray-200">
+                    <button type="submit"
+                        class="inline-flex items-center space-x-2 space-x-reverse px-6 py-3 bg-medical-purple-600 text-white rounded-xl hover:bg-medical-purple-700 transition-all duration-200 font-medium shadow-medical">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        <span>حفظ الصلاحيات</span>
+                    </button>
+                </div>
+            </form>
+        @endcan
     </div>
+
+    <script>
+        function selectAllPermissions() {
+            document.querySelectorAll('input[name="permissions[]"]').forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        }
+
+        function deselectAllPermissions() {
+            document.querySelectorAll('input[name="permissions[]"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+    </script>
 
 </x-dashboard.layout>
