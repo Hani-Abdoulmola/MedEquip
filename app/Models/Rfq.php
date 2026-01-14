@@ -16,16 +16,20 @@ class Rfq extends Model implements HasMedia
 
     protected $fillable = [
         'buyer_id',
+        'created_by',
+        'updated_by',
         'reference_code',
         'title',
         'description',
         'deadline',
+        'closed_at',
         'status',
         'is_public',
     ];
 
     protected $casts = [
         'deadline' => 'datetime:Y-m-d H:i',
+        'closed_at' => 'datetime:Y-m-d H:i',
         'is_public' => 'boolean',
     ];
 
@@ -33,6 +37,18 @@ class Rfq extends Model implements HasMedia
     public function buyer()
     {
         return $this->belongsTo(Buyer::class, 'buyer_id');
+    }
+
+    // 👤 المستخدم الذي أنشأ الطلب
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    // 👤 المستخدم الذي عدّل الطلب آخر مرة
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 
     // 💬 RFQ يمكن أن يحتوي على عدة عروض أسعار (Quotations)

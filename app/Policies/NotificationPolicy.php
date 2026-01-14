@@ -32,7 +32,7 @@ class NotificationPolicy
     {
         // Only system (admin) can create notifications
         // This is typically done via NotificationService
-        return $user->hasRole('Admin');
+        return $user->can('notifications.create');
     }
 
     /**

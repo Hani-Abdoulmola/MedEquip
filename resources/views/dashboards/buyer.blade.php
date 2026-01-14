@@ -60,7 +60,7 @@
             'title' => 'تصفح المنتجات',
             'description' => 'ابحث عن معدات طبية',
             'icon' => 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
-            'url' => '#',
+            'url' => route('buyer.products.index'),
             'gradient' => 'from-medical-blue-50 to-medical-blue-100',
             'iconColor' => 'text-medical-blue-600',
             'textColor' => 'text-medical-blue-700',
@@ -71,7 +71,7 @@
             'description' => 'عرض وإدارة الطلبات',
             'icon' =>
                 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
-            'url' => route('buyer.orders'),
+            'url' => route('buyer.orders.index'),
             'gradient' => 'from-medical-green-50 to-medical-green-100',
             'iconColor' => 'text-medical-green-600',
             'textColor' => 'text-medical-green-700',
@@ -82,7 +82,7 @@
             'description' => 'المنتجات المحفوظة',
             'icon' =>
                 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z',
-            'url' => route('buyer.favorites'),
+            'url' => route('buyer.products.favorites'),
             'gradient' => 'from-medical-red-50 to-medical-red-100',
             'iconColor' => 'text-medical-red-600',
             'textColor' => 'text-medical-red-700',
@@ -93,7 +93,7 @@
             'description' => 'تصفح الموردين',
             'icon' =>
                 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
-            'url' => route('buyer.suppliers'),
+            'url' => route('buyer.suppliers.index'),
             'gradient' => 'from-medical-blue-50 to-medical-green-50',
             'iconColor' => 'text-medical-blue-600',
             'textColor' => 'text-medical-blue-700',

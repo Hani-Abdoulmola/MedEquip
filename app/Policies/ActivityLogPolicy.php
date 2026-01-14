@@ -21,7 +21,7 @@ class ActivityLogPolicy
     public function view(User $user, ActivityLog $activityLog): bool
     {
         // Admin can view all activity logs
-        if ($user->hasRole('Admin')) {
+        if ($user->can('activity_logs.view')) {
             return true;
         }
 
@@ -79,7 +79,7 @@ class ActivityLogPolicy
     public function delete(User $user, ActivityLog $activityLog): bool
     {
         // Only admin can delete activity logs
-        return $user->hasRole('Admin');
+        return $user->can('activity_logs.delete');
     }
 }
 

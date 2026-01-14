@@ -29,7 +29,7 @@ class ManufacturerPolicy
     public function create(User $user): bool
     {
         // Only admin can create manufacturers
-        return $user->hasRole('Admin');
+        return $user->can('manufacturers.create');
     }
 
     /**
@@ -38,7 +38,7 @@ class ManufacturerPolicy
     public function update(User $user, Manufacturer $manufacturer): bool
     {
         // Only admin can update manufacturers
-        return $user->hasRole('Admin');
+        return $user->can('manufacturers.update');
     }
 
     /**
@@ -47,7 +47,7 @@ class ManufacturerPolicy
     public function delete(User $user, Manufacturer $manufacturer): bool
     {
         // Only admin can delete manufacturers
-        return $user->hasRole('Admin');
+        return $user->can('manufacturers.delete');
     }
 }
 

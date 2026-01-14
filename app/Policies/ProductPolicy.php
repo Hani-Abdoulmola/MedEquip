@@ -35,20 +35,21 @@ class ProductPolicy
 
     /**
      * Determine if the user can update the product.
+     * 
+     * Suppliers can update products they own.
+     * Admin/Staff need the products.update permission.
      */
     public function update(User $user, Product $product): bool
     {
-        if (!$user->can('products.update')) {
-            return false;
-        }
-
         // Supplier can update their own products
         if ($user->hasRole('Supplier') && $user->supplierProfile) {
-            return $product->suppliers()->where('suppliers.id', $user->supplierProfile->id)->exists();
+            return $user->supplierProfile->products()
+                ->where('products.id', $product->id)
+                ->exists();
         }
 
-        // Admin/Staff with permission can update any product
-        return true;
+        // Admin/Staff need permission
+        return $user->can('products.update');
     }
 
     /**
@@ -81,6 +82,58 @@ class ProductPolicy
     public function requestChanges(User $user, Product $product): bool
     {
         return $user->can('products.request_changes');
+    }
+
+    /**
+     * Determine if the user can browse products in the catalog.
+     * 
+     * This is for buyer product browsing - they can only see active, approved products.
+     */
+    public function browse(User $user): bool
+    {
+        // All authenticated users can browse the product catalog
+        return true;
+    }
+
+    /**
+     * Determine if the user can add products to favorites.
+     * 
+     * Only buyers can add products to their favorites list.
+     */
+    public function favorite(User $user, Product $product): bool
+    {
+        // Only buyers can add to favorites
+        if ($user->hasRole('Buyer') && $user->buyerProfile) {
+            // Can only favorite active, approved products
+            return $product->is_active && $product->review_status === 'approved';
+        }
+
+        return false;
+    }
+
+    /**
+     * Determine if the user can compare products.
+     */
+    public function compare(User $user): bool
+    {
+        // All authenticated users can compare products
+        return true;
+    }
+
+    /**
+     * Determine if the user can create an RFQ from a product.
+     * 
+     * Only buyers can create RFQs from products.
+     */
+    public function createRfq(User $user, Product $product): bool
+    {
+        // Only buyers can create RFQs from products
+        if ($user->hasRole('Buyer') && $user->buyerProfile) {
+            // Can only create RFQ for active, approved products
+            return $product->is_active && $product->review_status === 'approved';
+        }
+
+        return false;
     }
 }
 

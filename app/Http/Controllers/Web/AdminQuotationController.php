@@ -31,6 +31,11 @@ class AdminQuotationController extends Controller
      */
     public function index(Request $request): View
     {
+        // Check permission
+        if (!auth()->user()->can('quotations.view')) {
+            abort(403, 'ليس لديك صلاحية عرض عروض الأسعار');
+        }
+        
         $query = Quotation::with(['rfq.buyer', 'supplier', 'items'])
             ->latest('created_at');
 
@@ -79,82 +84,24 @@ class AdminQuotationController extends Controller
 
     /**
      * Show the form for creating a new quotation.
+     * 
+     * CRITICAL FIX: Admin must NOT create quotations directly.
+     * Quotations must be submitted by suppliers to maintain business logic integrity.
      */
     public function create(): View
     {
-        $rfqs = Rfq::where('status', 'open')->orderBy('title')->pluck('title', 'id');
-        $suppliers = Supplier::where('is_verified', true)->orderBy('company_name')->pluck('company_name', 'id');
-
-        return view('admin.quotations.create', [
-            'quotation' => new Quotation,
-            'rfqs' => $rfqs,
-            'suppliers' => $suppliers,
-        ]);
+        abort(403, 'لا يمكن للمسؤولين إنشاء عروض أسعار مباشرة. يتم تقديم عروض الأسعار من قبل الموردين.');
     }
 
     /**
      * Store a newly created quotation.
+     * 
+     * CRITICAL FIX: Admin must NOT create quotations directly.
+     * Quotations must be submitted by suppliers to maintain business logic integrity.
      */
     public function store(QuotationRequest $request): RedirectResponse
     {
-        DB::beginTransaction();
-
-        try {
-            $data = $request->validated();
-            $data['reference_code'] = ReferenceCodeService::generateUnique(
-                ReferenceCodeService::PREFIX_QUOTATION,
-                Quotation::class
-            );
-            $data['created_by'] = Auth::id();
-
-            $quotation = Quotation::create($data);
-
-            // Notify buyer
-            if ($quotation->rfq && $quotation->rfq->buyer && $quotation->rfq->buyer->user) {
-                NotificationService::send(
-                    $quotation->rfq->buyer->user,
-                    '💰 تم استلام عرض سعر جديد',
-                    "وصل عرض جديد من المورد {$quotation->supplier->company_name} لطلبك: {$quotation->rfq->title}",
-                    route('admin.quotations.show', $quotation->id)
-                );
-            }
-
-            // Notify supplier
-            if ($quotation->supplier && $quotation->supplier->user) {
-                NotificationService::send(
-                    $quotation->supplier->user,
-                    '✅ تم تسجيل عرضك بنجاح',
-                    "تم تسجيل عرض السعر للطلب: {$quotation->rfq->title}",
-                    route('supplier.quotations.index')
-                );
-            }
-
-            // Log activity
-            activity('admin_quotations')
-                ->performedOn($quotation)
-                ->causedBy(Auth::user())
-                ->withProperties([
-                    'rfq_id' => $quotation->rfq_id,
-                    'supplier_id' => $quotation->supplier_id,
-                    'status' => $quotation->status,
-                ])
-                ->log('قام المسؤول بإنشاء عرض سعر جديد');
-
-            DB::commit();
-
-            return redirect()
-                ->route('admin.quotations.index')
-                ->with('success', '✅ تم إضافة عرض السعر بنجاح');
-
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            Log::error('Admin quotation creation error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return back()->withErrors(['error' => 'حدث خطأ أثناء إضافة عرض السعر: ' . $e->getMessage()]);
-        }
+        abort(403, 'لا يمكن للمسؤولين إنشاء عروض أسعار مباشرة. يتم تقديم عروض الأسعار من قبل الموردين.');
     }
 
     /**
@@ -174,60 +121,24 @@ class AdminQuotationController extends Controller
 
     /**
      * Show the form for editing the specified quotation.
+     * 
+     * CRITICAL FIX: Admin must NOT edit quotations directly.
+     * Quotations must be managed by suppliers to maintain business logic integrity.
      */
     public function edit(Quotation $quotation): View
     {
-        $rfqs = Rfq::orderBy('title')->pluck('title', 'id');
-        $suppliers = Supplier::where('is_verified', true)->orderBy('company_name')->pluck('company_name', 'id');
-
-        return view('admin.quotations.edit', compact('quotation', 'rfqs', 'suppliers'));
+        abort(403, 'لا يمكن للمسؤولين تعديل عروض الأسعار مباشرة.');
     }
 
     /**
      * Update the specified quotation.
+     * 
+     * CRITICAL FIX: Admin must NOT edit quotations directly.
+     * Quotations must be managed by suppliers to maintain business logic integrity.
      */
     public function update(QuotationRequest $request, Quotation $quotation): RedirectResponse
     {
-        DB::beginTransaction();
-
-        try {
-            $data = $request->validated();
-            $data['updated_by'] = Auth::id();
-
-            $quotation->update($data);
-
-            // Notify buyer about update
-            if ($quotation->rfq && $quotation->rfq->buyer && $quotation->rfq->buyer->user) {
-                NotificationService::send(
-                    $quotation->rfq->buyer->user,
-                    '📦 تم تحديث عرض السعر',
-                    "تم تعديل عرض السعر من المورد {$quotation->supplier->company_name}",
-                    route('admin.quotations.show', $quotation->id)
-                );
-            }
-
-            // Log activity
-            activity('admin_quotations')
-                ->performedOn($quotation)
-                ->causedBy(Auth::user())
-                ->withProperties(['updated_by' => Auth::id()])
-                ->log('قام المسؤول بتحديث عرض السعر');
-
-            DB::commit();
-
-            return redirect()
-                ->route('admin.quotations.index')
-                ->with('success', '✅ تم تحديث عرض السعر بنجاح');
-
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            Log::error('Admin quotation update error', [
-                'quotation_id' => $quotation->id,
-                'message' => $e->getMessage(),
-            ]);
-
-            return back()->withErrors(['error' => 'فشل تحديث عرض السعر: ' . $e->getMessage()]);
-        }
+        abort(403, 'لا يمكن للمسؤولين تعديل عروض الأسعار مباشرة.');
     }
 
     /**
@@ -235,6 +146,8 @@ class AdminQuotationController extends Controller
      */
     public function destroy(Quotation $quotation): RedirectResponse
     {
+        $this->authorize('delete', $quotation);
+
         try {
             $quotationTitle = $quotation->reference_code;
             $quotation->delete();
@@ -289,15 +202,16 @@ class AdminQuotationController extends Controller
                 'updated_by' => Auth::id(),
             ]);
 
-            // Update RFQ status to awarded if needed
-            if ($request->has('award_rfq') && $quotation->rfq) {
+            // ALWAYS update RFQ status to awarded and reject others
+            // Admin should not interfere with business logic, but if they accept, follow same rules
+            if ($quotation->rfq) {
                 $quotation->rfq->update([
                     'status' => 'awarded',
                     'closed_at' => now(),
                     'updated_by' => Auth::id(),
                 ]);
 
-                // Reject other quotations for this RFQ
+                // ALWAYS reject other quotations for this RFQ
                 Quotation::where('rfq_id', $quotation->rfq_id)
                     ->where('id', '!=', $quotation->id)
                     ->where('status', 'pending')

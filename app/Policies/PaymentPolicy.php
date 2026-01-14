@@ -21,7 +21,7 @@ class PaymentPolicy
     public function view(User $user, Payment $payment): bool
     {
         // Admin can view all payments
-        if ($user->hasRole('Admin')) {
+        if ($user->can('payments.view')) {
             return true;
         }
 
@@ -53,7 +53,7 @@ class PaymentPolicy
     public function update(User $user, Payment $payment): bool
     {
         // Only admin can update payments
-        return $user->hasRole('Admin');
+        return $user->can('payments.update');
     }
 
     /**
@@ -62,7 +62,7 @@ class PaymentPolicy
     public function delete(User $user, Payment $payment): bool
     {
         // Only admin can delete payments
-        return $user->hasRole('Admin');
+        return $user->can('payments.delete');
     }
 }
 

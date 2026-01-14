@@ -3,7 +3,7 @@
 namespace App\Policies;
 
 use App\Models\User;
-use Spatie\Permission\Models\Permission;
+use App\Models\Permission;
 
 class PermissionPolicy
 {
@@ -12,8 +12,7 @@ class PermissionPolicy
      */
     public function viewAny(User $user): bool
     {
-        // Admin role always has full access
-        return $user->hasRole('Admin') || $user->hasPermissionTo('permissions.view', 'web');
+        return $user->can('permissions.view');
     }
 
     /**
@@ -21,8 +20,7 @@ class PermissionPolicy
      */
     public function view(User $user, Permission $permission): bool
     {
-        // Admin role always has full access
-        return $user->hasRole('Admin') || $user->hasPermissionTo('permissions.view', 'web');
+        return $user->can('permissions.view');
     }
 }
 

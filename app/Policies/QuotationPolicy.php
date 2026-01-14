@@ -12,6 +12,17 @@ class QuotationPolicy
      */
     public function viewAny(User $user): bool
     {
+        // Suppliers can view their quotations
+        if ($user->hasRole('Supplier') && $user->supplierProfile) {
+            return true;
+        }
+        
+        // Buyers can view quotations for their RFQs
+        if ($user->hasRole('Buyer') && $user->buyerProfile) {
+            return true;
+        }
+        
+        // Admin/Staff need permission
         return $user->can('quotations.view');
     }
 
@@ -20,10 +31,6 @@ class QuotationPolicy
      */
     public function view(User $user, Quotation $quotation): bool
     {
-        if (!$user->can('quotations.view')) {
-            return false;
-        }
-
         // Buyer can view quotations for their RFQs
         if ($user->hasRole('Buyer') && $user->buyerProfile) {
             return $quotation->rfq && $quotation->rfq->buyer_id === $user->buyerProfile->id;
@@ -34,8 +41,8 @@ class QuotationPolicy
             return $quotation->supplier_id === $user->supplierProfile->id;
         }
 
-        // Admin/Staff with permission can view all
-        return true;
+        // Admin/Staff need permission
+        return $user->can('quotations.view');
     }
 
     /**
@@ -43,6 +50,12 @@ class QuotationPolicy
      */
     public function create(User $user): bool
     {
+        // Only suppliers can create quotations
+        if ($user->hasRole('Supplier') && $user->supplierProfile) {
+            return true;
+        }
+        
+        // Admin/Staff need permission (rare case)
         return $user->can('quotations.submit');
     }
 
@@ -51,10 +64,6 @@ class QuotationPolicy
      */
     public function update(User $user, Quotation $quotation): bool
     {
-        if (!$user->can('quotations.update')) {
-            return false;
-        }
-
         // Supplier can only update their own pending quotations
         if ($user->hasRole('Supplier') && $user->supplierProfile) {
             if ($quotation->supplier_id !== $user->supplierProfile->id) {
@@ -66,11 +75,17 @@ class QuotationPolicy
                 return false;
             }
             
+            // Check if RFQ deadline has passed
+            if ($quotation->rfq->deadline && $quotation->rfq->deadline->isPast()) {
+                return false;
+            }
+            
             return $quotation->rfq && $quotation->rfq->status === 'open';
         }
 
-        // Admin/Staff with permission can update any quotation
-        return true;
+        // Admin should NOT update quotations (violates requirement)
+        // Keep for emergency cases only, but should be restricted
+        return false;
     }
 
     /**
@@ -78,10 +93,6 @@ class QuotationPolicy
      */
     public function delete(User $user, Quotation $quotation): bool
     {
-        if (!$user->can('quotations.delete')) {
-            return false;
-        }
-
         // Supplier can only delete their own pending quotations
         if ($user->hasRole('Supplier') && $user->supplierProfile) {
             if ($quotation->supplier_id !== $user->supplierProfile->id) {
@@ -91,8 +102,8 @@ class QuotationPolicy
             return $quotation->status === 'pending';
         }
 
-        // Admin/Staff with permission can delete any quotation
-        return true;
+        // Admin/Staff need permission
+        return $user->can('quotations.delete');
     }
 
     /**
@@ -100,6 +111,12 @@ class QuotationPolicy
      */
     public function accept(User $user, Quotation $quotation): bool
     {
+        // Buyer can accept quotations for their own RFQs
+        if ($user->hasRole('Buyer') && $user->buyerProfile) {
+            return $quotation->rfq && $quotation->rfq->buyer_id === $user->buyerProfile->id;
+        }
+
+        // Admin/Staff need permission
         return $user->can('quotations.accept');
     }
 
@@ -108,6 +125,12 @@ class QuotationPolicy
      */
     public function reject(User $user, Quotation $quotation): bool
     {
+        // Buyer can reject quotations for their own RFQs
+        if ($user->hasRole('Buyer') && $user->buyerProfile) {
+            return $quotation->rfq && $quotation->rfq->buyer_id === $user->buyerProfile->id;
+        }
+
+        // Admin/Staff need permission
         return $user->can('quotations.reject');
     }
 
@@ -116,6 +139,12 @@ class QuotationPolicy
      */
     public function compare(User $user): bool
     {
+        // Buyers can compare quotations for their RFQs
+        if ($user->hasRole('Buyer') && $user->buyerProfile) {
+            return true;
+        }
+        
+        // Admin/Staff need permission
         return $user->can('quotations.compare');
     }
 }

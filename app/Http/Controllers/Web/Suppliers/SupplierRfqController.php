@@ -218,6 +218,22 @@ class SupplierRfqController extends Controller
         DB::beginTransaction();
 
         try {
+            // Re-check RFQ status inside transaction (race condition prevention)
+            $rfq->refresh();
+            if ($rfq->status !== 'open') {
+                DB::rollBack();
+                return redirect()
+                    ->route('supplier.rfqs.show', $rfq)
+                    ->with('error', 'الطلب تم إغلاقه أثناء تقديم العرض.');
+            }
+
+            // Re-check deadline inside transaction
+            if ($rfq->deadline && $rfq->deadline->isPast()) {
+                DB::rollBack();
+                return redirect()
+                    ->route('supplier.rfqs.show', $rfq)
+                    ->with('error', 'انتهت فترة تقديم العروض لهذا الطلب.');
+            }
             // Calculate total from items if provided
             $items = $request->input('items', []);
             $totalPrice = $this->calculateQuotationTotal($request, $rfq);
@@ -333,9 +349,25 @@ class SupplierRfqController extends Controller
 
         $supplier = Auth::user()->supplierProfile;
 
+        // Check if RFQ deadline has passed
+        if ($quotation->rfq->deadline && $quotation->rfq->deadline->isPast()) {
+            return redirect()
+                ->route('supplier.rfqs.show', $quotation->rfq)
+                ->with('error', 'انتهت فترة تقديم العروض. لا يمكن تعديل العرض.');
+        }
+
         DB::beginTransaction();
 
         try {
+            // Re-check RFQ status inside transaction
+            $quotation->rfq->refresh();
+            if ($quotation->rfq->status !== 'open') {
+                DB::rollBack();
+                return redirect()
+                    ->route('supplier.rfqs.show', $quotation->rfq)
+                    ->with('error', 'الطلب لم يعد مفتوحاً. لا يمكن تعديل العرض.');
+            }
+
             // Calculate total from items if provided
             $items = $request->input('items', []);
             $totalPrice = $this->calculateQuotationTotal($request, $quotation->rfq);

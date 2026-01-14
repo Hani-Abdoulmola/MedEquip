@@ -20,12 +20,8 @@
     </div>
 
     {{-- Success/Error Messages --}}
-    @if(session('success'))
-        <div class="mb-6 p-4 bg-medical-green-50 border border-medical-green-200 rounded-xl text-medical-green-700">
-            {{ session('success') }}
-        </div>
-    @endif
-
+    {{-- Note: Success messages are displayed in dashboard layout component --}}
+    {{-- Only show error messages here to avoid duplicates --}}
     @if($errors->any())
         <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
             <ul class="list-disc pr-4 space-y-1">

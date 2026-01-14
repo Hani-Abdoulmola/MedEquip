@@ -18,6 +18,7 @@ class Order extends Model implements HasMedia
         'quotation_id',
         'buyer_id',
         'supplier_id',
+        'created_by',
         'order_number',
         'order_date',
         'status',
@@ -74,6 +75,12 @@ class Order extends Model implements HasMedia
     public function deliveries()
     {
         return $this->hasMany(Delivery::class, 'order_id');
+    }
+
+    // 👤 المستخدم الذي أنشأ الطلب
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     // 🧾 مرفقات الأوامر (مثل ملفات PDF أو إثباتات)

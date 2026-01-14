@@ -135,6 +135,39 @@ class Supplier extends Model implements HasMedia
     }
 
     /**
+     *  تقييمات المورد من المشترين
+     */
+    public function reviews()
+    {
+        return $this->hasMany(SupplierReview::class, 'supplier_id');
+    }
+
+    /**
+     *  التقييمات المعتمدة فقط
+     */
+    public function approvedReviews()
+    {
+        return $this->reviews()->where('status', 'approved');
+    }
+
+    /**
+     *  حساب متوسط التقييم العام للمورد
+     */
+    public function getAverageRatingAttribute(): float
+    {
+        $avg = $this->approvedReviews()->avg('overall_rating');
+        return $avg ? round($avg, 1) : 0;
+    }
+
+    /**
+     *  عدد التقييمات المعتمدة
+     */
+    public function getReviewsCountAttribute(): int
+    {
+        return $this->approvedReviews()->count();
+    }
+
+    /**
      *  إدارة الميديا عبر Spatie Media Library
      */
     public function registerMediaCollections(): void

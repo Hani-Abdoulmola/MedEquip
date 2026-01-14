@@ -12,6 +12,16 @@ class InvoicePolicy
      */
     public function viewAny(User $user): bool
     {
+        // Buyers can always view their invoices list
+        if ($user->hasRole('Buyer') && $user->buyerProfile) {
+            return true;
+        }
+
+        // Suppliers can always view their invoices list
+        if ($user->hasRole('Supplier') && $user->supplierProfile) {
+            return true;
+        }
+
         return $user->can('invoices.view');
     }
 
@@ -20,10 +30,6 @@ class InvoicePolicy
      */
     public function view(User $user, Invoice $invoice): bool
     {
-        if (!$user->can('invoices.view')) {
-            return false;
-        }
-
         // Buyer can view invoices for their orders
         if ($user->hasRole('Buyer') && $user->buyerProfile) {
             return $invoice->order && $invoice->order->buyer_id === $user->buyerProfile->id;
@@ -35,7 +41,7 @@ class InvoicePolicy
         }
 
         // Admin/Staff with permission can view all
-        return true;
+        return $user->can('invoices.view');
     }
 
     /**

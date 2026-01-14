@@ -10,7 +10,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             UserTypeSeeder::class,
-            RolePermissionSeeder::class,
+            UnifiedRolePermissionSeeder::class, // Use unified seeder instead of RolePermissionSeeder
             AdminSeeder::class,
             ProductCategorySeeder::class,
             ManufacturerSeeder::class,

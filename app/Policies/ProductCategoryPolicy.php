@@ -29,7 +29,7 @@ class ProductCategoryPolicy
     public function create(User $user): bool
     {
         // Only admin can create categories
-        return $user->hasRole('Admin');
+        return $user->can('categories.create');
     }
 
     /**
@@ -38,7 +38,7 @@ class ProductCategoryPolicy
     public function update(User $user, ProductCategory $category): bool
     {
         // Only admin can update categories
-        return $user->hasRole('Admin');
+        return $user->can('categories.update');
     }
 
     /**
@@ -48,7 +48,7 @@ class ProductCategoryPolicy
     {
         // Only admin can delete categories
         // Should check if category has products before allowing deletion
-        return $user->hasRole('Admin');
+        return $user->can('categories.delete');
     }
 }
 

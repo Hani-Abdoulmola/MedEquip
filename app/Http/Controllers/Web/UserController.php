@@ -16,7 +16,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
+use App\Models\Permission;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class UserController extends Controller
@@ -72,7 +73,8 @@ class UserController extends Controller
         $this->authorize('create', User::class);
 
         $types = UserType::pluck('name', 'id');
-        $roles = Role::all()->mapWithKeys(function ($role) {
+        // Only show internal/system roles for staff (exclude Supplier/Buyer identity roles)
+        $roles = Role::whereNotIn('name', ['Supplier', 'Buyer'])->get()->mapWithKeys(function ($role) {
             return [$role->name => $role->ar_name ?? $role->name];
         });
 
@@ -99,9 +101,12 @@ class UserController extends Controller
 
             $user = User::create($data);
 
-            // 🧩 تعيين الدور
+            // 🧩 تعيين الدور (الدور للتصنيف فقط، لا يعطي صلاحيات تلقائياً)
             if ($request->filled('role')) {
                 $user->assignRole($request->role);
+                // Important: Revoke any role permissions to ensure clean state
+                // User will get permissions manually via "الأدوار و الصلاحيات" page
+                $user->syncPermissions([]);
             }
 
             // 🧾 سجل النشاط
@@ -150,26 +155,50 @@ class UserController extends Controller
         $this->authorize('update', $user);
 
         $types = UserType::pluck('name', 'id');
-        $roles = Role::all()->mapWithKeys(function ($role) {
+        // Only show internal/system roles for staff (exclude Supplier/Buyer identity roles)
+        $roles = Role::whereNotIn('name', ['Supplier', 'Buyer'])->get()->mapWithKeys(function ($role) {
             return [$role->name => $role->ar_name ?? $role->name];
         });
         
         // Get all permissions grouped by module (only if user can manage permissions)
         $permissions = [];
         $userPermissions = [];
+        $moduleLabels = [];
         
         if (auth()->user()->can('users.manage_permissions')) {
-            $permissions = \Spatie\Permission\Models\Permission::orderBy('name')
+            $permissions = Permission::orderBy('name')
                 ->get()
                 ->groupBy(function ($permission) {
                     return explode('.', $permission->name)[0];
                 });
 
-            // Get user's current permissions
+            // Get user's current direct permissions
             $userPermissions = $user->permissions->pluck('id')->toArray();
+
+            // Arabic labels for modules (for nicer grouping titles in the UI)
+            $moduleLabels = [
+                'users' => 'المستخدمون',
+                'suppliers' => 'الموردون',
+                'buyers' => 'المشترون',
+                'rfqs' => 'طلبات عروض الأسعار',
+                'quotations' => 'عروض الأسعار',
+                'orders' => 'الطلبات',
+                'invoices' => 'الفواتير',
+                'payments' => 'المدفوعات',
+                'deliveries' => 'عمليات التسليم',
+                'products' => 'المنتجات',
+                'manufacturers' => 'الشركات المصنعة',
+                'categories' => 'الفئات',
+                'activity_logs' => 'سجل النشاط',
+                'notifications' => 'الإشعارات',
+                'settings' => 'الإعدادات',
+                'reports' => 'التقارير',
+                'roles' => 'الأدوار',
+                'permissions' => 'الصلاحيات',
+            ];
         }
 
-        return view('admin.users.edit', compact('user', 'types', 'roles', 'permissions', 'userPermissions'));
+        return view('admin.users.edit', compact('user', 'types', 'roles', 'permissions', 'userPermissions', 'moduleLabels'));
     }
 
     /**

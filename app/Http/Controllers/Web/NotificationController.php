@@ -19,6 +19,11 @@ class NotificationController extends Controller
         if (!$authUser) {
             return redirect()->route('login');
         }
+        
+        // Check permission
+        if (!$authUser->can('notifications.view')) {
+            abort(403, 'ليس لديك صلاحية عرض الإشعارات');
+        }
 
         // Get filter parameters
         $filter = $request->input('filter', 'all'); // all, unread, read

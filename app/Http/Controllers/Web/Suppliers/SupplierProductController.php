@@ -7,7 +7,6 @@ use App\Http\Requests\Suppliers\SupplierProductRequest;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\Manufacturer;
-use App\Services\NotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -20,14 +19,15 @@ use Illuminate\View\View;
  * Handles product management operations for suppliers including CRUD operations
  * on products and their offers (pivot table data).
  *
- * @package App\Http\Controllers\Web\Suppliers
+ * SIMPLIFIED WORKFLOW:
+ * - Suppliers can create NEW products (pending admin review)
+ * - Suppliers can link to EXISTING approved products
+ * - Suppliers manage their offer data (price, stock, etc.)
  */
 class SupplierProductController extends Controller
 {
     /**
      * Display a listing of the supplier's products.
-     *
-     * @return View
      */
     public function index(): View
     {
@@ -76,14 +76,16 @@ class SupplierProductController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        // Optimized stats calculation using single query
-        $stats = $supplier->products()
+        // Optimized stats calculation
+        $statsQuery = Product::query()
+            ->join('product_supplier', 'products.id', '=', 'product_supplier.product_id')
+            ->where('product_supplier.supplier_id', $supplier->id)
             ->selectRaw('
                 COUNT(*) as total,
-                SUM(CASE WHEN review_status = ? THEN 1 ELSE 0 END) as pending,
-                SUM(CASE WHEN review_status = ? THEN 1 ELSE 0 END) as approved,
-                SUM(CASE WHEN review_status = ? THEN 1 ELSE 0 END) as needs_update,
-                SUM(CASE WHEN review_status = ? THEN 1 ELSE 0 END) as rejected
+                SUM(CASE WHEN products.review_status = ? THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN products.review_status = ? THEN 1 ELSE 0 END) as approved,
+                SUM(CASE WHEN products.review_status = ? THEN 1 ELSE 0 END) as needs_update,
+                SUM(CASE WHEN products.review_status = ? THEN 1 ELSE 0 END) as rejected
             ', [
                 Product::REVIEW_PENDING,
                 Product::REVIEW_APPROVED,
@@ -93,11 +95,11 @@ class SupplierProductController extends Controller
             ->first();
 
         $stats = [
-            'total'        => $stats->total ?? 0,
-            'pending'      => $stats->pending ?? 0,
-            'approved'     => $stats->approved ?? 0,
-            'needs_update' => $stats->needs_update ?? 0,
-            'rejected'     => $stats->rejected ?? 0,
+            'total'        => $statsQuery->total ?? 0,
+            'pending'      => $statsQuery->pending ?? 0,
+            'approved'     => $statsQuery->approved ?? 0,
+            'needs_update' => $statsQuery->needs_update ?? 0,
+            'rejected'     => $statsQuery->rejected ?? 0,
         ];
 
         // Get active categories with hierarchy for filter dropdown
@@ -126,8 +128,6 @@ class SupplierProductController extends Controller
 
     /**
      * Show the form for creating a new product.
-     *
-     * @return View
      */
     public function create(): View
     {
@@ -138,13 +138,18 @@ class SupplierProductController extends Controller
         }
 
         // Get existing products not yet linked to this supplier
+        // Shows approved products, OR pending products created by other suppliers
         $existingProducts = Product::where('is_active', true)
-            ->whereDoesntHave('suppliers', fn ($q) => $q->where('suppliers.id', $supplier->id))
-            ->with(['category', 'manufacturer'])
+            ->where(function ($q) {
+                $q->where('review_status', Product::REVIEW_APPROVED)
+                  ->orWhere('review_status', Product::REVIEW_PENDING);
+            })
+            ->whereDoesntHave('suppliers', fn($q) => $q->where('suppliers.id', $supplier->id))
+            ->with(['category:id,name', 'manufacturer:id,name', 'media'])
             ->orderBy('name')
             ->get();
 
-        // Get active categories with hierarchy (parent > child format)
+        // Get active categories with hierarchy
         $categories = ProductCategory::active()
             ->with('parent')
             ->ordered()
@@ -165,9 +170,10 @@ class SupplierProductController extends Controller
 
     /**
      * Store a newly created product in storage.
-     *
-     * @param SupplierProductRequest $request
-     * @return RedirectResponse
+     * 
+     * WORKFLOW:
+     * - action='new': Creates a new product (pending admin review)
+     * - action='existing': Links supplier to existing approved product
      */
     public function store(SupplierProductRequest $request): RedirectResponse
     {
@@ -180,81 +186,108 @@ class SupplierProductController extends Controller
         DB::beginTransaction();
 
         try {
-            // Create new product or link existing one
             if ($request->action === 'new') {
-                // Create new product
+                // CREATE NEW PRODUCT (Pending admin review)
                 $product = Product::create([
-                    'created_by'   => Auth::id(),
-                    'name'         => $request->name,
-                    'model'        => $request->model,
-                    'brand'        => $request->brand,
+                    'created_by' => Auth::id(),
+                    'name' => $request->name,
+                    'model' => $request->model,
+                    'brand' => $request->brand,
                     'manufacturer_id' => $request->manufacturer_id,
-                    'category_id'  => $request->category_id,
-                    'description'  => $request->description,
+                    'category_id' => $request->category_id,
+                    'description' => $request->description,
                     'specifications' => $request->specifications
-                    ? array_filter(array_map('trim', explode("\n", $request->specifications)))
-                    : null,
-
+                        ? array_filter(array_map('trim', explode("\n", $request->specifications)))
+                        : null,
                     'features' => $request->features
-                    ? array_filter(array_map('trim', explode("\n", $request->features)))
-                    : null,
-
+                        ? array_filter(array_map('trim', explode("\n", $request->features)))
+                        : null,
                     'technical_data' => $request->technical_data
-                    ? array_filter(array_map('trim', explode("\n", $request->technical_data)))
-                    : null,
-
+                        ? array_filter(array_map('trim', explode("\n", $request->technical_data)))
+                        : null,
                     'certifications' => $request->certifications
-                    ? array_filter(array_map('trim', explode("\n", $request->certifications)))
-                    : null,
+                        ? array_filter(array_map('trim', explode("\n", $request->certifications)))
+                        : null,
                     'installation_requirements' => $request->installation_requirements,
-                    'review_status' => Product::REVIEW_PENDING,
-                    'is_active'     => true,
+                    'is_active' => true,
+                    'review_status' => Product::REVIEW_PENDING, // Needs admin approval
                 ]);
 
-                // Upload product images
+                // Upload images if provided
                 if ($request->hasFile('images')) {
                     foreach ($request->file('images') as $image) {
                         $product->addMedia($image)->toMediaCollection('product_images');
                     }
                 }
+
+                // Link supplier with offer data
+                $supplier->products()->attach($product->id, [
+                    'price' => $request->price,
+                    'stock_quantity' => $request->stock_quantity,
+                    'lead_time' => $request->lead_time,
+                    'warranty' => $request->warranty,
+                    'status' => $request->status,
+                    'notes' => $request->notes,
+                ]);
+
+                DB::commit();
+
+                // Log activity
+                activity('supplier_products')
+                    ->performedOn($product)
+                    ->causedBy(Auth::user())
+                    ->withProperties([
+                        'product_id' => $product->id,
+                        'product_name' => $product->name,
+                        'action' => 'created_new',
+                    ])
+                    ->log('📦 أنشأ المورد منتجاً جديداً (بانتظار المراجعة)');
+
+                return redirect()
+                    ->route('supplier.products.index')
+                    ->with('success', '✔ تم إضافة المنتج بنجاح — بانتظار مراجعة الإدارة');
+
             } else {
-                // Link existing product
-                $product = Product::findOrFail($request->product_id);
+                // LINK EXISTING PRODUCT
+                $product = Product::where('is_active', true)
+                    ->whereIn('review_status', [Product::REVIEW_APPROVED, Product::REVIEW_PENDING])
+                    ->findOrFail($request->product_id);
+
+                // Check if already linked
+                if ($supplier->products()->where('products.id', $product->id)->exists()) {
+                    DB::rollBack();
+                    return back()
+                        ->withInput()
+                        ->withErrors(['product_id' => 'هذا المنتج مرتبط بك مسبقاً.']);
+                }
+
+                // Attach supplier with offer data
+                $supplier->products()->attach($product->id, [
+                    'price' => $request->price,
+                    'stock_quantity' => $request->stock_quantity,
+                    'lead_time' => $request->lead_time,
+                    'warranty' => $request->warranty,
+                    'status' => $request->status,
+                    'notes' => $request->notes,
+                ]);
+
+                DB::commit();
+
+                // Log activity
+                activity('supplier_products')
+                    ->performedOn($product)
+                    ->causedBy(Auth::user())
+                    ->withProperties([
+                        'product_id' => $product->id,
+                        'product_name' => $product->name,
+                        'action' => 'linked_existing',
+                    ])
+                    ->log('🔗 ربط المورد منتجاً من الكتالوج');
+
+                return redirect()
+                    ->route('supplier.products.index')
+                    ->with('success', "✔ تم ربط المنتج: {$product->name}");
             }
-
-            // Attach product to supplier with pivot data
-            $supplier->products()->attach($product->id, [
-                'price'          => $request->price,
-                'stock_quantity' => $request->stock_quantity,
-                'lead_time'      => $request->lead_time,
-                'warranty'       => $request->warranty,
-                'status'         => $request->status,
-                'notes'          => $request->notes,
-            ]);
-
-            DB::commit();
-
-            // Notify admins
-            NotificationService::notifyAdmins(
-                '📦 منتج جديد يحتاج مراجعة',
-                "أضاف المورد {$supplier->company_name} منتجاً جديداً: {$product->name}. يحتاج إلى مراجعة.",
-                route('admin.products.review', $product->id)
-            );
-
-            // Log activity
-            activity('supplier_products')
-                ->performedOn($product)
-                ->causedBy(Auth::user())
-                ->withProperties([
-                    'product_id' => $product->id,
-                    'product_name' => $product->name,
-                    'action' => $request->action === 'new' ? 'created' : 'linked',
-                ])
-                ->log('✔ أضاف المورد منتجاً جديداً');
-
-            return redirect()
-                ->route('supplier.products.index')
-                ->with('success', '✔ تم إضافة المنتج — بانتظار مراجعة الإدارة');
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -262,20 +295,17 @@ class SupplierProductController extends Controller
             Log::error('Supplier product creation error', [
                 'supplier_id' => $supplier->id,
                 'message' => $e->getMessage(),
-                'trace'   => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString()
             ]);
 
             return back()
                 ->withInput()
-                ->withErrors(['error' => 'حدث خطأ أثناء إضافة المنتج. يرجى المحاولة مرة أخرى.']);
+                ->withErrors(['error' => 'حدث خطأ أثناء إضافة المنتج: ' . $e->getMessage()]);
         }
     }
 
     /**
      * Show the form for editing the specified product.
-     *
-     * @param Product $product
-     * @return View
      */
     public function edit(Product $product): View
     {
@@ -298,7 +328,7 @@ class SupplierProductController extends Controller
             ->first()
             ->pivot;
 
-        // Get active categories with hierarchy (parent > child format)
+        // Get active categories with hierarchy
         $categories = ProductCategory::active()
             ->with('parent')
             ->ordered()
@@ -319,10 +349,10 @@ class SupplierProductController extends Controller
 
     /**
      * Update the specified product in storage.
-     *
-     * @param SupplierProductRequest $request
-     * @param Product $product
-     * @return RedirectResponse
+     * 
+     * Suppliers can update:
+     * - Their offer data (price, stock, etc.) - ALWAYS
+     * - Product data (name, specs, etc.) - ONLY if review_status is 'needs_update'
      */
     public function update(SupplierProductRequest $request, Product $product): RedirectResponse
     {
@@ -340,60 +370,50 @@ class SupplierProductController extends Controller
         DB::beginTransaction();
 
         try {
-            // Update base product data
-            $product->update([
-                'updated_by'   => Auth::id(),
-                'name'         => $request->name,
-                'model'        => $request->model,
-                'brand'        => $request->brand,
-                'manufacturer_id' => $request->manufacturer_id,
-                'category_id'  => $request->category_id,
-                'description'  => $request->description,
-                'specifications' => $request->specifications
-                    ? array_filter(array_map('trim', explode("\n", $request->specifications)))
-                    : null,
-                'features' => $request->features
-                    ? array_filter(array_map('trim', explode("\n", $request->features)))
-                    : null,
-                'technical_data' => $request->technical_data
-                    ? array_filter(array_map('trim', explode("\n", $request->technical_data)))
-                    : null,
-                'certifications' => $request->certifications
-                    ? array_filter(array_map('trim', explode("\n", $request->certifications)))
-                    : null,
-                'installation_requirements' => $request->installation_requirements,
-                // Reset review status on update
-                'review_status'   => Product::REVIEW_PENDING,
-                'review_notes'    => null,
-                'rejection_reason'=> null,
+            // Update offer data (pivot) - ALWAYS allowed
+            $supplier->products()->updateExistingPivot($product->id, [
+                'price' => $request->price,
+                'stock_quantity' => $request->stock_quantity,
+                'lead_time' => $request->lead_time,
+                'warranty' => $request->warranty,
+                'status' => $request->status,
+                'notes' => $request->notes,
             ]);
 
-            // Update product images if provided
-            if ($request->hasFile('images')) {
-                $product->clearMediaCollection('product_images');
-                foreach ($request->file('images') as $image) {
-                    $product->addMedia($image)->toMediaCollection('product_images');
+            // Update product data ONLY if needs_update
+            if ($product->review_status === Product::REVIEW_NEEDS_UPDATE) {
+                $product->update([
+                    'name' => $request->name,
+                    'model' => $request->model,
+                    'brand' => $request->brand,
+                    'manufacturer_id' => $request->manufacturer_id,
+                    'category_id' => $request->category_id,
+                    'description' => $request->description,
+                    'specifications' => $request->specifications
+                        ? array_filter(array_map('trim', explode("\n", $request->specifications)))
+                        : null,
+                    'features' => $request->features
+                        ? array_filter(array_map('trim', explode("\n", $request->features)))
+                        : null,
+                    'technical_data' => $request->technical_data
+                        ? array_filter(array_map('trim', explode("\n", $request->technical_data)))
+                        : null,
+                    'certifications' => $request->certifications
+                        ? array_filter(array_map('trim', explode("\n", $request->certifications)))
+                        : null,
+                    'installation_requirements' => $request->installation_requirements,
+                    'review_status' => Product::REVIEW_PENDING, // Reset to pending for re-review
+                ]);
+
+                // Handle new images
+                if ($request->hasFile('images')) {
+                    foreach ($request->file('images') as $image) {
+                        $product->addMedia($image)->toMediaCollection('product_images');
+                    }
                 }
             }
 
-            // Update supplier pivot data
-            $supplier->products()->updateExistingPivot($product->id, [
-                'price'          => $request->price,
-                'stock_quantity' => $request->stock_quantity,
-                'lead_time'      => $request->lead_time,
-                'warranty'       => $request->warranty,
-                'status'         => $request->status,
-                'notes'          => $request->notes,
-            ]);
-
             DB::commit();
-
-            // Notify admins
-            NotificationService::notifyAdmins(
-                '✏ منتج محدث يحتاج مراجعة',
-                "قام المورد {$supplier->company_name} بتحديث منتج: {$product->name}. يحتاج إلى مراجعة.",
-                route('admin.products.review', $product->id)
-            );
 
             // Log activity
             activity('supplier_products')
@@ -403,11 +423,11 @@ class SupplierProductController extends Controller
                     'product_id' => $product->id,
                     'product_name' => $product->name,
                 ])
-                ->log('✏ حدّث المورد بيانات المنتج');
+                ->log('🔄 حدّث المورد بيانات المنتج');
 
             return redirect()
                 ->route('supplier.products.index')
-                ->with('success', '✔ تم تحديث المنتج — بانتظار موافقة الإدارة');
+                ->with('success', '✔ تم تحديث المنتج بنجاح');
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -416,20 +436,17 @@ class SupplierProductController extends Controller
                 'product_id' => $product->id,
                 'supplier_id' => $supplier->id,
                 'message' => $e->getMessage(),
-                'trace'   => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString()
             ]);
 
             return back()
                 ->withInput()
-                ->withErrors(['error' => 'حدث خطأ أثناء تحديث المنتج. يرجى المحاولة مرة أخرى.']);
+                ->withErrors(['error' => 'حدث خطأ أثناء تحديث المنتج: ' . $e->getMessage()]);
         }
     }
 
     /**
      * Remove the specified product from the supplier's list.
-     *
-     * @param Product $product
-     * @return RedirectResponse
      */
     public function destroy(Product $product): RedirectResponse
     {
@@ -460,7 +477,7 @@ class SupplierProductController extends Controller
 
             return redirect()
                 ->route('supplier.products.index')
-                ->with('success', '❌ تم حذف المنتج من قائمتك (المنتج الأساسي مازال موجوداً)');
+                ->with('success', '❌ تم حذف المنتج من قائمتك');
 
         } catch (\Throwable $e) {
             Log::error('Supplier product destroy error', [
@@ -469,15 +486,12 @@ class SupplierProductController extends Controller
                 'message' => $e->getMessage(),
             ]);
 
-            return back()->withErrors(['error' => 'حدث خطأ أثناء حذف المنتج. يرجى المحاولة مرة أخرى.']);
+            return back()->withErrors(['error' => 'حدث خطأ أثناء حذف المنتج.']);
         }
     }
 
     /**
-     * Display the specified product details for supplier.
-     *
-     * @param Product $product
-     * @return View
+     * Display the specified product details.
      */
     public function show(Product $product): View
     {
@@ -507,7 +521,6 @@ class SupplierProductController extends Controller
             ->withProperties([
                 'product_id' => $product->id,
                 'product_name' => $product->name,
-                'review_status' => $product->review_status,
             ])
             ->log('عرض المورد تفاصيل المنتج: ' . $product->name);
 

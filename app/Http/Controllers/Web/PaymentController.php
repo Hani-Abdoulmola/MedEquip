@@ -29,6 +29,11 @@ class PaymentController extends Controller
      */
     public function index(): View
     {
+        // Check permission
+        if (!auth()->user()->can('payments.view')) {
+            abort(403, 'ليس لديك صلاحية عرض المدفوعات');
+        }
+        
         $query = Payment::with(['invoice', 'order', 'buyer', 'supplier']);
 
         // Apply filters

@@ -32,15 +32,8 @@
     </div>
 
     {{-- Flash Messages --}}
-    @if (session('success'))
-        <div class="bg-medical-green-50 border border-medical-green-200 text-medical-green-700 px-6 py-4 rounded-xl mb-6 flex items-center gap-3">
-            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {{ session('success') }}
-        </div>
-    @endif
-
+    {{-- Note: Success messages are displayed in dashboard layout component --}}
+    {{-- Only show error messages here to avoid duplicates --}}
     @if ($errors->any())
         <div class="bg-medical-red-50 border border-medical-red-200 text-medical-red-700 px-6 py-4 rounded-xl mb-6">
             <ul class="list-disc list-inside">

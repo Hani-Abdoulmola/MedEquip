@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RfqRequest;
 use App\Models\Buyer;
+use App\Models\Product;
 use App\Models\Quotation;
 use App\Models\Rfq;
+use App\Models\RfqItem;
 use App\Models\Supplier;
 use App\Services\NotificationService;
 use App\Services\ReferenceCodeService;
@@ -14,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
@@ -30,6 +33,11 @@ class AdminRfqController extends Controller
      */
     public function index(Request $request): View
     {
+        // Check permission
+        if (!auth()->user()->can('rfqs.view')) {
+            abort(403, 'ليس لديك صلاحية عرض طلبات عروض الأسعار');
+        }
+        
         $query = Rfq::with(['buyer', 'items', 'quotations', 'assignedSuppliers'])
             ->latest('created_at');
 
@@ -99,9 +107,19 @@ class AdminRfqController extends Controller
      */
     public function store(RfqRequest $request): RedirectResponse
     {
+        Gate::authorize('create', Rfq::class);
+        
         DB::beginTransaction();
 
         try {
+            // Validate that RFQ has at least one item
+            $items = $request->input('items', []);
+            if (empty($items) || count($items) === 0) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['items' => 'يجب إضافة على الأقل بند واحد إلى الطلب.']);
+            }
+
             $data = $request->validated();
             $data['created_by'] = Auth::id();
             $data['reference_code'] = ReferenceCodeService::generateUnique(
@@ -110,6 +128,18 @@ class AdminRfqController extends Controller
             );
 
             $rfq = Rfq::create($data);
+
+            // Create RFQ items
+            foreach ($items as $item) {
+                RfqItem::create([
+                    'rfq_id' => $rfq->id,
+                    'product_id' => $item['product_id'] ?? null,
+                    'item_name' => $item['item_name'],
+                    'specifications' => $item['specifications'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'unit' => $item['unit'] ?? 'وحدة',
+                ]);
+            }
 
             // Notify buyer
             if ($rfq->buyer && $rfq->buyer->user) {
@@ -194,8 +224,12 @@ class AdminRfqController extends Controller
     public function edit(Rfq $rfq): View
     {
         $buyers = Buyer::orderBy('organization_name')->pluck('organization_name', 'id');
+        $products = Product::where('is_active', true)
+            ->orderBy('name')
+            ->pluck('name', 'id');
+        $rfq->load('items');
 
-        return view('admin.rfqs.edit', compact('rfq', 'buyers'));
+        return view('admin.rfqs.edit', compact('rfq', 'buyers', 'products'));
     }
 
     /**
@@ -203,9 +237,19 @@ class AdminRfqController extends Controller
      */
     public function update(RfqRequest $request, Rfq $rfq): RedirectResponse
     {
+        $this->authorize('update', $rfq);
+        
         DB::beginTransaction();
 
         try {
+            // Validate that RFQ has at least one item
+            $items = $request->input('items', []);
+            if (empty($items) || count($items) === 0) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['items' => 'يجب إضافة على الأقل بند واحد إلى الطلب.']);
+            }
+
             $data = $request->validated();
             $data['updated_by'] = Auth::id();
 
@@ -214,6 +258,44 @@ class AdminRfqController extends Controller
             }
 
             $rfq->update($data);
+
+            // Update or create RFQ items
+            $existingItemIds = [];
+            foreach ($items as $item) {
+                if (isset($item['id']) && $item['id']) {
+                    // Update existing item
+                    $rfqItem = RfqItem::find($item['id']);
+                    if ($rfqItem && $rfqItem->rfq_id === $rfq->id) {
+                        $rfqItem->update([
+                            'product_id' => $item['product_id'] ?? null,
+                            'item_name' => $item['item_name'],
+                            'specifications' => $item['specifications'] ?? null,
+                            'quantity' => $item['quantity'],
+                            'unit' => $item['unit'] ?? 'وحدة',
+                        ]);
+                        $existingItemIds[] = $rfqItem->id;
+                    }
+                } else {
+                    // Create new item
+                    $rfqItem = RfqItem::create([
+                        'rfq_id' => $rfq->id,
+                        'product_id' => $item['product_id'] ?? null,
+                        'item_name' => $item['item_name'],
+                        'specifications' => $item['specifications'] ?? null,
+                        'quantity' => $item['quantity'],
+                        'unit' => $item['unit'] ?? 'وحدة',
+                    ]);
+                    $existingItemIds[] = $rfqItem->id;
+                }
+            }
+
+            // Delete items that were removed (only if no quotations exist for them)
+            $itemsToDelete = $rfq->items()->whereNotIn('id', $existingItemIds)->get();
+            foreach ($itemsToDelete as $item) {
+                if ($item->quotationItems()->count() === 0) {
+                    $item->delete();
+                }
+            }
 
             // Notify suppliers if RFQ is closed
             if ($rfq->status === 'closed') {
@@ -265,6 +347,8 @@ class AdminRfqController extends Controller
      */
     public function destroy(Rfq $rfq): RedirectResponse
     {
+        $this->authorize('delete', $rfq);
+
         try {
             $rfqTitle = $rfq->title;
             $rfq->delete();

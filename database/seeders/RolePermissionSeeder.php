@@ -173,6 +173,14 @@ class RolePermissionSeeder extends Seeder
                 'rfqs.view',
                 'rfqs.create',
                 'rfqs.update',
+                'rfqs.delete',
+                'quotations.view',
+                'quotations.accept',
+                'quotations.reject',
+                'quotations.compare',
+                'invoices.view',
+                'invoices.download',
+                'deliveries.view',
             ],
         ];
 

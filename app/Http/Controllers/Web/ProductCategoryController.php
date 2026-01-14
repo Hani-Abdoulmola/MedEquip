@@ -30,6 +30,11 @@ class ProductCategoryController extends Controller
      */
     public function index(Request $request): View
     {
+        // Check permission
+        if (!auth()->user()->can('categories.view')) {
+            abort(403, 'ليس لديك صلاحية عرض الفئات');
+        }
+        
         $query = ProductCategory::with(['parent', 'children', 'products']);
 
         // Search
@@ -204,6 +209,42 @@ class ProductCategoryController extends Controller
                 ->withInput();
         }
 
+        // CRITICAL FIX: Prevent circular reference - check if selected parent is a descendant
+        if ($validated['parent_id']) {
+            $parent = ProductCategory::find($validated['parent_id']);
+            
+            if ($parent) {
+                // Traverse up the parent chain to check if this category is an ancestor
+                $current = $parent;
+                $visited = [$parent->id]; // Prevent infinite loops
+                
+                while ($current && $current->parent_id) {
+                    // If we find this category in the parent chain, it's a circular reference
+                    if ($current->parent_id === $category->id) {
+                        return back()
+                            ->withInput()
+                            ->withErrors(['parent_id' => '❌ لا يمكن تعيين فئة فرعية كأب - سيؤدي إلى مرجع دائري']);
+                    }
+                    
+                    // Prevent infinite loops
+                    if (in_array($current->parent_id, $visited)) {
+                        break;
+                    }
+                    $visited[] = $current->parent_id;
+                    
+                    $current = $current->parent;
+                }
+                
+                // Also check all descendants of this category recursively
+                $descendants = $this->getAllDescendants($category);
+                if (in_array($validated['parent_id'], $descendants)) {
+                    return back()
+                        ->withInput()
+                        ->withErrors(['parent_id' => '❌ لا يمكن تعيين فئة فرعية كأب - سيؤدي إلى مرجع دائري']);
+                }
+            }
+        }
+
         DB::beginTransaction();
         try {
             $category->update([
@@ -275,6 +316,32 @@ class ProductCategoryController extends Controller
             Log::error("Error deleting product category: " . $e->getMessage(), ['exception' => $e]);
             return back()->with('error', '❌ حدث خطأ أثناء حذف الفئة: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Get all descendant category IDs recursively
+     * الحصول على جميع معرفات الفئات الفرعية بشكل متكرر
+     *
+     * @param ProductCategory $category
+     * @return array
+     */
+    private function getAllDescendants(ProductCategory $category): array
+    {
+        $descendants = [];
+        
+        // Get direct children
+        $children = $category->children()->pluck('id')->toArray();
+        $descendants = array_merge($descendants, $children);
+        
+        // Recursively get descendants of each child
+        foreach ($children as $childId) {
+            $child = ProductCategory::find($childId);
+            if ($child) {
+                $descendants = array_merge($descendants, $this->getAllDescendants($child));
+            }
+        }
+        
+        return $descendants;
     }
 }
 

@@ -3,45 +3,62 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Services\BuyerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class BuyerDashboardController extends Controller
 {
+    protected BuyerService $buyerService;
+
+    public function __construct(BuyerService $buyerService)
+    {
+        $this->buyerService = $buyerService;
+    }
+
     /**
      * Display the buyer dashboard.
+     * 
+     * Note: Buyer verification is handled by the 'buyer.verified' middleware.
      */
     public function index(): View
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
+        $buyer = $user->buyerProfile;
 
-        // Ensure user is authenticated
-        if (!$user) {
-            abort(401, 'Unauthorized');
-        }
+        // Get dashboard statistics
+        $stats = $this->buyerService->getDashboardStats($buyer);
 
-        // Load buyer profile
-        $user->load('buyerProfile');
+        // Get recent RFQs
+        $recentRfqs = $this->buyerService->getRecentRfqs($buyer, 5);
 
-        // Verify user has buyer profile
-        if (!$user->buyerProfile) {
-            abort(403, 'Buyer profile not found');
-        }
+        // Get recent quotations
+        $recentQuotations = $this->buyerService->getRecentQuotations($buyer, 5);
 
-        // Check verification status
-        if ($user->buyerProfile->rejection_reason) {
-            return redirect()->route('auth.waiting-approval')
-                ->with('message', 'تم رفض طلب تسجيلك. يرجى مراجعة سبب الرفض أدناه.');
-        }
+        // Get pending quotations for review
+        $pendingQuotations = $this->buyerService->getPendingQuotationsForReview($buyer);
 
-        if (!$user->buyerProfile->is_verified) {
-            return redirect()->route('auth.waiting-approval')
-                ->with('message', 'حسابك قيد المراجعة من قبل الإدارة. سيتم إشعارك عند الموافقة.');
-        }
+        // Get spending trend for chart
+        $spendingTrend = $this->buyerService->getSpendingTrend($buyer, 7);
 
-        // Return buyer dashboard view
-        return view('buyer.dashboard');
+        // Get RFQ status distribution for chart
+        $rfqDistribution = $this->buyerService->getRfqStatusDistribution($buyer);
+
+        // Get upcoming events
+        $upcomingEvents = $this->buyerService->getUpcomingEvents($buyer);
+
+        // Return buyer dashboard view with real data
+        return view('buyer.dashboard', compact(
+            'buyer',
+            'stats',
+            'recentRfqs',
+            'recentQuotations',
+            'pendingQuotations',
+            'spendingTrend',
+            'rfqDistribution',
+            'upcomingEvents'
+        ));
     }
 }

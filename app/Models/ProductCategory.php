@@ -21,8 +21,7 @@ class ProductCategory extends Model
         'description',
         'parent_id',
         'is_active',
-        'review_status',
-        'review_note',
+        // CRITICAL FIX: Removed 'review_status' and 'review_note' - these columns don't exist in the migration
         'sort_order',
         'created_by',
         'updated_by',
@@ -30,7 +29,7 @@ class ProductCategory extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
-        'review_status' => 'string',
+        // CRITICAL FIX: Removed 'review_status' cast - column doesn't exist
         'sort_order' => 'integer',
     ];
 

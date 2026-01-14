@@ -66,6 +66,7 @@ class Product extends Model implements HasMedia
     protected $fillable = [
         'created_by',
         'updated_by',
+        'sku',
         'name',
         'model',
         'brand',
@@ -81,6 +82,15 @@ class Product extends Model implements HasMedia
         'technical_data',
         'certifications',
         'installation_requirements',
+        // Medical Compliance
+        'medical_class',
+        'ce_marked',
+        'fda_cleared',
+        'iso_certification',
+        // Catalog Control
+        'version',
+        'source',
+        'canonical_hash',
     ];
 
     /**
@@ -94,6 +104,9 @@ class Product extends Model implements HasMedia
         'features' => 'array',
         'technical_data' => 'array',
         'certifications' => 'array',
+        'ce_marked' => 'boolean',
+        'fda_cleared' => 'boolean',
+        'version' => 'integer',
     ];
 
     // ================================

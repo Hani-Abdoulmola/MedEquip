@@ -13,7 +13,7 @@ class SettingPolicy
     public function viewAny(User $user): bool
     {
         // Only admin can view settings
-        return $user->hasRole('Admin');
+        return $user->can('settings.view');
     }
 
     /**
@@ -22,7 +22,7 @@ class SettingPolicy
     public function view(User $user, Setting $setting): bool
     {
         // Only admin can view settings
-        return $user->hasRole('Admin');
+        return $user->can('settings.view');
     }
 
     /**
@@ -31,7 +31,7 @@ class SettingPolicy
     public function create(User $user): bool
     {
         // Only admin can create settings
-        return $user->hasRole('Admin');
+        return $user->can('settings.update');
     }
 
     /**
@@ -40,7 +40,7 @@ class SettingPolicy
     public function update(User $user, Setting $setting): bool
     {
         // Only admin can update settings
-        return $user->hasRole('Admin');
+        return $user->can('settings.update');
     }
 
     /**
@@ -49,7 +49,7 @@ class SettingPolicy
     public function delete(User $user, Setting $setting): bool
     {
         // Only admin can delete settings
-        return $user->hasRole('Admin');
+        return $user->can('settings.update');
     }
 }
 

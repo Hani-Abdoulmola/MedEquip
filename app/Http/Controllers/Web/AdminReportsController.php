@@ -31,6 +31,11 @@ class AdminReportsController extends Controller
      */
     public function index(Request $request): View
     {
+        // Check permission
+        if (!auth()->user()->can('reports.view')) {
+            abort(403, 'ليس لديك صلاحية عرض التقارير');
+        }
+        
         // Date range (default to last 30 days)
         $fromDate = $request->input('from_date', now()->subDays(30)->format('Y-m-d'));
         $toDate = $request->input('to_date', now()->format('Y-m-d'));

@@ -2,22 +2,8 @@
 <x-dashboard.layout title="إعدادات النظام" userRole="admin" :userName="auth()->user()->name" userType="مدير النظام">
 
     {{-- Success/Error Messages --}}
-    @if (session('success'))
-        <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"
-            class="mb-6 bg-gradient-to-r from-medical-green-500 to-medical-green-600 text-white px-6 py-4 rounded-xl shadow-lg flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="font-semibold">{{ session('success') }}</span>
-            </div>
-            <button @click="show = false" class="hover:bg-white/20 rounded-lg p-1">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-    @endif
+    {{-- Note: Success messages are displayed in dashboard layout component --}}
+    {{-- Only show error messages here to avoid duplicates --}}
 
     @if (session('error'))
         <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 5000)"

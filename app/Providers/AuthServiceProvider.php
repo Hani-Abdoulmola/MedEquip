@@ -17,6 +17,9 @@ use App\Models\Rfq;
 use App\Models\Setting;
 use App\Models\Supplier;
 use App\Models\User;
+use App\Models\Permission;
+use App\Models\ProductRequest;
+use App\Models\Role;
 use App\Policies\ActivityLogPolicy;
 use App\Policies\BuyerPolicy;
 use App\Policies\DeliveryPolicy;
@@ -28,6 +31,7 @@ use App\Policies\PaymentPolicy;
 use App\Policies\PermissionPolicy;
 use App\Policies\ProductCategoryPolicy;
 use App\Policies\ProductPolicy;
+use App\Policies\ProductRequestPolicy;
 use App\Policies\QuotationPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\RfqPolicy;
@@ -35,8 +39,6 @@ use App\Policies\SettingPolicy;
 use App\Policies\SupplierPolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -53,6 +55,7 @@ class AuthServiceProvider extends ServiceProvider
         Payment::class => PaymentPolicy::class,
         Delivery::class => DeliveryPolicy::class,
         Product::class => ProductPolicy::class,
+        ProductRequest::class => ProductRequestPolicy::class,
         Manufacturer::class => ManufacturerPolicy::class,
         ProductCategory::class => ProductCategoryPolicy::class,
         Buyer::class => BuyerPolicy::class,

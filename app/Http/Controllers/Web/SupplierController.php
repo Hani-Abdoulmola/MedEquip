@@ -29,6 +29,11 @@ class SupplierController extends Controller
      */
     public function index(Request $request): View
     {
+        // Check permission
+        if (!auth()->user()->can('suppliers.view')) {
+            abort(403, 'ليس لديك صلاحية عرض الموردين');
+        }
+        
         $query = Supplier::with(['user', 'products']);
 
         // البحث بالاسم أو المدينة

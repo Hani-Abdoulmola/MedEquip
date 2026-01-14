@@ -28,6 +28,11 @@ class DeliveryController extends Controller
      */
     public function index(): View
     {
+        // Check permission
+        if (!auth()->user()->can('deliveries.view')) {
+            abort(403, 'ليس لديك صلاحية عرض عمليات التسليم');
+        }
+        
         $query = Delivery::with(['order', 'supplier', 'buyer']);
 
         // Apply filters

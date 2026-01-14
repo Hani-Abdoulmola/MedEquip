@@ -12,6 +12,17 @@ class RfqPolicy
      */
     public function viewAny(User $user): bool
     {
+        // Suppliers can always view RFQs (filtered in controller)
+        if ($user->hasRole('Supplier') && $user->supplierProfile) {
+            return true;
+        }
+        
+        // Buyers can always view RFQs (filtered in controller)
+        if ($user->hasRole('Buyer') && $user->buyerProfile) {
+            return true;
+        }
+        
+        // Admin/Staff need permission
         return $user->can('rfqs.view');
     }
 
@@ -20,11 +31,6 @@ class RfqPolicy
      */
     public function view(User $user, Rfq $rfq): bool
     {
-        // Check base permission
-        if (!$user->can('rfqs.view')) {
-            return false;
-        }
-
         // Buyer can view their own RFQs
         if ($user->hasRole('Buyer') && $user->buyerProfile) {
             return $rfq->buyer_id === $user->buyerProfile->id;
@@ -48,10 +54,12 @@ class RfqPolicy
             if ($rfq->hasQuotationFrom($supplier->id)) {
                 return true;
             }
+            
+            return false;
         }
 
-        // Admin/Staff with permission can view all
-        return true;
+        // Admin/Staff need permission
+        return $user->can('rfqs.view');
     }
 
     /**
@@ -59,6 +67,12 @@ class RfqPolicy
      */
     public function create(User $user): bool
     {
+        // Buyers can create RFQs
+        if ($user->hasRole('Buyer') && $user->buyerProfile) {
+            return true;
+        }
+        
+        // Admin/Staff need permission
         return $user->can('rfqs.create');
     }
 
@@ -67,10 +81,6 @@ class RfqPolicy
      */
     public function update(User $user, Rfq $rfq): bool
     {
-        if (!$user->can('rfqs.update')) {
-            return false;
-        }
-
         // Buyer can update their own RFQs (if status allows)
         if ($user->hasRole('Buyer') && $user->buyerProfile) {
             if ($rfq->buyer_id !== $user->buyerProfile->id) {
@@ -81,8 +91,8 @@ class RfqPolicy
             return in_array($rfq->status, ['draft', 'open']);
         }
 
-        // Admin/Staff with permission can update any RFQ
-        return true;
+        // Admin/Staff need permission
+        return $user->can('rfqs.update');
     }
 
     /**
@@ -90,10 +100,6 @@ class RfqPolicy
      */
     public function delete(User $user, Rfq $rfq): bool
     {
-        if (!$user->can('rfqs.delete')) {
-            return false;
-        }
-
         // Buyer can delete their own RFQs if no quotations exist
         if ($user->hasRole('Buyer') && $user->buyerProfile) {
             if ($rfq->buyer_id !== $user->buyerProfile->id) {
@@ -104,8 +110,8 @@ class RfqPolicy
             return $rfq->quotations()->count() === 0;
         }
 
-        // Admin/Staff with permission can delete any RFQ
-        return true;
+        // Admin/Staff need permission
+        return $user->can('rfqs.delete');
     }
 
     /**

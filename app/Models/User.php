@@ -68,6 +68,34 @@ class User extends Authenticatable implements HasMedia
         return $this->user_type_id;
     }
 
+    /**
+     * Override can() method to check ONLY direct permissions for Spatie permissions
+     * But allow Laravel's policy authorization to work normally
+     * 
+     * This ensures:
+     * - Roles don't automatically grant Spatie permissions
+     * - Laravel policies still work correctly
+     * - Roles are categories only, permissions are assigned manually
+     * 
+     * @param string|array $abilities
+     * @param array|mixed $arguments
+     * @return bool
+     */
+    public function can($abilities, $arguments = [])
+    {
+        // If it's a Spatie permission (contains a dot like 'users.view')
+        // Check ONLY direct permissions, ignore role permissions
+        if (is_string($abilities) && str_contains($abilities, '.') && empty($arguments)) {
+            return $this->hasDirectPermission($abilities);
+        }
+        
+        // Otherwise, use Laravel's default authorization (for policies)
+        // This allows $this->authorize('viewAny', User::class) to work
+        return app(\Illuminate\Contracts\Auth\Access\Gate::class)
+            ->forUser($this)
+            ->check($abilities, $arguments);
+    }
+
     // ---------------- العلاقات ----------------
 
     public function type()

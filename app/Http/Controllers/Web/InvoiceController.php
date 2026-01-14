@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Web;
 
-use App\Http\Controllers\Controller;
 use App\Http\Requests\InvoiceRequest;
 use App\Models\Invoice;
 use App\Models\Order;
@@ -17,7 +16,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
-class InvoiceController extends Controller
+class InvoiceController extends BaseController
 {
     // Middleware is now defined in routes/web.php for Laravel 12 compatibility
 
@@ -26,6 +25,11 @@ class InvoiceController extends Controller
      */
     public function index(): View
     {
+        // Check permission
+        if (!auth()->user()->can('invoices.view')) {
+            abort(403, 'ليس لديك صلاحية عرض الفواتير');
+        }
+        
         $query = Invoice::with(['order.buyer', 'order.supplier']);
 
         // Apply filters
@@ -90,7 +94,7 @@ class InvoiceController extends Controller
         ];
 
         // Check if admin or supplier view
-        $view = auth()->user()->hasRole('Admin') ? 'admin.invoices.index' : 'invoices.index';
+        $view = $this->getView('admin.invoices.index', 'invoices.index', 'invoices.view');
         
         return view($view, compact('invoices', 'stats'));
     }
@@ -103,7 +107,7 @@ class InvoiceController extends Controller
         $orders = Order::orderBy('order_number')->pluck('order_number', 'id');
 
         // Check if admin or supplier view
-        $view = auth()->user()->hasRole('Admin') ? 'admin.invoices.create' : 'invoices.form';
+        $view = $this->getView('admin.invoices.create', 'invoices.form', 'invoices.create');
         
         return view($view, [
             'invoice' => new Invoice,
@@ -168,7 +172,7 @@ class InvoiceController extends Controller
 
             DB::commit();
 
-            $route = auth()->user()->hasRole('Admin') ? 'admin.invoices.index' : 'invoices.index';
+            $route = $this->isAdmin('invoices.view') ? 'admin.invoices.index' : 'invoices.index';
             return redirect()
                 ->route($route)
                 ->with('success', '✅ تم إنشاء الفاتورة بنجاح.');
@@ -188,7 +192,7 @@ class InvoiceController extends Controller
         $orders = Order::orderBy('order_number')->pluck('order_number', 'id');
 
         // Check if admin or supplier view
-        $view = auth()->user()->hasRole('Admin') ? 'admin.invoices.edit' : 'invoices.form';
+        $view = $this->getView('admin.invoices.edit', 'invoices.form', 'invoices.update');
         
         return view($view, compact('invoice', 'orders'));
     }
@@ -234,7 +238,7 @@ class InvoiceController extends Controller
 
             DB::commit();
 
-            $route = auth()->user()->hasRole('Admin') ? 'admin.invoices.index' : 'invoices.index';
+            $route = $this->isAdmin('invoices.view') ? 'admin.invoices.index' : 'invoices.index';
             return redirect()
                 ->route($route)
                 ->with('success', '✅ تم تحديث الفاتورة بنجاح.');
@@ -258,7 +262,7 @@ class InvoiceController extends Controller
                 ->performedOn($invoice)
                 ->log('🗑️ تم حذف الفاتورة');
 
-            $route = auth()->user()->hasRole('Admin') ? 'admin.invoices.index' : 'invoices.index';
+            $route = $this->isAdmin('invoices.view') ? 'admin.invoices.index' : 'invoices.index';
             return redirect()
                 ->route($route)
                 ->with('success', '❌ تم حذف الفاتورة بنجاح.');
@@ -277,7 +281,7 @@ class InvoiceController extends Controller
         $invoice->load(['order.buyer', 'order.supplier', 'payments']);
 
         // Check if admin or supplier view
-        $view = auth()->user()->hasRole('Admin') ? 'admin.invoices.show' : 'invoices.show';
+        $view = $this->getView('admin.invoices.show', 'invoices.show', 'invoices.view');
         
         return view($view, compact('invoice'));
     }
@@ -287,7 +291,7 @@ class InvoiceController extends Controller
      */
     public function export(): BinaryFileResponse
     {
-        if (!auth()->user()->hasRole('Admin')) {
+        if (!$this->isAdmin('invoices.export')) {
             abort(403);
         }
 

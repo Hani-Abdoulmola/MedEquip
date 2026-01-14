@@ -10,6 +10,7 @@ use App\Models\Manufacturer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
@@ -30,6 +31,11 @@ class ProductController extends Controller
      */
     public function index(): View
     {
+        // Check permission
+        if (!auth()->user()->can('products.view')) {
+            abort(403, 'ليس لديك صلاحية عرض المنتجات');
+        }
+        
         $query = Product::with(['category', 'manufacturer', 'creator', 'updater']);
 
         // Filter by supplier
@@ -122,115 +128,12 @@ class ProductController extends Controller
     }
 
     /**
-     * Show the review page for a product.
-     *
-     * @param Product $product
-     * @return View
+     * NOTE: Product review methods (review, approve, reject, requestChanges) 
+     * are handled by ProductReviewController to maintain separation of concerns.
+     * Routes point to ProductReviewController, not this controller.
+     * 
+     * These methods were removed to eliminate code duplication and security risks.
      */
-    public function review(Product $product): View
-    {
-        $product->load(['category', 'manufacturer', 'suppliers', 'creator']);
-        
-        return view('admin.products.review', compact('product'));
-    }
-
-    /**
-     * Approve a product after review.
-     *
-     * @param Product $product
-     * @return RedirectResponse
-     */
-    public function approve(Product $product): RedirectResponse
-    {
-        $product->update([
-            'review_status' => Product::REVIEW_APPROVED,
-            'rejection_reason' => null,
-            'review_notes' => null,
-        ]);
-
-        // Log activity
-        activity('products')
-            ->performedOn($product)
-            ->causedBy(Auth::user())
-            ->withProperties(['product_name' => $product->name])
-            ->log('✔ تم اعتماد المنتج');
-
-        return redirect()
-            ->route('admin.products.review', $product->id)
-            ->with('success', '✔ تم اعتماد المنتج بنجاح');
-    }
-
-    /**
-     * Reject a product with a reason.
-     *
-     * @param Request $request
-     * @param Product $product
-     * @return RedirectResponse
-     */
-    public function reject(Request $request, Product $product): RedirectResponse
-    {
-        $request->validate([
-            'reason' => 'required|string|max:500'
-        ], [
-            'reason.required' => 'يجب إدخال سبب الرفض',
-            'reason.max' => 'سبب الرفض يجب ألا يتجاوز 500 حرف',
-        ]);
-
-        $product->update([
-            'review_status' => Product::REVIEW_REJECTED,
-            'rejection_reason' => $request->reason,
-        ]);
-
-        // Log activity
-        activity('products')
-            ->performedOn($product)
-            ->causedBy(Auth::user())
-            ->withProperties([
-                'product_name' => $product->name,
-                'reason' => $request->reason
-            ])
-            ->log('❌ تم رفض المنتج');
-
-        return redirect()
-            ->route('admin.products.review', $product->id)
-            ->with('success', '❌ تم رفض المنتج');
-    }
-
-    /**
-     * Request changes for a product.
-     *
-     * @param Request $request
-     * @param Product $product
-     * @return RedirectResponse
-     */
-    public function requestChanges(Request $request, Product $product): RedirectResponse
-    {
-        $request->validate([
-            'notes' => 'required|string|max:500'
-        ], [
-            'notes.required' => 'يجب إدخال ملاحظات التعديل',
-            'notes.max' => 'ملاحظات التعديل يجب ألا تتجاوز 500 حرف',
-        ]);
-
-        $product->update([
-            'review_status' => Product::REVIEW_NEEDS_UPDATE,
-            'review_notes' => $request->notes,
-        ]);
-
-        // Log activity
-        activity('products')
-            ->performedOn($product)
-            ->causedBy(Auth::user())
-            ->withProperties([
-                'product_name' => $product->name,
-                'notes' => $request->notes
-            ])
-            ->log('✏ تم طلب تعديلات على المنتج');
-
-        return redirect()
-            ->route('admin.products.review', $product->id)
-            ->with('success', '✏ تم إرسال طلب التعديلات');
-    }
 
     /**
      * Remove the specified product from storage.
@@ -240,7 +143,21 @@ class ProductController extends Controller
      */
     public function destroy(Product $product): RedirectResponse
     {
+        // CRITICAL FIX: Authorization check - only admins with delete permission can delete products
+        Gate::authorize('delete', $product);
+        
         try {
+            // CRITICAL FIX: Check for active supplier offers before deletion
+            $activeOffers = $product->suppliers()
+                ->wherePivot('status', 'available')
+                ->count();
+                
+            if ($activeOffers > 0) {
+                return back()->withErrors([
+                    'error' => '❌ لا يمكن حذف المنتج لأنه مرتبط بعروض نشطة من ' . $activeOffers . ' مورد. قم بإيقاف العروض أولاً.'
+                ]);
+            }
+            
             // Prevent deletion of products under review
             if ($product->review_status === Product::REVIEW_PENDING) {
                 return back()->withErrors([

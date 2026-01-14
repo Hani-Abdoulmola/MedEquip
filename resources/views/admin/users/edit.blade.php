@@ -233,8 +233,8 @@
                     <div class="space-y-6">
                         @foreach ($permissions as $module => $modulePermissions)
                             <div class="border border-medical-gray-200 rounded-xl p-6">
-                                <h4 class="text-lg font-semibold text-medical-gray-900 mb-4 capitalize">
-                                    {{ $module }}
+                                <h4 class="text-lg font-semibold text-medical-gray-900 mb-4">
+                                    {{ $moduleLabels[$module] ?? $module }}
                                 </h4>
                                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     @foreach ($modulePermissions as $permission)
@@ -243,7 +243,9 @@
                                             <input type="checkbox" name="permissions[]" value="{{ $permission->id }}"
                                                 {{ in_array($permission->id, old('permissions', $userPermissions ?? [])) ? 'checked' : '' }}
                                                 class="w-5 h-5 text-medical-blue-600 border-medical-gray-300 rounded focus:ring-2 focus:ring-medical-blue-500">
-                                            <span class="text-sm font-medium text-medical-gray-700">{{ $permission->name }}</span>
+                                            <span class="text-sm font-medium text-medical-gray-700">
+                                                {{ $permission->ar_name ?? $permission->name }}
+                                            </span>
                                         </label>
                                     @endforeach
                                 </div>

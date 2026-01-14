@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class ProductReviewController extends Controller
 {
@@ -14,6 +15,9 @@ class ProductReviewController extends Controller
      */
     public function review(Product $product)
     {
+        // Authorization check: Only admins can review products
+        Gate::authorize('view', $product);
+        
         $product->load(['suppliers', 'category', 'creator']);
 
         return view('admin.products.review', compact('product'));
@@ -24,6 +28,9 @@ class ProductReviewController extends Controller
      */
     public function approve(Product $product)
     {
+        // CRITICAL FIX: Authorization check - only admins with approve permission can approve products
+        Gate::authorize('approve', $product);
+        
         $product->update([
             'review_status' => 'approved',
             'updated_by' => Auth::id(),
@@ -42,6 +49,9 @@ class ProductReviewController extends Controller
      */
     public function reject(Request $request, Product $product)
     {
+        // CRITICAL FIX: Authorization check - only admins with reject permission can reject products
+        Gate::authorize('reject', $product);
+        
         $request->validate([
             'reason' => 'required|string|max:1000',
         ]);
@@ -66,6 +76,9 @@ class ProductReviewController extends Controller
      */
     public function requestChanges(Request $request, Product $product)
     {
+        // CRITICAL FIX: Authorization check - only admins with request_changes permission can request changes
+        Gate::authorize('requestChanges', $product);
+        
         $request->validate([
             'notes' => 'required|string|max:1000',
         ]);
@@ -75,6 +88,16 @@ class ProductReviewController extends Controller
             'review_notes' => $request->notes,
             'updated_by' => Auth::id(),
         ]);
+
+        // CRITICAL FIX: Notify supplier who created the product
+        if ($product->creator && $product->creator->supplierProfile) {
+            \App\Services\NotificationService::send(
+                $product->creator,
+                '✏ طلب تعديل على منتجك',
+                "طلب الإدارة تعديلات على المنتج: {$product->name}. الملاحظات: {$request->notes}",
+                route('supplier.products.edit', $product->id)
+            );
+        }
 
         activity('products')
             ->performedOn($product)

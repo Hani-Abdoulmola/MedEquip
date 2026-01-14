@@ -18,9 +18,9 @@ class RfqRequest extends FormRequest
         $rfqId = $this->route('rfq')?->id;
 
         return [
-            // 👤 المشتري (يجب أن يكون موجود فعلاً)
+            // 👤 المشتري (يُعيّن تلقائياً من المستخدم المصادق عليه)
             'buyer_id' => [
-                'required',
+                'nullable',
                 'exists:buyers,id',
             ],
 
@@ -49,6 +49,14 @@ class RfqRequest extends FormRequest
 
             // 👁️ هل الطلب عام أم خاص
             'is_public' => ['required', 'boolean'],
+
+            // 📦 RFQ Items - must have at least one item
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.product_id' => ['nullable', 'exists:products,id'],
+            'items.*.item_name' => ['required', 'string', 'max:200'],
+            'items.*.specifications' => ['nullable', 'string', 'max:5000'],
+            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999999'],
+            'items.*.unit' => ['nullable', 'string', 'max:50'],
         ];
     }
 
@@ -67,6 +75,11 @@ class RfqRequest extends FormRequest
             'status.in' => 'قيمة الحالة غير صحيحة.',
             'is_public.required' => 'يجب تحديد ما إذا كان الطلب عامًا أم خاصًا.',
             'is_public.boolean' => 'القيمة يجب أن تكون نعم أو لا.',
+            'items.required' => 'يجب إضافة على الأقل بند واحد إلى الطلب.',
+            'items.min' => 'يجب إضافة على الأقل بند واحد إلى الطلب.',
+            'items.*.item_name.required' => 'اسم البند مطلوب.',
+            'items.*.quantity.required' => 'الكمية مطلوبة.',
+            'items.*.quantity.min' => 'الكمية يجب أن تكون أكبر من صفر.',
         ];
     }
 
@@ -76,6 +89,9 @@ class RfqRequest extends FormRequest
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
+            $isUpdate = in_array($this->method(), ['PUT', 'PATCH'], true);
+            $rfq = $this->route('rfq');
+
             // 🧩 تأكد أن المستخدم الحالي فعلاً هو المشتري المرتبط
             if (auth()->user()->hasRole('Buyer') && auth()->user()->buyerProfile) {
                 if ($this->buyer_id != auth()->user()->buyerProfile->id) {
@@ -86,6 +102,14 @@ class RfqRequest extends FormRequest
             // 🚫 لا يمكن للمورد أو مستخدم غير مخول إنشاء RFQ
             if (auth()->user()->hasRole('Supplier')) {
                 $validator->errors()->add('role', 'المورد لا يمكنه إنشاء RFQ.');
+            }
+
+            // 📅 Validate deadline on update - prevent setting to past date
+            if ($isUpdate && $rfq && $this->has('deadline') && $this->deadline !== null) {
+                $deadline = \Carbon\Carbon::parse($this->deadline);
+                if ($deadline->isPast() && !$deadline->isToday()) {
+                    $validator->errors()->add('deadline', 'لا يمكن تعيين الموعد النهائي لتاريخ في الماضي.');
+                }
             }
         });
     }

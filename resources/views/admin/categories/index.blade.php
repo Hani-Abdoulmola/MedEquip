@@ -19,17 +19,8 @@
     </div>
 
     {{-- Success/Error Messages --}}
-    @if (session('success'))
-        <div class="mb-6 bg-medical-green-50 border-r-4 border-medical-green-500 p-4 rounded-lg">
-            <div class="flex items-center">
-                <svg class="w-5 h-5 text-medical-green-500 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <p class="text-medical-green-700 font-medium">{{ session('success') }}</p>
-            </div>
-        </div>
-    @endif
-
+    {{-- Note: Success messages are displayed in dashboard layout component --}}
+    {{-- Only show error messages here to avoid duplicates --}}
     @if (session('error'))
         <div class="mb-6 bg-medical-red-50 border-r-4 border-medical-red-500 p-4 rounded-lg">
             <div class="flex items-center">

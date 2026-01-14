@@ -12,6 +12,16 @@ class OrderPolicy
      */
     public function viewAny(User $user): bool
     {
+        // Buyers can always view their orders list
+        if ($user->hasRole('Buyer') && $user->buyerProfile) {
+            return true;
+        }
+
+        // Suppliers can always view their orders list
+        if ($user->hasRole('Supplier') && $user->supplierProfile) {
+            return true;
+        }
+
         return $user->can('orders.view');
     }
 
@@ -20,10 +30,6 @@ class OrderPolicy
      */
     public function view(User $user, Order $order): bool
     {
-        if (!$user->can('orders.view')) {
-            return false;
-        }
-
         // Buyer can view their own orders
         if ($user->hasRole('Buyer') && $user->buyerProfile) {
             return $order->buyer_id === $user->buyerProfile->id;
@@ -35,11 +41,14 @@ class OrderPolicy
         }
 
         // Admin/Staff with permission can view all
-        return true;
+        return $user->can('orders.view');
     }
 
     /**
      * Determine if the user can create orders.
+     * 
+     * Note: Orders are typically created automatically when a quotation is accepted.
+     * Direct order creation is usually admin-only.
      */
     public function create(User $user): bool
     {
@@ -48,9 +57,22 @@ class OrderPolicy
 
     /**
      * Determine if the user can update the order.
+     * 
+     * Buyers cannot update orders - they can only view them.
+     * Suppliers can update their own orders (status changes).
      */
     public function update(User $user, Order $order): bool
     {
+        // Buyers cannot update orders directly
+        if ($user->hasRole('Buyer')) {
+            return false;
+        }
+
+        // Supplier can update their own orders
+        if ($user->hasRole('Supplier') && $user->supplierProfile) {
+            return $order->supplier_id === $user->supplierProfile->id;
+        }
+
         return $user->can('orders.update');
     }
 
@@ -59,6 +81,11 @@ class OrderPolicy
      */
     public function delete(User $user, Order $order): bool
     {
+        // Buyers cannot delete orders
+        if ($user->hasRole('Buyer')) {
+            return false;
+        }
+
         return $user->can('orders.delete');
     }
 
@@ -75,7 +102,8 @@ class OrderPolicy
      */
     public function updateStatus(User $user, Order $order): bool
     {
-        if (!$user->can('orders.update_status')) {
+        // Buyers cannot update order status
+        if ($user->hasRole('Buyer')) {
             return false;
         }
 
@@ -85,7 +113,27 @@ class OrderPolicy
         }
 
         // Admin/Staff with permission can update any order status
-        return true;
+        return $user->can('orders.update_status');
+    }
+
+    /**
+     * Determine if the user can track the order.
+     * 
+     * Buyers can track their own orders.
+     */
+    public function track(User $user, Order $order): bool
+    {
+        // Buyer can track their own orders
+        if ($user->hasRole('Buyer') && $user->buyerProfile) {
+            return $order->buyer_id === $user->buyerProfile->id;
+        }
+
+        // Supplier can track their orders
+        if ($user->hasRole('Supplier') && $user->supplierProfile) {
+            return $order->supplier_id === $user->supplierProfile->id;
+        }
+
+        return $user->can('orders.view');
     }
 }
 

@@ -16,6 +16,11 @@ class ActivityLogController extends Controller
      */
     public function index(Request $request)
     {
+        // Check permission
+        if (!auth()->user()->can('activity_logs.view')) {
+            abort(403, 'ليس لديك صلاحية عرض سجل النشاط');
+        }
+        
         try {
             // Query أساسي مع الـ Relations المهمة
             $query = ActivityLog::query()->with(['causer'])->latest();

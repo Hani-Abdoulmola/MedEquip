@@ -72,5 +72,41 @@ class BuyerPolicy
     {
         return $user->can('buyers.toggle_active');
     }
+
+    /**
+     * Determine if the user can view their own profile.
+     */
+    public function viewProfile(User $user): bool
+    {
+        // Buyers can view their own profile
+        return $user->hasRole('Buyer') && $user->buyerProfile !== null;
+    }
+
+    /**
+     * Determine if the user can edit their own profile.
+     */
+    public function editProfile(User $user): bool
+    {
+        // Buyers can edit their own profile
+        return $user->hasRole('Buyer') && $user->buyerProfile !== null;
+    }
+
+    /**
+     * Determine if the user can update their own password.
+     */
+    public function updatePassword(User $user): bool
+    {
+        // Buyers can update their own password
+        return $user->hasRole('Buyer') && $user->buyerProfile !== null;
+    }
+
+    /**
+     * Determine if the user can manage their own documents.
+     */
+    public function manageDocuments(User $user): bool
+    {
+        // Buyers can manage their own documents
+        return $user->hasRole('Buyer') && $user->buyerProfile !== null;
+    }
 }
 

@@ -27,6 +27,12 @@ class OrderController extends Controller
     public function index(): View
     {
         $user = auth()->user();
+        
+        // Check permission for admin users
+        if (!$user->hasRole(['Buyer', 'Supplier']) && !$user->can('orders.view')) {
+            abort(403, 'ليس لديك صلاحية عرض الطلبات');
+        }
+        
         $query = Order::with(['quotation.rfq', 'buyer', 'supplier', 'items']);
 
         // Role-based filtering

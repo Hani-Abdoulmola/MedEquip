@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Suppliers;
 
+use App\Models\Product;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -13,7 +14,7 @@ class SupplierProductRequest extends FormRequest
     }
 
     /**
-     * هل الطلب Update ؟
+     * Is this an update request?
      */
     public function isUpdate(): bool
     {
@@ -23,9 +24,10 @@ class SupplierProductRequest extends FormRequest
     public function rules(): array
     {
         $update = $this->isUpdate();
+        $product = $this->route('product');
 
         /**
-         * 🟦 قواعد مشتركة (Pivot Data - عرض المورد)
+         * Common rules (Offer/Pivot Data)
          */
         $rules = [
             'price'          => ['required', 'numeric', 'min:0'],
@@ -34,84 +36,121 @@ class SupplierProductRequest extends FormRequest
             'warranty'       => ['nullable', 'string', 'max:100'],
             'status'         => ['required', Rule::in(['available', 'out_of_stock', 'suspended'])],
             'notes'          => ['nullable', 'string', 'max:2000'],
-
-            // Text / JSON-like fields
-            'specifications'            => ['nullable', 'string', 'max:6000'],
-            'features'                  => ['nullable', 'string', 'max:6000'],
-            'technical_data'            => ['nullable', 'string', 'max:6000'],
-            'certifications'            => ['nullable', 'string', 'max:6000'],
-            'installation_requirements' => ['nullable', 'string', 'max:5000'],
-
-            // صور المنتج
-            'images'   => ['nullable', 'array'],
-            'images.*' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ];
 
         /**
-         * 🟩 Update → تحديث Base Product موجود
+         * UPDATE: Can update pivot data always
+         * Can update product data ONLY if review_status = 'needs_update'
          */
         if ($update) {
-            return array_merge($rules, [
-                'name'            => ['required', 'string', 'max:255'],
-                'model'           => ['nullable', 'string', 'max:100'],
-                'brand'           => ['nullable', 'string', 'max:100'],
-                'category_id'     => ['nullable', 'exists:product_categories,id'],
-                'manufacturer_id' => ['nullable', 'exists:manufacturers,id'],
-                'description'     => ['nullable', 'string', 'max:6000'],
-            ]);
+            $canUpdateBaseProduct = $product && $product->review_status === Product::REVIEW_NEEDS_UPDATE;
+
+            if ($canUpdateBaseProduct) {
+                $rules = array_merge($rules, [
+                    'name'            => ['required', 'string', 'max:255'],
+                    'model'           => ['nullable', 'string', 'max:100'],
+                    'brand'           => ['nullable', 'string', 'max:100'],
+                    'category_id'     => ['required', 'exists:product_categories,id'],
+                    'manufacturer_id' => ['nullable', Rule::exists('manufacturers', 'id')->where('is_active', true)],
+                    'description'     => ['nullable', 'string', 'max:6000'],
+                    'specifications'  => ['nullable', 'string', 'max:6000'],
+                    'features'        => ['nullable', 'string', 'max:6000'],
+                    'technical_data'  => ['nullable', 'string', 'max:6000'],
+                    'certifications'  => ['nullable', 'string', 'max:6000'],
+                    'installation_requirements' => ['nullable', 'string', 'max:5000'],
+                    'images'   => ['nullable', 'array'],
+                    'images.*' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+                ]);
+            }
+
+            return $rules;
         }
 
         /**
-         * 🟧 Store → لازم نحدد نوع العملية
+         * STORE: Must specify action type
          */
         $rules['action'] = ['required', Rule::in(['new', 'existing'])];
 
         /**
-         * 🆕 إنشاء منتج جديد
+         * Conditionally apply rules based on action
          */
-        $rulesNew = [
-            'name'            => ['required_if:action,new', 'string', 'max:255'],
-            'model'           => ['nullable', 'string', 'max:100'],
-            'brand'           => ['nullable', 'string', 'max:100'],
-            'category_id'     => ['required_if:action,new', 'exists:product_categories,id'],
-            'manufacturer_id' => ['nullable', 'exists:manufacturers,id'],
-            'description'     => ['nullable', 'string', 'max:6000'],
-        ];
+        $action = $this->input('action');
 
-        /**
-         * 🔗 ربط منتج موجود
-         * CRITICAL FIX: Added 'nullable' to prevent validation failure when action='new'
-         */
-        $rulesExisting = [
-            'product_id' => [
-                'required_if:action,existing',
-                'nullable',
-                Rule::exists('products', 'id')
-                    ->where('is_active', true)
-                    ->whereNull('deleted_at'),
-            ],
-        ];
+        if ($action === 'new') {
+            // NEW PRODUCT rules
+            $rules = array_merge($rules, [
+                'name'            => ['required', 'string', 'max:255'],
+                'model'           => ['nullable', 'string', 'max:100'],
+                'brand'           => ['nullable', 'string', 'max:100'],
+                'category_id'     => ['required', 'exists:product_categories,id'],
+                'manufacturer_id' => ['nullable', Rule::exists('manufacturers', 'id')->where('is_active', true)],
+                'description'     => ['nullable', 'string', 'max:6000'],
+                'specifications'  => ['nullable', 'string', 'max:6000'],
+                'features'        => ['nullable', 'string', 'max:6000'],
+                'technical_data'  => ['nullable', 'string', 'max:6000'],
+                'certifications'  => ['nullable', 'string', 'max:6000'],
+                'installation_requirements' => ['nullable', 'string', 'max:5000'],
+                'images'   => ['nullable', 'array'],
+                'images.*' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            ]);
+        } else {
+            // EXISTING PRODUCT rules
+            $rules['product_id'] = ['required', Rule::exists('products', 'id')->where('is_active', true)];
+        }
 
-        return array_merge($rules, $rulesNew, $rulesExisting);
+        return $rules;
     }
 
     public function messages(): array
     {
         return [
-            'action.required'         => 'يجب اختيار نوع العملية (إضافة أو ربط منتج).',
-            'action.in'               => 'نوع العملية غير صالح.',
+            // Action
+            'action.required' => 'يجب اختيار نوع العملية.',
+            'action.in'       => 'نوع العملية غير صالح.',
 
-            'name.required_if'        => 'اسم المنتج مطلوب عند إنشاء منتج جديد.',
-            'category_id.required_if' => 'يجب اختيار فئة المنتج.',
-            'product_id.required_if'  => 'يجب اختيار منتج موجود في حالة الربط.',
-            'product_id.exists'       => 'المنتج المختار غير صالح أو مرتبط بك مسبقاً.',
+            // Product fields
+            'name.required'    => 'اسم المنتج مطلوب.',
+            'name.string'      => 'اسم المنتج يجب أن يكون نصاً.',
+            'name.max'         => 'اسم المنتج يجب ألا يتجاوز 255 حرفاً.',
 
+            'model.max' => 'الموديل يجب ألا يتجاوز 100 حرف.',
+            'brand.max' => 'العلامة التجارية يجب ألا تتجاوز 100 حرف.',
+
+            'category_id.required' => 'يجب اختيار فئة المنتج.',
+            'category_id.exists'   => 'الفئة المختارة غير موجودة.',
+
+            'manufacturer_id.exists' => 'الشركة المصنعة غير موجودة أو غير نشطة.',
+
+            'description.max'    => 'الوصف يجب ألا يتجاوز 6000 حرف.',
+            'specifications.max' => 'المواصفات يجب ألا تتجاوز 6000 حرف.',
+            'features.max'       => 'المميزات يجب ألا تتجاوز 6000 حرف.',
+
+            // Existing product
+            'product_id.required' => 'يجب اختيار منتج من الكتالوج.',
+            'product_id.exists'   => 'المنتج المختار غير متاح.',
+
+            // Offer data
             'price.required'          => 'السعر مطلوب.',
-            'stock_quantity.required' => 'الكمية مطلوبة.',
+            'price.numeric'           => 'السعر يجب أن يكون رقماً.',
+            'price.min'               => 'السعر يجب أن يكون 0 أو أكثر.',
 
-            'images.*.mimes'          => 'يجب أن تكون الصورة بصيغة JPG أو JPEG أو PNG أو WEBP.',
-            'images.*.max'            => 'الحد الأقصى لحجم الصورة 5MB.',
+            'stock_quantity.required' => 'الكمية مطلوبة.',
+            'stock_quantity.integer'  => 'الكمية يجب أن تكون رقماً صحيحاً.',
+            'stock_quantity.min'      => 'الكمية يجب أن تكون 0 أو أكثر.',
+
+            'lead_time.max' => 'مدة التوصيل يجب ألا تتجاوز 100 حرف.',
+            'warranty.max'  => 'الضمان يجب ألا يتجاوز 100 حرف.',
+
+            'status.required' => 'يجب اختيار حالة المنتج.',
+            'status.in'       => 'حالة المنتج غير صالحة.',
+
+            'notes.max' => 'الملاحظات يجب ألا تتجاوز 2000 حرف.',
+
+            // Images
+            'images.array'   => 'الصور يجب أن تكون مصفوفة.',
+            'images.*.image' => 'الملف يجب أن يكون صورة.',
+            'images.*.mimes' => 'صيغة الصورة يجب أن تكون JPG أو PNG أو WEBP.',
+            'images.*.max'   => 'حجم الصورة يجب ألا يتجاوز 5MB.',
         ];
     }
 }
-

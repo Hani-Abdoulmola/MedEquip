@@ -1,6 +1,6 @@
 # MedEquip Codebase Index
 
-**Last Updated:** 2025-01-27  
+**Last Updated:** 2026-01-01  
 **Project Type:** Laravel 12 Medical Equipment E-Commerce Platform  
 **Language:** PHP 8.2+ with Blade Templates, JavaScript, Tailwind CSS
 
@@ -18,6 +18,7 @@
 8. [Authentication & Authorization](#authentication--authorization)
 9. [Key Features](#key-features)
 10. [Development Workflows](#development-workflows)
+11. [Testing](#testing)
 
 ---
 
@@ -67,14 +68,17 @@
 MedEquip/
 ├── app/
 │   ├── Console/              # Artisan commands
+│   ├── Exports/              # Excel export classes (11 files)
 │   ├── Filters/              # Query filters
 │   ├── Http/
 │   │   ├── Controllers/
 │   │   │   ├── Auth/         # Authentication controllers (9 files)
-│   │   │   └── Web/          # Main application controllers (13 files)
-│   │   └── Requests/         # Form request validation (15 files)
-│   ├── Models/               # Eloquent models (17 models)
+│   │   │   └── Web/          # Main application controllers (26 files)
+│   │   ├── Middleware/       # Custom middleware (2 files)
+│   │   └── Requests/         # Form request validation (18 files)
+│   ├── Models/               # Eloquent models (21 models)
 │   ├── Notifications/        # Custom notifications
+│   ├── Policies/             # Authorization policies (17 files)
 │   ├── Providers/            # Service providers
 │   ├── Services/             # Business logic services (2 services)
 │   ├── Traits/               # Reusable traits
@@ -82,7 +86,7 @@ MedEquip/
 │
 ├── database/
 │   ├── factories/            # Model factories
-│   ├── migrations/           # Database migrations (33 files)
+│   ├── migrations/           # Database migrations (35 files)
 │   │   ├── 2025_10_31_000001_create_user_types_table.php
 │   │   ├── 2025_10_31_000002_create_users_table.php
 │   │   ├── 2025_10_31_000003_create_password_reset_tokens_table.php
@@ -116,11 +120,16 @@ MedEquip/
 │   │   ├── 2025_12_04_183056_create_manufacturers_table.php
 │   │   ├── 2025_12_23_add_missing_columns_to_products_table.php
 │   │   └── 2025_12_23_create_rfq_supplier_table.php
-│   ├── seeders/              # Database seeders (7 files)
+│   │   ├── 2025_12_28_164107_add_ar_name_to_roles_table.php
+│   │   └── 2025_12_28_164822_add_ar_name_to_permissions_table.php
+│   │   ├── 2025_01_27_000001_fix_rfq_status_enum.php
+│   │   └── 2025_01_27_000002_add_rejection_reason_to_quotations.php
+│   ├── seeders/              # Database seeders (8 files)
 │   │   ├── AdminSeeder.php - Create admin user
 │   │   ├── DatabaseSeeder.php - Main seeder
 │   │   ├── ManufacturerSeeder.php - Seed manufacturers
 │   │   ├── ProductCategorySeeder.php - Seed product categories
+│   │   ├── PermissionSeeder.php - Seed permissions
 │   │   ├── RolePermissionSeeder.php - Seed roles and permissions
 │   │   ├── SettingsSeeder.php - Seed system settings
 │   │   └── UserTypeSeeder.php - Seed user types
@@ -162,42 +171,49 @@ MedEquip/
 
 ### Controllers
 
-#### Web Controllers (`app/Http/Controllers/Web/`) - 20 Controllers
+#### Web Controllers (`app/Http/Controllers/Web/`) - 26 Controllers
 
 **Admin Controllers:**
 1. **ActivityLogController.php** - Activity logging and audit trails viewing
-2. **AdminQuotationController.php** - Admin monitoring and management of quotations
-3. **AdminRfqController.php** - Admin monitoring and management of RFQs
-4. **BuyerController.php** - Buyer management (CRUD operations)
-5. **BuyerDashboardController.php** - Buyer dashboard overview
-6. **NotificationController.php** - System notifications management
-7. **OrderController.php** - Order processing and management
-8. **ProductCategoryController.php** - Product category management
-9. **ProductController.php** - Product catalog management
-10. **ProductReviewController.php** - Product review and approval workflow
-11. **RegistrationApprovalController.php** - Approve/reject supplier/buyer registrations
-12. **SettingController.php** - System settings management
-13. **SupplierController.php** - Supplier management (CRUD operations)
-14. **UserController.php** - User administration
+2. **AdminDashboardController.php** - Admin dashboard overview with analytics
+3. **AdminManufacturerController.php** - Manufacturer management (CRUD operations)
+4. **AdminQuotationController.php** - Admin monitoring and management of quotations
+5. **AdminReportsController.php** - Admin reporting and analytics
+6. **AdminRfqController.php** - Admin monitoring and management of RFQs
+7. **AdminRfqItemController.php** - Admin RFQ item management
+8. **BuyerController.php** - Buyer management (CRUD operations)
+9. **BuyerDashboardController.php** - Buyer dashboard overview
+10. **NotificationController.php** - System notifications management
+11. **OrderController.php** - Order processing and management
+12. **PermissionController.php** - Permission management
+13. **ProductCategoryController.php** - Product category management
+14. **ProductController.php** - Product catalog management
+15. **ProductReviewController.php** - Product review and approval workflow
+16. **RegistrationApprovalController.php** - Approve/reject supplier/buyer registrations
+17. **RoleController.php** - Role management (CRUD operations)
+18. **SettingController.php** - System settings management
+19. **SupplierController.php** - Supplier management (CRUD operations)
+20. **UserController.php** - User administration
 
 **General Controllers:**
-15. **DeliveryController.php** - Delivery tracking and management
-16. **InvoiceController.php** - Invoice generation and management
-17. **PaymentController.php** - Payment processing
-18. **ProfileController.php** - User profile management
-19. **QuotationController.php** - Quotation creation and management
-20. **RfqController.php** - Request for Quotation management
+21. **DeliveryController.php** - Delivery tracking and management
+22. **InvoiceController.php** - Invoice generation and management
+23. **PaymentController.php** - Payment processing
+24. **ProfileController.php** - User profile management (duplicate, see note below)
 
-#### Supplier Controllers (`app/Http/Controllers/Web/Suppliers/`) - 9 Controllers
+#### Supplier Controllers (`app/Http/Controllers/Web/Suppliers/`) - 11 Controllers
 
-1. **SupplierDashboardController.php** - Supplier dashboard overview
-2. **SupplierDeliveryController.php** - Supplier delivery management
-3. **SupplierInvoiceController.php** - Supplier invoice viewing
-4. **SupplierNotificationController.php** - Supplier notifications
-5. **SupplierOrderController.php** - Supplier order management
-6. **SupplierProductController.php** - Supplier product catalog management
-7. **SupplierProfileController.php** - Supplier profile management
-8. **SupplierRfqController.php** - Supplier RFQ viewing and quotation creation
+1. **SupplierActivityLogController.php** - Supplier activity log viewing
+2. **SupplierDashboardController.php** - Supplier dashboard overview
+3. **SupplierDeliveryController.php** - Supplier delivery management
+4. **SupplierInvoiceController.php** - Supplier invoice viewing
+5. **SupplierNotificationController.php** - Supplier notifications
+6. **SupplierOrderController.php** - Supplier order management
+7. **SupplierPaymentController.php** - Supplier payment management
+8. **SupplierProductController.php** - Supplier product catalog management
+9. **SupplierProfileController.php** - Supplier profile management
+10. **SupplierReportsController.php** - Supplier reporting and analytics
+11. **SupplierRfqController.php** - Supplier RFQ viewing and quotation creation
 
 #### Auth Controllers (`app/Http/Controllers/Auth/`) - 9 Controllers
 
@@ -211,36 +227,38 @@ MedEquip/
 8. **RegisteredUserController.php** - User registration (suppliers & buyers)
 9. **VerifyEmailController.php** - Email verification
 
-**Total Controllers: 39**
+**Total Controllers: 46**
 
-### Models (`app/Models/`) - 19 Models
+### Models (`app/Models/`) - 21 Models
 
 **User Management:**
 1. **User.php** - User accounts (admins, suppliers, buyers) with relationships
 2. **UserType.php** - User role types (Admin, Supplier, Buyer)
+3. **Role.php** - Spatie role model (extended)
+4. **Permission.php** - Spatie permission model (extended)
 
 **Business Entities:**
-3. **Supplier.php** - Supplier entities with approval workflow
-4. **Buyer.php** - Buyer/healthcare institution entities with approval workflow
-5. **Product.php** - Medical equipment products with categories and suppliers
-6. **ProductCategory.php** - Product categorization with hierarchical structure
-7. **ProductSupplier.php** - Pivot model for product-supplier relationships
-8. **Manufacturer.php** - Product manufacturer information
+5. **Supplier.php** - Supplier entities with approval workflow
+6. **Buyer.php** - Buyer/healthcare institution entities with approval workflow
+7. **Product.php** - Medical equipment products with categories and suppliers
+8. **ProductCategory.php** - Product categorization with hierarchical structure
+9. **ProductSupplier.php** - Pivot model for product-supplier relationships
+10. **Manufacturer.php** - Product manufacturer information
 
 **Transaction Flow:**
-9. **Rfq.php** - Request for Quotations from buyers
-10. **RfqItem.php** - Individual items in RFQs
-11. **Quotation.php** - Supplier quotations in response to RFQs
-12. **QuotationItem.php** - Individual items in quotations
-13. **Order.php** - Purchase orders
-14. **OrderItem.php** - Individual items in orders
-15. **Invoice.php** - Generated invoices
-16. **Payment.php** - Payment records
-17. **Delivery.php** - Delivery tracking
+11. **Rfq.php** - Request for Quotations from buyers
+12. **RfqItem.php** - Individual items in RFQs
+13. **Quotation.php** - Supplier quotations in response to RFQs
+14. **QuotationItem.php** - Individual items in quotations
+15. **Order.php** - Purchase orders
+16. **OrderItem.php** - Individual items in orders
+17. **Invoice.php** - Generated invoices
+18. **Payment.php** - Payment records
+19. **Delivery.php** - Delivery tracking
 
 **System:**
-18. **ActivityLog.php** - Activity log entries (Spatie Activity Log)
-19. **Setting.php** - System settings configuration
+20. **ActivityLog.php** - Activity log entries (Spatie Activity Log)
+21. **Setting.php** - System settings configuration
 
 ### Services (`app/Services/`) - 2 Services
 
@@ -255,7 +273,43 @@ MedEquip/
 
 1. **ActivityLogFilter.php** - Query filtering for activity logs
 
-### Form Requests (`app/Http/Requests/`) - 17 Requests
+### Policies (`app/Policies/`) - 17 Policies
+
+Authorization policies for resource access control:
+1. **ActivityLogPolicy.php** - Activity log access control
+2. **BuyerPolicy.php** - Buyer resource access control
+3. **DeliveryPolicy.php** - Delivery resource access control
+4. **InvoicePolicy.php** - Invoice resource access control
+5. **ManufacturerPolicy.php** - Manufacturer resource access control
+6. **NotificationPolicy.php** - Notification access control
+7. **OrderPolicy.php** - Order resource access control
+8. **PaymentPolicy.php** - Payment resource access control
+9. **PermissionPolicy.php** - Permission resource access control
+10. **ProductCategoryPolicy.php** - Product category access control
+11. **ProductPolicy.php** - Product resource access control
+12. **QuotationPolicy.php** - Quotation resource access control
+13. **RfqPolicy.php** - RFQ resource access control
+14. **RolePolicy.php** - Role resource access control
+15. **SettingPolicy.php** - Setting resource access control
+16. **SupplierPolicy.php** - Supplier resource access control
+17. **UserPolicy.php** - User resource access control
+
+### Exports (`app/Exports/`) - 11 Export Classes
+
+Excel export functionality using Maatwebsite Excel:
+1. **AdminBuyersExport.php** - Export buyers data
+2. **AdminDeliveriesExport.php** - Export deliveries data
+3. **AdminInvoicesExport.php** - Export invoices data
+4. **AdminOrdersExport.php** - Export orders data
+5. **AdminPaymentsExport.php** - Export payments data
+6. **AdminQuotationsExport.php** - Export quotations data
+7. **AdminSuppliersExport.php** - Export suppliers data
+8. **AdminUsersExport.php** - Export users data
+9. **SupplierInvoicesExport.php** - Export supplier invoices
+10. **SupplierOrdersExport.php** - Export supplier orders
+11. **SupplierQuotationsExport.php** - Export supplier quotations
+
+### Form Requests (`app/Http/Requests/`) - 21 Requests
 
 **Auth Requests:**
 1. **Auth/LoginRequest.php** - Login form validation
@@ -279,14 +333,19 @@ MedEquip/
 **Supplier-Specific Requests:**
 14. **Suppliers/SupplierProductRequest.php** - Supplier product validation
 15. **Suppliers/SupplierQuotationRequest.php** - Supplier quotation validation
+16. **Suppliers/SupplierDeliveryRequest.php** - Delivery creation/update validation
+17. **Suppliers/SupplierDeliveryProofRequest.php** - Delivery proof upload validation
+18. **Suppliers/SupplierDeliveryStatusRequest.php** - Delivery status update validation
 
 **Other:**
-16. **FileRequest.php** - File upload validation
-17. **ProfileUpdateRequest.php** - Profile update validation
+19. **FileRequest.php** - File upload validation
+20. **ManufacturerRequest.php** - Manufacturer CRUD validation
+21. **ProfileUpdateRequest.php** - Profile update validation
 
-### Middleware (`app/Http/Middleware/`) - 1 Custom Middleware
+### Middleware (`app/Http/Middleware/`) - 2 Custom Middleware
 
-1. **EnsureUserIsVerified.php** - Ensures user email is verified
+1. **EnsureSupplierProfile.php** - Ensures supplier has completed profile setup
+2. **EnsureUserIsVerified.php** - Ensures user email is verified
 
 ---
 
@@ -360,6 +419,7 @@ MedEquip/
 
 **User Management:**
 - `GET /admin/users` - List all users
+- `GET /admin/users/export` - Export users to Excel
 - `GET /admin/users/create` - Create user form
 - `POST /admin/users` - Store new user
 - `GET /admin/users/{user}/edit` - Edit user form
@@ -368,6 +428,7 @@ MedEquip/
 
 **Supplier Management:**
 - `GET /admin/suppliers` - List all suppliers
+- `GET /admin/suppliers/export` - Export suppliers to Excel
 - `GET /admin/suppliers/create` - Create supplier form
 - `POST /admin/suppliers` - Store new supplier
 - `GET /admin/suppliers/{supplier}` - View supplier details
@@ -379,6 +440,7 @@ MedEquip/
 
 **Buyer Management:**
 - `GET /admin/buyers` - List all buyers
+- `GET /admin/buyers/export` - Export buyers to Excel
 - `GET /admin/buyers/create` - Create buyer form
 - `POST /admin/buyers` - Store new buyer
 - `GET /admin/buyers/{buyer}` - View buyer details
@@ -408,6 +470,7 @@ MedEquip/
 
 **Order Management:**
 - `GET /admin/orders` - List all orders
+- `GET /admin/orders/export` - Export orders to Excel
 - `GET /admin/orders/create` - Create order form
 - `POST /admin/orders` - Store new order
 - `GET /admin/orders/{order}` - View order details
@@ -417,17 +480,86 @@ MedEquip/
 
 **RFQ Management (Admin Monitoring):**
 - `GET /admin/rfqs` - List all RFQs
+- `GET /admin/rfqs/create` - Create RFQ form
+- `POST /admin/rfqs` - Store new RFQ
 - `GET /admin/rfqs/{rfq}` - View RFQ details
+- `GET /admin/rfqs/{rfq}/edit` - Edit RFQ form
+- `PUT /admin/rfqs/{rfq}` - Update RFQ
+- `DELETE /admin/rfqs/{rfq}` - Delete RFQ
 - `PATCH /admin/rfqs/{rfq}/status` - Update RFQ status
 - `PATCH /admin/rfqs/{rfq}/visibility` - Toggle RFQ visibility
 - `POST /admin/rfqs/{rfq}/assign-suppliers` - Assign suppliers to RFQ
 
+**RFQ Items Management:**
+- `GET /admin/rfqs/{rfq}/items/create` - Create RFQ item form
+- `POST /admin/rfqs/{rfq}/items` - Store new RFQ item
+- `GET /admin/rfqs/{rfq}/items/{item}/edit` - Edit RFQ item form
+- `PUT /admin/rfqs/{rfq}/items/{item}` - Update RFQ item
+- `DELETE /admin/rfqs/{rfq}/items/{item}` - Delete RFQ item
+
 **Quotation Management (Admin Monitoring):**
 - `GET /admin/quotations` - List all quotations
+- `GET /admin/quotations/export` - Export quotations to Excel
+- `GET /admin/quotations/create` - Create quotation form
+- `POST /admin/quotations` - Store new quotation
 - `GET /admin/quotations/compare` - Compare quotations
 - `GET /admin/quotations/{quotation}` - View quotation details
+- `GET /admin/quotations/{quotation}/edit` - Edit quotation form
+- `PUT /admin/quotations/{quotation}` - Update quotation
+- `DELETE /admin/quotations/{quotation}` - Delete quotation
 - `POST /admin/quotations/{quotation}/accept` - Accept quotation
 - `POST /admin/quotations/{quotation}/reject` - Reject quotation
+
+**Manufacturer Management:**
+- `GET /admin/manufacturers` - List all manufacturers
+- `GET /admin/manufacturers/create` - Create manufacturer form
+- `POST /admin/manufacturers` - Store new manufacturer
+- `GET /admin/manufacturers/{manufacturer}` - View manufacturer details
+- `GET /admin/manufacturers/{manufacturer}/edit` - Edit manufacturer form
+- `PUT /admin/manufacturers/{manufacturer}` - Update manufacturer
+- `DELETE /admin/manufacturers/{manufacturer}` - Delete manufacturer
+
+**Role & Permission Management:**
+- `GET /admin/roles` - List all roles
+- `GET /admin/roles/create` - Create role form
+- `POST /admin/roles` - Store new role
+- `GET /admin/roles/{role}` - View role details
+- `GET /admin/roles/{role}/edit` - Edit role form
+- `PUT /admin/roles/{role}` - Update role
+- `DELETE /admin/roles/{role}` - Delete role
+- `GET /admin/permissions` - List all permissions
+- `GET /admin/permissions/{permission}` - View permission details
+- `PUT /admin/users/{user}/permissions` - Update user permissions
+
+**Invoices Management:**
+- `GET /admin/invoices` - List all invoices
+- `GET /admin/invoices/export` - Export invoices to Excel
+- `GET /admin/invoices/create` - Create invoice form
+- `POST /admin/invoices` - Store new invoice
+- `GET /admin/invoices/{invoice}` - View invoice details
+- `GET /admin/invoices/{invoice}/edit` - Edit invoice form
+- `PUT /admin/invoices/{invoice}` - Update invoice
+- `DELETE /admin/invoices/{invoice}` - Delete invoice
+
+**Payments Management:**
+- `GET /admin/payments` - List all payments
+- `GET /admin/payments/export` - Export payments to Excel
+- `GET /admin/payments/create` - Create payment form
+- `POST /admin/payments` - Store new payment
+- `GET /admin/payments/{payment}` - View payment details
+- `GET /admin/payments/{payment}/edit` - Edit payment form
+- `PUT /admin/payments/{payment}` - Update payment
+- `DELETE /admin/payments/{payment}` - Delete payment
+
+**Deliveries Management:**
+- `GET /admin/deliveries` - List all deliveries
+- `GET /admin/deliveries/export` - Export deliveries to Excel
+- `GET /admin/deliveries/create` - Create delivery form
+- `POST /admin/deliveries` - Store new delivery
+- `GET /admin/deliveries/{delivery}` - View delivery details
+- `GET /admin/deliveries/{delivery}/edit` - Edit delivery form
+- `PUT /admin/deliveries/{delivery}` - Update delivery
+- `DELETE /admin/deliveries/{delivery}` - Delete delivery
 
 **Other Admin Routes:**
 - `GET /admin/reports` - Reporting dashboard
@@ -469,12 +601,15 @@ MedEquip/
 - `GET /supplier/rfqs/{rfq}/quote` - Create quotation form
 - `POST /supplier/rfqs/{rfq}/quote` - Store quotation
 - `GET /supplier/quotations` - List supplier quotations
+- `GET /supplier/quotations/export` - Export quotations to Excel
+- `GET /supplier/quotations/{quotation}` - View quotation details
 - `GET /supplier/quotations/{quotation}/edit` - Edit quotation form
 - `PUT /supplier/quotations/{quotation}` - Update quotation
 - `DELETE /supplier/quotations/{quotation}` - Delete quotation
 
 **Orders:**
 - `GET /supplier/orders` - List supplier orders
+- `GET /supplier/orders/export` - Export orders to Excel
 - `GET /supplier/orders/{order}` - View order details
 - `PATCH /supplier/orders/{order}/status` - Update order status
 
@@ -488,7 +623,20 @@ MedEquip/
 
 **Invoices:**
 - `GET /supplier/invoices` - List invoices
+- `GET /supplier/invoices/export` - Export invoices to Excel
 - `GET /supplier/invoices/{invoice}` - View invoice details
+- `GET /supplier/invoices/{invoice}/download` - Download invoice PDF
+
+**Payments:**
+- `GET /supplier/payments` - List payments
+- `GET /supplier/payments/{payment}` - View payment details
+
+**Reports:**
+- `GET /supplier/reports` - Supplier reporting dashboard
+
+**Activity Logs:**
+- `GET /supplier/activity` - List supplier activity logs
+- `GET /supplier/activity/{activity}` - View activity log entry
 
 **Profile:**
 - `GET /supplier/profile` - View supplier profile
@@ -508,8 +656,16 @@ MedEquip/
 #### Buyer Routes (`/buyer/*`)
 **Middleware:** `auth`, `role:Buyer`
 
+**Dashboard:**
 - `GET /buyer/dashboard` - Buyer dashboard
+
+**Orders:**
 - `GET /buyer/orders` - List buyer orders
+- `GET /buyer/orders/create` - Create order form
+- `POST /buyer/orders` - Store new order
+- `GET /buyer/orders/{order}` - View order details
+
+**Other:**
 - `GET /buyer/favorites` - Favorites list
 - `GET /buyer/suppliers` - Supplier directory
 
@@ -575,14 +731,17 @@ MedEquip/
 
 ### Supplier Views (`resources/views/supplier/`)
 
+- **activity/** - Activity logs (index, show)
 - **dashboard.blade.php** - Supplier dashboard
 - **deliveries/** - Delivery management (index, create, show)
 - **invoices/** - Invoice viewing (index, show)
 - **notifications/** - Notifications (index)
 - **orders/** - Order management (index, show)
+- **payments/** - Payment management (index, show)
 - **products/** - Product management (index, create, edit, show)
 - **profile/** - Profile management (edit, show)
-- **quotations/** - Quotation management (index)
+- **quotations/** - Quotation management (index, show)
+- **reports/** - Reporting interfaces (index)
 - **rfqs/** - RFQ viewing and quotation (index, show, quote, quote-edit)
 
 ### Buyer Views (`resources/views/buyer/`)
@@ -695,10 +854,12 @@ Granular permissions for each resource:
 - Product images, supplier documents
 - Company logos and certificates
 
-### 8. Reporting
-- Sales reports
-- Order analytics
+### 8. Reporting & Analytics
+- Sales reports and analytics
+- Order analytics and tracking
 - Supplier/buyer performance metrics
+- Excel export functionality for data analysis
+- Admin and supplier reporting dashboards
 
 ### 9. Responsive Design
 - Tailwind CSS-based responsive UI
@@ -709,6 +870,17 @@ Granular permissions for each resource:
 - RTL (Right-to-Left) layout support
 - Arabic fonts (Cairo, Tajawal)
 - Bilingual interface capability
+- Arabic names for roles and permissions
+
+### 11. Authorization Policies
+- Comprehensive policy-based authorization
+- Resource-level access control
+- Role and permission-based restrictions
+
+### 12. Data Export
+- Excel export functionality for all major resources
+- Admin and supplier-specific exports
+- Data analysis and reporting support
 
 ---
 
@@ -753,6 +925,11 @@ composer test
 # Runs: php artisan test
 ```
 
+**Test Structure:**
+- Feature tests: `tests/Feature/`
+- Unit tests: `tests/Unit/`
+- Test base class: `tests/TestCase.php`
+
 ### Code Quality
 
 ```bash
@@ -762,6 +939,138 @@ vendor/bin/pint
 # IDE Helper
 php artisan ide-helper:generate
 php artisan ide-helper:models
+```
+
+---
+
+## 🧪 Testing
+
+### Test Structure
+
+The application uses PHPUnit for testing with a comprehensive test suite covering authentication, authorization, features, and system workflows.
+
+**Test Base:**
+- `tests/TestCase.php` - Base test case class extending Laravel's TestCase
+
+### Feature Tests (`tests/Feature/`)
+
+#### Authentication Tests (`tests/Feature/Auth/`) - 6 Test Files
+
+1. **AuthenticationTest.php** - Login/logout functionality
+   - Login screen rendering
+   - User authentication
+   - Invalid credentials handling
+   - Logout functionality
+
+2. **EmailVerificationTest.php** - Email verification workflow
+   - Email verification prompt
+   - Email verification sending
+   - Email verification handling
+
+3. **PasswordConfirmationTest.php** - Password confirmation
+   - Password confirmation screen
+   - Password confirmation validation
+
+4. **PasswordResetTest.php** - Password reset functionality
+   - Password reset link request
+   - Password reset form
+   - Password reset processing
+
+5. **PasswordUpdateTest.php** - Password update functionality
+   - Password update validation
+   - Password update processing
+
+6. **RegistrationTest.php** - User registration
+   - Registration form rendering
+   - Supplier registration
+   - Buyer registration
+   - Registration validation
+
+#### Authorization Tests (`tests/Feature/Authorization/`) - 1 Test File
+
+1. **PermissionBasedAuthorizationTest.php** - Permission-based access control
+   - Role-based access
+   - Permission checking
+   - Resource authorization
+
+#### Profile Tests (`tests/Feature/`) - 1 Test File
+
+1. **ProfileTest.php** - User profile management
+   - Profile viewing
+   - Profile updates
+   - Profile validation
+
+#### Supplier Tests (`tests/Feature/Suppliers/`) - 1 Test File
+
+1. **SupplierPaymentControllerTest.php** - Supplier payment functionality
+   - Payment viewing
+   - Payment management
+
+#### System Tests (`tests/Feature/System/`) - 3 Test Files
+
+1. **CompleteProcurementWorkflowTest.php** - End-to-end procurement workflow
+   - RFQ creation → Quotation → Order → Invoice → Payment → Delivery
+   - Complete business process validation
+
+2. **DataIntegrityTest.php** - Data integrity and relationships
+   - Model relationships
+   - Data consistency
+   - Foreign key constraints
+
+3. **SystemIntegrationTest.php** - System integration testing
+   - Component integration
+   - Service interactions
+   - System-wide functionality
+
+4. **UserRegistrationApprovalWorkflowTest.php** - Registration approval process
+   - Pending user workflow
+   - Approval/rejection process
+   - Status transitions
+
+#### Other Feature Tests
+
+- **ExampleTest.php** - Example feature test template
+
+### Unit Tests (`tests/Unit/`) - 1 Test File
+
+1. **ExampleTest.php** - Example unit test template
+
+### Additional Test Files
+
+**Root Level Test Files:**
+- `app_improvements_test.php` - Application improvements validation
+- `auth_registration_test.php` - Authentication and registration tests
+- `database_improvements_test.php` - Database improvements validation
+- `model_consistency_test.php` - Model consistency checks
+- `product_categories_test.php` - Product categories functionality
+
+### Test Coverage
+
+The test suite covers:
+- ✅ Authentication and authorization workflows
+- ✅ User registration and approval processes
+- ✅ Complete procurement workflow (RFQ → Delivery)
+- ✅ Data integrity and relationships
+- ✅ System integration
+- ✅ Supplier-specific functionality
+- ✅ Profile management
+
+### Running Tests
+
+```bash
+# Run all tests
+composer test
+# or
+php artisan test
+
+# Run specific test file
+php artisan test tests/Feature/Auth/AuthenticationTest.php
+
+# Run with coverage
+php artisan test --coverage
+
+# Run specific test method
+php artisan test --filter test_login_screen_can_be_rendered
 ```
 
 ---
@@ -879,21 +1188,27 @@ The project includes extensive documentation:
 
 ## 📊 Codebase Statistics
 
-- **Total Controllers:** 39
-  - Web Controllers: 20
-  - Supplier Controllers: 9
+- **Total Controllers:** 46
+  - Web Controllers: 26
+  - Supplier Controllers: 11
   - Auth Controllers: 9
   - Base Controller: 1
 
-- **Total Models:** 19
+- **Total Models:** 21
 - **Total Services:** 2
 - **Total Traits:** 1
 - **Total Filters:** 1
-- **Total Form Requests:** 17
-- **Total Middleware:** 1 custom
-- **Total Migrations:** 33
-- **Total Seeders:** 7
+- **Total Policies:** 17
+- **Total Exports:** 11
+- **Total Form Requests:** 21
+- **Total Middleware:** 2 custom
+- **Total Migrations:** 35
+- **Total Seeders:** 8
 - **Total Views:** 150+ Blade templates
+- **Total Tests:** 21 test files
+  - Feature Tests: 14 files
+  - Unit Tests: 1 file
+  - Root Level Tests: 6 files
 
 ## 🔍 Quick Reference
 
@@ -924,6 +1239,12 @@ The project includes extensive documentation:
 - Traits: `app/Traits/`
 - Filters: `app/Filters/`
 
+**Authorization:**
+- Policies: `app/Policies/`
+
+**Data Export:**
+- Exports: `app/Exports/`
+
 **Validation:**
 - Form Requests: `app/Http/Requests/`
 
@@ -934,4 +1255,4 @@ The project includes extensive documentation:
 
 ---
 
-*This index was last updated on 2025-01-27 and should be updated as the codebase evolves.*
+*This index was last updated on 2026-01-01 and should be updated as the codebase evolves.*
