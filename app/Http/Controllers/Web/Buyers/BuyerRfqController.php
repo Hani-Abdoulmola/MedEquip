@@ -10,6 +10,9 @@ use App\Models\RfqItem;
 use App\Models\Supplier;
 use App\Services\NotificationService;
 use App\Services\ReferenceCodeService;
+use App\Services\RfqImportService;
+use App\Services\SupplierSuggestionService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -135,19 +138,9 @@ class BuyerRfqController extends Controller
                 ]);
             }
 
-            // Notify verified suppliers about new public RFQ
+            // Notify verified suppliers about new public RFQ using workflow service
             if ($rfq->is_public && $rfq->status === 'open') {
-                $suppliers = Supplier::where('is_verified', true)->get();
-                foreach ($suppliers as $supplier) {
-                    if ($supplier->user) {
-                        NotificationService::send(
-                            $supplier->user,
-                            '🆕 طلب عرض سعر جديد',
-                            "يوجد طلب عرض سعر جديد بعنوان: {$rfq->title}.",
-                            route('supplier.rfqs.show', $rfq->id)
-                        );
-                    }
-                }
+                \App\Services\RfqWorkflowService::notifyNewRfq($rfq);
             }
 
             // Log activity
@@ -209,7 +202,7 @@ class BuyerRfqController extends Controller
     /**
      * Show the form for editing the specified RFQ.
      */
-    public function edit(Rfq $rfq): View
+    public function edit(Rfq $rfq): View|RedirectResponse
     {
         $this->authorize('update', $rfq);
 
@@ -481,6 +474,271 @@ class BuyerRfqController extends Controller
 
             return back()->withErrors(['error' => 'حدث خطأ أثناء تحديث الحالة']);
         }
+    }
+
+    /**
+     * Duplicate an existing RFQ.
+     */
+    public function duplicate(Rfq $rfq): RedirectResponse
+    {
+        $this->authorize('create', Rfq::class);
+
+        $buyer = Auth::user()->buyerProfile;
+
+        if ($rfq->buyer_id !== $buyer->id) {
+            abort(403, 'ليس لديك صلاحية لتكرار هذا الطلب');
+        }
+
+        DB::beginTransaction();
+
+        try {
+            // Create new RFQ
+            $newRfq = Rfq::create([
+                'buyer_id' => $buyer->id,
+                'created_by' => Auth::id(),
+                'title' => 'نسخة من: ' . $rfq->title,
+                'description' => $rfq->description,
+                'deadline' => now()->addDays(7), // New deadline
+                'is_public' => $rfq->is_public,
+                'status' => 'draft',
+                'reference_code' => ReferenceCodeService::generateUnique(
+                    ReferenceCodeService::PREFIX_RFQ,
+                    Rfq::class
+                ),
+            ]);
+
+            // Copy items
+            $rfq->load('items');
+            foreach ($rfq->items as $item) {
+                RfqItem::create([
+                    'rfq_id' => $newRfq->id,
+                    'product_id' => $item->product_id,
+                    'item_name' => $item->item_name,
+                    'specifications' => $item->specifications,
+                    'quantity' => $item->quantity,
+                    'unit' => $item->unit,
+                ]);
+            }
+
+            DB::commit();
+
+            return redirect()
+                ->route('buyer.rfqs.edit', $newRfq)
+                ->with('success', 'تم تكرار الطلب بنجاح. يمكنك الآن مراجعة وتعديله.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('RFQ duplication error', [
+                'original_rfq_id' => $rfq->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['error' => 'حدث خطأ أثناء تكرار الطلب']);
+        }
+    }
+
+    /**
+     * Import RFQ from CSV file.
+     */
+    public function importCsv(Request $request, RfqImportService $importService): RedirectResponse
+    {
+        $this->authorize('create', Rfq::class);
+
+        $validated = $request->validate([
+            'csv_file' => 'required|file|mimes:csv,txt|max:2048',
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string|max:2000',
+            'deadline' => 'nullable|date|after:today',
+            'is_public' => 'boolean',
+        ]);
+
+        $buyer = Auth::user()->buyerProfile;
+
+        $results = $importService->importFromCsv(
+            $request->file('csv_file'),
+            $buyer,
+            $validated
+        );
+
+        if ($results['success']) {
+            $message = "تم استيراد {$results['imported']} منتج بنجاح";
+            if ($results['skipped'] > 0) {
+                $message .= " (تم تخطي {$results['skipped']} منتج)";
+            }
+
+            return redirect()
+                ->route('buyer.rfqs.edit', $results['rfq'])
+                ->with('success', $message);
+        } else {
+            return back()
+                ->withInput()
+                ->withErrors(['csv_file' => implode(', ', $results['errors'])]);
+        }
+    }
+
+    /**
+     * Download sample CSV template.
+     */
+    public function downloadCsvSample(RfqImportService $importService)
+    {
+        return $importService->downloadSampleCsv();
+    }
+
+    /**
+     * Estimate budget for RFQ.
+     */
+    public function estimateBudget(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'items' => 'required|array',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.quantity' => 'required|integer|min:1',
+        ]);
+
+        $minEstimate = 0;
+        $maxEstimate = 0;
+        $breakdown = [];
+        $itemsWithPrices = 0;
+        $totalItems = count($validated['items']);
+
+        foreach ($validated['items'] as $item) {
+            $product = Product::find($item['product_id']);
+
+            // Get price range from suppliers
+            $prices = DB::table('product_supplier')
+                ->where('product_id', $product->id)
+                ->where('status', 'available')
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('suppliers')
+                        ->whereColumn('suppliers.id', 'product_supplier.supplier_id')
+                        ->where('suppliers.is_verified', true)
+                        ->where('suppliers.is_active', true);
+                })
+                ->pluck('price');
+
+            if ($prices->isNotEmpty()) {
+                $minPrice = $prices->min();
+                $maxPrice = $prices->max();
+
+                $itemMinTotal = $minPrice * $item['quantity'];
+                $itemMaxTotal = $maxPrice * $item['quantity'];
+
+                $minEstimate += $itemMinTotal;
+                $maxEstimate += $itemMaxTotal;
+
+                $breakdown[] = [
+                    'product_name' => $product->name,
+                    'quantity' => $item['quantity'],
+                    'min_price' => $minPrice,
+                    'max_price' => $maxPrice,
+                    'min_total' => $itemMinTotal,
+                    'max_total' => $itemMaxTotal,
+                ];
+
+                $itemsWithPrices++;
+            }
+        }
+
+        // Calculate confidence level
+        $confidence = match (true) {
+            $itemsWithPrices === $totalItems => 'high',
+            $itemsWithPrices >= ($totalItems * 0.7) => 'medium',
+            default => 'low',
+        };
+
+        return response()->json([
+            'min_estimate' => round($minEstimate, 2),
+            'max_estimate' => round($maxEstimate, 2),
+            'avg_estimate' => round(($minEstimate + $maxEstimate) / 2, 2),
+            'confidence' => $confidence,
+            'items_with_prices' => $itemsWithPrices,
+            'total_items' => $totalItems,
+            'breakdown' => $breakdown,
+            'message' => $confidence === 'high' 
+                ? 'التقدير دقيق بناءً على الأسعار المتوفرة' 
+                : 'التقدير تقريبي - بعض المنتجات ليس لها أسعار',
+        ]);
+    }
+
+    /**
+     * Suggest suppliers for RFQ.
+     */
+    public function suggestSuppliers(Request $request, SupplierSuggestionService $suggestionService): JsonResponse
+    {
+        $validated = $request->validate([
+            'rfq_id' => 'required|exists:rfqs,id',
+            'limit' => 'nullable|integer|min:1|max:20',
+        ]);
+
+        $rfq = Rfq::findOrFail($validated['rfq_id']);
+
+        // Ensure RFQ belongs to buyer
+        $buyer = Auth::user()->buyerProfile;
+        if ($rfq->buyer_id !== $buyer->id) {
+            abort(403);
+        }
+
+        $suggestions = $suggestionService->suggestForRfq(
+            $rfq,
+            $validated['limit'] ?? 10
+        );
+
+        $formatted = $suggestions->map(function ($suggestion) use ($suggestionService, $rfq) {
+            $supplier = $suggestion['supplier'];
+            return [
+                'id' => $supplier->id,
+                'company_name' => $supplier->company_name,
+                'city' => $supplier->city,
+                'score' => $suggestion['score'],
+                'breakdown' => $suggestion['breakdown'],
+                'reasons' => $suggestionService->getRecommendationReasons($supplier, $rfq),
+            ];
+        });
+
+        return response()->json([
+            'suggestions' => $formatted,
+            'total' => $formatted->count(),
+        ]);
+    }
+
+    /**
+     * Suggest deadline for RFQ based on products.
+     */
+    public function suggestDeadline(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'items' => 'required|array',
+            'items.*.product_id' => 'required|exists:products,id',
+        ]);
+
+        $maxLeadTime = 0;
+
+        foreach ($validated['items'] as $item) {
+            // Get max lead time from all suppliers for this product
+            $leadTime = DB::table('product_supplier')
+                ->where('product_id', $item['product_id'])
+                ->where('status', 'available')
+                ->max('lead_time');
+
+            if ($leadTime && $leadTime > $maxLeadTime) {
+                $maxLeadTime = $leadTime;
+            }
+        }
+
+        // Calculate suggested deadline
+        // Formula: max_lead_time + 5 days buffer + 3 days for quotation preparation
+        $minDays = max(7, $maxLeadTime + 3); // Minimum 7 days
+        $recommendedDays = $maxLeadTime + 8; // Lead time + buffer + quotation time
+        $suggestedDeadline = now()->addDays($recommendedDays);
+
+        return response()->json([
+            'suggested_deadline' => $suggestedDeadline->format('Y-m-d'),
+            'min_days' => $minDays,
+            'recommended_days' => $recommendedDays,
+            'max_lead_time' => $maxLeadTime,
+            'reasoning' => "بناءً على متوسط وقت التوصيل ({$maxLeadTime} أيام) + وقت إعداد العروض (3 أيام) + مهلة إضافية (5 أيام)",
+        ]);
     }
 }
 

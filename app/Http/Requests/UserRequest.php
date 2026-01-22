@@ -64,6 +64,12 @@ class UserRequest extends FormRequest
 
             // 🧠 الدور (Spatie Role)
             'role' => ['nullable', 'exists:roles,name'],
+
+            // 📍 معلومات إضافية (اختيارية)
+            'address' => ['nullable', 'string', 'max:500'],
+            'city' => ['nullable', 'string', 'max:100'],
+            'country' => ['nullable', 'string', 'max:100'],
+            'notes' => ['nullable', 'string', 'max:1000'],
         ];
     }
 
@@ -91,6 +97,11 @@ class UserRequest extends FormRequest
             'status.in' => 'قيمة الحالة غير صحيحة.',
 
             'role.exists' => 'الدور المحدد غير موجود في النظام.',
+
+            'address.max' => 'العنوان طويل جداً (الحد الأقصى 500 حرف).',
+            'city.max' => 'اسم المدينة طويل جداً.',
+            'country.max' => 'اسم الدولة طويل جداً.',
+            'notes.max' => 'الملاحظات طويلة جداً (الحد الأقصى 1000 حرف).',
         ];
     }
 

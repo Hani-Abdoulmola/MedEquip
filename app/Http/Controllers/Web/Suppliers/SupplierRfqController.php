@@ -208,11 +208,12 @@ class SupplierRfqController extends Controller
                 ->with('error', 'لديك عرض سعر موجود بالفعل.');
         }
 
-        // Check if RFQ deadline has passed
-        if ($rfq->deadline && $rfq->deadline->isPast()) {
+        // Validate RFQ can accept quotations using workflow service
+        $validation = \App\Services\RfqWorkflowService::canAcceptQuotations($rfq);
+        if (!$validation['valid']) {
             return redirect()
                 ->route('supplier.rfqs.show', $rfq)
-                ->with('error', 'انتهت فترة تقديم العروض لهذا الطلب.');
+                ->with('error', $validation['message']);
         }
 
         DB::beginTransaction();
@@ -273,15 +274,8 @@ class SupplierRfqController extends Controller
                 route('admin.quotations.show', $quotation->id)
             );
 
-            // Notify buyer
-            if ($rfq->buyer && $rfq->buyer->user) {
-                NotificationService::send(
-                    $rfq->buyer->user,
-                    '💰 تم استلام عرض سعر جديد',
-                    "وصل عرض جديد من المورد {$supplier->company_name} لطلبك: {$rfq->title}",
-                    route('admin.quotations.show', $quotation->id)
-                );
-            }
+            // Notify buyer using workflow service
+            \App\Services\RfqWorkflowService::notifyQuotationSubmitted($quotation);
 
             // Log activity
             activity('supplier_quotations')

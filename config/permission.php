@@ -117,9 +117,9 @@ return [
      * \Spatie\Permission\Events\PermissionAttached
      * \Spatie\Permission\Events\PermissionDetached
      *
-     * To enable, set to true, and then create listeners to watch these events.
+     * ENABLED: Automatically flushes permission cache when roles/permissions change
      */
-    'events_enabled' => false,
+    'events_enabled' => true,
 
     /*
      * Teams Feature.
@@ -181,9 +181,14 @@ return [
         /*
          * By default all permissions are cached for 24 hours to speed up performance.
          * When permissions or roles are updated the cache is flushed automatically.
+         * 
+         * Set PERMISSION_CACHE_ENABLED=false in .env to disable caching in development.
+         * This prevents cache desynchronization issues during development.
          */
 
-        'expiration_time' => \DateInterval::createFromDateString('24 hours'),
+        'expiration_time' => env('PERMISSION_CACHE_ENABLED', true)
+            ? \DateInterval::createFromDateString('24 hours')
+            : \DateInterval::createFromDateString('1 second'),  // Effectively disabled
 
         /*
          * The cache key used to store all permissions.
@@ -197,6 +202,6 @@ return [
          * file. Using 'default' here means to use the `default` set in cache.php.
          */
 
-        'store' => 'default',
+        'store' => env('CACHE_DRIVER', 'default'),
     ],
 ];

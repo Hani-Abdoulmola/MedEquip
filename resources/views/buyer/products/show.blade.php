@@ -80,35 +80,45 @@
                     $maxPrice = $prices->max();
                 @endphp
                 @if($minPrice)
-                    <div class="bg-medical-blue-50 rounded-xl p-4">
-                        <div class="text-sm text-medical-blue-700 mb-1">نطاق الأسعار</div>
-                        <div class="text-2xl font-bold text-medical-blue-600">
+                    <div class="bg-gradient-to-br from-medical-blue-50 via-medical-green-50 to-medical-blue-50 rounded-xl p-5 border-2 border-medical-blue-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="text-sm font-semibold text-medical-blue-700">نطاق الأسعار</div>
+                            <span class="text-xs font-bold text-medical-blue-600 bg-white px-2 py-1 rounded-full">
+                                {{ $product->suppliers->count() }} مورد
+                            </span>
+                        </div>
+                        <div class="text-3xl font-bold text-medical-blue-600 mb-1">
                             {{ number_format($minPrice, 2) }}
                             @if($maxPrice && $maxPrice != $minPrice)
-                                - {{ number_format($maxPrice, 2) }}
+                                <span class="text-xl font-normal text-gray-600">- {{ number_format($maxPrice, 2) }}</span>
                             @endif
-                            د.ل
+                            <span class="text-lg font-normal"> د.ل</span>
                         </div>
-                        <div class="text-sm text-medical-blue-600 mt-1">
-                            من {{ $product->suppliers->count() }} مورد
+                        <div class="text-xs text-medical-blue-600 mt-2">
+                            💡 يمكنك مقارنة الأسعار من جميع الموردين أدناه
                         </div>
                     </div>
                 @endif
+            @else
+                <div class="bg-gray-50 rounded-xl p-5 border-2 border-gray-200 text-center">
+                    <div class="text-sm text-gray-600">لا يوجد موردين متاحين حالياً</div>
+                    <div class="text-xs text-gray-500 mt-1">يمكنك طلب عرض سعر للمنتج</div>
+                </div>
             @endif
 
             {{-- Actions --}}
             <div class="flex gap-3">
                 <a href="{{ route('buyer.products.create-rfq', $product) }}" 
-                   class="flex-1 text-center px-6 py-3 bg-medical-blue-600 text-white rounded-lg hover:bg-medical-blue-700 transition-colors font-medium">
+                   class="flex-1 text-center px-6 py-3.5 bg-medical-blue-600 text-white rounded-xl hover:bg-medical-blue-700 transition-all font-semibold shadow-sm hover:shadow-md">
                     <svg class="w-5 h-5 inline-block ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                     </svg>
                     طلب عرض سعر
                 </a>
-                <form action="{{ route('buyer.products.favorite', $product) }}" method="POST">
+                <form action="{{ route('buyer.products.favorite', $product) }}" method="POST" class="flex-shrink-0">
                     @csrf
                     <button type="submit" 
-                            class="px-6 py-3 border-2 {{ $isFavorite ? 'border-red-500 text-red-500' : 'border-gray-300 text-gray-700' }} rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                            class="px-6 py-3.5 border-2 {{ $isFavorite ? 'border-red-500 bg-red-50 text-red-600' : 'border-gray-300 text-gray-700 hover:bg-gray-50' }} rounded-xl transition-all font-semibold">
                         @if($isFavorite)
                             <svg class="w-5 h-5 inline-block ml-2" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
@@ -126,20 +136,32 @@
 
             {{-- Description --}}
             @if($product->description)
-                <div>
-                    <h2 class="font-semibold text-gray-900 mb-2">الوصف</h2>
-                    <p class="text-gray-600">{{ $product->description }}</p>
+                <div class="bg-white rounded-xl shadow-sm border-2 border-gray-200 p-5">
+                    <h2 class="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-medical-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        الوصف
+                    </h2>
+                    <p class="text-gray-700 leading-relaxed">{{ $product->description }}</p>
                 </div>
             @endif
 
             {{-- Specifications --}}
             @if($product->specifications && is_array($product->specifications))
-                <div>
-                    <h2 class="font-semibold text-gray-900 mb-2">المواصفات</h2>
-                    <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                <div class="bg-white rounded-xl shadow-sm border-2 border-gray-200 p-5">
+                    <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-medical-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                        </svg>
+                        المواصفات التقنية
+                    </h2>
+                    <dl class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         @foreach($product->specifications as $key => $value)
-                            <dt class="text-gray-500">{{ $key }}</dt>
-                            <dd class="text-gray-900 font-medium">{{ $value }}</dd>
+                            <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                <dt class="text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">{{ $key }}</dt>
+                                <dd class="text-sm font-bold text-gray-900">{{ $value }}</dd>
+                            </div>
                         @endforeach
                     </dl>
                 </div>
@@ -167,82 +189,142 @@
         </div>
     </div>
 
-    {{-- Suppliers --}}
+    {{-- Suppliers Cards --}}
     @if($product->suppliers->count() > 0)
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="p-6 border-b border-gray-100">
-                <h2 class="text-lg font-semibold text-gray-900">الموردين المتاحين ({{ $product->suppliers->count() }})</h2>
+        <div class="bg-white rounded-xl shadow-sm border-2 border-gray-200 overflow-hidden">
+            <div class="p-6 border-b-2 border-gray-200 bg-gradient-to-r from-medical-blue-50 to-white">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-gray-900">الموردين المتاحين</h2>
+                    <span class="text-sm font-semibold text-medical-blue-600 bg-white px-3 py-1 rounded-full border border-medical-blue-200">
+                        {{ $product->suppliers->count() }} مورد
+                    </span>
+                </div>
+                <p class="text-sm text-gray-600 mt-1">اختر المورد الأنسب لمتطلباتك</p>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">المورد</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">السعر</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">المخزون</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">مدة التوريد</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">الضمان</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        @foreach($product->suppliers as $supplier)
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 font-bold">
-                                        {{ substr($supplier->user?->name ?? 'م', 0, 1) }}
-                                    </div>
-                                    <div>
-                                        <div class="font-medium text-gray-900">{{ $supplier->user?->name ?? 'مورد' }}</div>
-                                        <div class="text-sm text-gray-500">{{ $supplier->company_name }}</div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @foreach($product->suppliers as $supplier)
+                        @php
+                            $prices = $product->suppliers->pluck('pivot.price')->filter();
+                            $minPrice = $prices->min();
+                            $isBestPrice = $supplier->pivot->price && $supplier->pivot->price == $minPrice;
+                        @endphp
+                        <div class="border-2 {{ $isBestPrice ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-white' }} rounded-xl p-5 hover:shadow-md transition-all">
+                            {{-- Best Price Badge --}}
+                            @if($isBestPrice && $product->suppliers->count() > 1)
+                                <div class="flex items-center gap-2 mb-3">
+                                    <span class="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded-full">
+                                        ⭐ أفضل سعر
+                                    </span>
+                                </div>
+                            @endif
+
+                            {{-- Supplier Info --}}
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-14 h-14 bg-gradient-to-br from-medical-blue-100 to-medical-blue-200 rounded-full flex items-center justify-center text-medical-blue-700 font-bold text-lg flex-shrink-0">
+                                    {{ substr($supplier->user?->name ?? 'م', 0, 1) }}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="font-bold text-gray-900 truncate">{{ $supplier->user?->name ?? 'مورد' }}</h3>
+                                    <p class="text-sm text-gray-600 truncate">{{ $supplier->company_name }}</p>
+                                </div>
+                            </div>
+
+                            {{-- Price --}}
+                            @if($supplier->pivot->price)
+                                <div class="mb-4 p-3 bg-gradient-to-br from-medical-blue-50 to-medical-green-50 rounded-lg border border-medical-blue-200">
+                                    <div class="text-xs text-gray-600 mb-1">السعر</div>
+                                    <div class="text-2xl font-bold text-medical-blue-600">
+                                        {{ number_format($supplier->pivot->price, 2) }} <span class="text-sm font-normal">د.ل</span>
                                     </div>
                                 </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                @if($supplier->pivot->price)
-                                    <span class="font-bold text-gray-900">{{ number_format($supplier->pivot->price, 2) }} د.ل</span>
-                                @else
-                                    <span class="text-gray-400">-</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            @else
+                                <div class="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200 text-center">
+                                    <span class="text-sm text-gray-500">السعر عند الطلب</span>
+                                </div>
+                            @endif
+
+                            {{-- Details Grid --}}
+                            <div class="grid grid-cols-2 gap-3 mb-4">
                                 @if($supplier->pivot->stock_quantity)
-                                    <span class="{{ $supplier->pivot->stock_quantity > 10 ? 'text-green-600' : 'text-yellow-600' }}">
-                                        {{ $supplier->pivot->stock_quantity }} وحدة
-                                    </span>
+                                    <div class="text-center p-2 bg-gray-50 rounded-lg">
+                                        <div class="text-xs text-gray-600 mb-1">المخزون</div>
+                                        <div class="text-sm font-bold {{ $supplier->pivot->stock_quantity > 10 ? 'text-green-600' : 'text-yellow-600' }}">
+                                            {{ $supplier->pivot->stock_quantity }} وحدة
+                                        </div>
+                                    </div>
                                 @else
-                                    <span class="text-gray-400">-</span>
+                                    <div class="text-center p-2 bg-gray-50 rounded-lg">
+                                        <div class="text-xs text-gray-600 mb-1">المخزون</div>
+                                        <div class="text-sm text-gray-400">-</div>
+                                    </div>
                                 @endif
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-gray-900">
-                                {{ $supplier->pivot->lead_time ?? '-' }} يوم
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-gray-900">
-                                {{ $supplier->pivot->warranty ?? '-' }}
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                                
+                                @if($supplier->pivot->lead_time)
+                                    <div class="text-center p-2 bg-gray-50 rounded-lg">
+                                        <div class="text-xs text-gray-600 mb-1">مدة التوريد</div>
+                                        <div class="text-sm font-bold text-gray-900">{{ $supplier->pivot->lead_time }} يوم</div>
+                                    </div>
+                                @else
+                                    <div class="text-center p-2 bg-gray-50 rounded-lg">
+                                        <div class="text-xs text-gray-600 mb-1">مدة التوريد</div>
+                                        <div class="text-sm text-gray-400">-</div>
+                                    </div>
+                                @endif
+                            </div>
+
+                            @if($supplier->pivot->warranty)
+                                <div class="mb-4 text-center p-2 bg-blue-50 rounded-lg border border-blue-200">
+                                    <div class="text-xs text-blue-700 mb-1">الضمان</div>
+                                    <div class="text-sm font-semibold text-blue-900">{{ $supplier->pivot->warranty }}</div>
+                                </div>
+                            @endif
+
+                            @if($supplier->pivot->notes)
+                                <div class="mb-4 p-2 bg-gray-50 rounded-lg">
+                                    <div class="text-xs text-gray-600 mb-1">ملاحظات</div>
+                                    <div class="text-sm text-gray-700">{{ Str::limit($supplier->pivot->notes, 80) }}</div>
+                                </div>
+                            @endif
+
+                            {{-- Actions --}}
+                            <div class="flex gap-2">
+                                <a href="{{ route('buyer.suppliers.show', $supplier) }}" 
+                                   class="flex-1 text-center px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all text-sm font-semibold">
+                                    عرض الملف
+                                </a>
+                                <a href="{{ route('buyer.products.create-rfq', $product) }}" 
+                                   class="flex-1 text-center px-4 py-2 bg-medical-blue-600 text-white rounded-xl hover:bg-medical-blue-700 transition-all text-sm font-semibold shadow-sm hover:shadow-md">
+                                    طلب سعر
+                                </a>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
             </div>
         </div>
     @endif
 
     {{-- Related Products --}}
     @if($relatedProducts->count() > 0)
-        <div>
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">منتجات ذات صلة</h2>
+        <div class="bg-white rounded-xl shadow-sm border-2 border-gray-200 p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <svg class="w-5 h-5 text-medical-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                </svg>
+                منتجات ذات صلة
+            </h2>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 @foreach($relatedProducts as $related)
                     <a href="{{ route('buyer.products.show', $related) }}" 
-                       class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-                        <div class="aspect-square bg-gray-100">
+                       class="bg-white rounded-xl shadow-sm border-2 border-gray-200 overflow-hidden hover:shadow-lg hover:border-medical-blue-300 transition-all duration-200 group">
+                        <div class="aspect-square bg-gray-100 relative overflow-hidden">
                             @if($related->getFirstMediaUrl('product_images'))
                                 <img src="{{ $related->getFirstMediaUrl('product_images', 'thumb') }}" 
                                      alt="{{ $related->name }}"
-                                     class="w-full h-full object-cover">
+                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                             @else
-                                <div class="w-full h-full flex items-center justify-center text-gray-400">
+                                <div class="w-full h-full flex items-center justify-center text-gray-300">
                                     <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                     </svg>
@@ -250,7 +332,13 @@
                             @endif
                         </div>
                         <div class="p-3">
-                            <h3 class="font-medium text-gray-900 text-sm line-clamp-2">{{ $related->name }}</h3>
+                            <h3 class="font-semibold text-gray-900 text-sm line-clamp-2 group-hover:text-medical-blue-600 transition-colors">{{ $related->name }}</h3>
+                            @if($related->suppliers->count() > 0)
+                                @php $minPrice = $related->suppliers->pluck('pivot.price')->filter()->min(); @endphp
+                                @if($minPrice)
+                                    <p class="text-xs text-medical-blue-600 font-bold mt-1">{{ number_format($minPrice, 0) }} د.ل</p>
+                                @endif
+                            @endif
                         </div>
                     </a>
                 @endforeach

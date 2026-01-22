@@ -34,31 +34,13 @@ class EnsureInternalUser
         }
 
         // Check if user has Admin or Staff role
+        // This is the ONLY authorization mechanism (no user_type bypass)
         if ($user->hasRole(['Admin', 'Staff'])) {
             return $next($request);
         }
 
-        // Check if user has any admin permissions (direct permissions)
-        // This allows users without Admin role but with specific permissions
-        $adminPermissions = $user->permissions()
-            ->where('name', 'like', '%.%')
-            ->whereNotIn('name', [
-                // Exclude supplier/buyer permissions
-                'suppliers.%', 'buyers.%'
-            ])
-            ->exists();
-
-        if ($adminPermissions) {
-            return $next($request);
-        }
-
-        // Check if user has any internal user type
-        if ($user->type && in_array($user->type->name, ['مدير النظام', 'موظف'])) {
-            return $next($request);
-        }
-
-        // Access denied
-        abort(403, 'ليس لديك صلاحية الوصول. يجب أن تكون موظفاً داخلياً.');
+        // Access denied - user must have Admin or Staff role
+        abort(403, 'ليس لديك صلاحية الوصول. يجب أن تكون لديك صلاحيات إدارية (Admin أو Staff).');
     }
 }
 

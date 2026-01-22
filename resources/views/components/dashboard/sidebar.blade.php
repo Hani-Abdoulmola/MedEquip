@@ -7,13 +7,29 @@
      * Uses permission-based authorization (RBAC best practice)
      */
     function canAccessMenuItem($item) {
+        $user = auth()->user();
+        
+        if (!$user) {
+            return false;
+        }
+        
         if (isset($item['permission'])) {
-            return auth()->user()->can($item['permission']);
+            try {
+                return $user->can($item['permission']);
+            } catch (\Exception $e) {
+                // If permission doesn't exist or check fails, default to false
+                // This prevents errors when permissions haven't been seeded yet
+                return false;
+            }
         }
         if (isset($item['role'])) {
-            return auth()->user()->hasRole($item['role']);
+            try {
+                return $user->hasRole($item['role']);
+            } catch (\Exception $e) {
+                return false;
+            }
         }
-        return true; // Default: accessible if no restriction
+        return false; // Default: hidden if no explicit permission/role (security-first)
     }
 
     // حساب عدد طلبات التسجيل المعلقة للشارة
@@ -90,6 +106,7 @@
                         'route' => 'admin.products.index',
                         'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
                         'label' => 'كتالوج المنتجات',
+                        'permission' => 'products.view',
                     ],
                     [
                         'route' => 'admin.product-requests.index',
@@ -102,6 +119,12 @@
                         'icon' =>
                             'M7 7h.01M7 3h5c1.1046 0 2 .8954 2 2v0c0 1.1046-.8954 2-2 2H9m-2 4h.01M7 11h5c1.1046 0 2 .8954 2 2v0c0 1.1046-.8954 2-2 2H9m-2 4h.01M7 19h5c1.1046 0 2 .8954 2 2v0',
                         'label' => 'فئات المنتجات',
+                    ],
+                    [
+                        'route' => 'admin.manufacturers.index',
+                        'icon' =>
+                            'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
+                        'label' => 'الشركات المصنعة',
                     ],
                 ],
             ],
@@ -173,7 +196,7 @@
                     'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
                 'items' => [
                     [
-                        'route' => 'dashboard',
+                        'route' => 'supplier.dashboard',
                         'icon' =>
                             'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
                         'label' => 'لوحة التحكم',
@@ -361,7 +384,7 @@
         ],
     ];
 
-    $currentRoute = request()->route()->getName();
+    $currentRoute = request()->route()?->getName() ?? '';
     $items = $menuItems[$userRole] ?? $menuItems['admin'];
 @endphp
 
@@ -578,12 +601,7 @@
         <nav class="flex-1 overflow-y-auto px-6 space-y-1">
             @foreach ($items as $item)
                 @php
-                    $canAccess = true;
-                    if (isset($item['permission'])) {
-                        $canAccess = auth()->user()->can($item['permission']);
-                    } elseif (isset($item['role'])) {
-                        $canAccess = auth()->user()->hasRole($item['role']);
-                    }
+                    $canAccess = canAccessMenuItem($item);
                 @endphp
 
                 @if (!empty($item['dropdown']) && $item['dropdown'])
@@ -595,12 +613,7 @@
                                 $activeDropdown = true;
                             }
                             // Check if at least one item is accessible
-                            $subCanAccess = true;
-                            if (isset($sub['permission'])) {
-                                $subCanAccess = auth()->user()->can($sub['permission']);
-                            } elseif (isset($sub['role'])) {
-                                $subCanAccess = auth()->user()->hasRole($sub['role']);
-                            }
+                            $subCanAccess = canAccessMenuItem($sub);
                             if ($subCanAccess) {
                                 $hasAccessibleItems = true;
                             }
@@ -652,13 +665,8 @@
                             class="overflow-hidden mt-1 space-y-1 pr-2">
                             @foreach ($item['items'] as $sub)
                                 @php
-                                    $subCanAccess = true;
-                                    if (isset($sub['permission'])) {
-                                        $subCanAccess = auth()->user()->can($sub['permission']);
-                                    } elseif (isset($sub['role'])) {
-                                        $subCanAccess = auth()->user()->hasRole($sub['role']);
-                                    }
-                                    $isActive = $currentRoute === $sub['route'];
+                                    $subCanAccess = canAccessMenuItem($sub);
+                                    $isActive = $currentRoute === ($sub['route'] ?? '');
                                 @endphp
                                 @if ($subCanAccess)
                                     <a href="{{ route($sub['route']) }}" @click="mobileMenuOpen = false"

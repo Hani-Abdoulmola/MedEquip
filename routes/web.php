@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Web\ProfileController;
 use App\Http\Controllers\Web\UserController;
 use App\Http\Controllers\Web\BuyerController;
 use App\Http\Controllers\Web\OrderController;
@@ -25,7 +25,6 @@ use App\Http\Controllers\Web\Suppliers\SupplierInvoiceController;
 use App\Http\Controllers\Web\Suppliers\SupplierPaymentController;
 use App\Http\Controllers\Web\Suppliers\SupplierActivityLogController;
 use App\Http\Controllers\Web\Suppliers\SupplierReportsController;
-
 use App\Http\Controllers\Web\RegistrationApprovalController;
 use App\Http\Controllers\Web\AdminRfqController;
 use App\Http\Controllers\Web\AdminQuotationController;
@@ -74,25 +73,30 @@ Route::get('/waiting-approval', function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Admin Routes - Protected by internal user middleware (Admin/Staff with permissions)
     Route::prefix('admin')->name('admin.')->middleware('internal.user')->group(function () {
         // Users Management
-        Route::get('/users', [UserController::class, 'index'])->name('users');
-        Route::get('/users/export', [UserController::class, 'export'])->name('users.export');
-        Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
-        Route::post('/users', [UserController::class, 'store'])->name('users.store');
-        Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
-        Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
-        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
-        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-        Route::put('/users/{user}/permissions', [UserController::class, 'updatePermissions'])->name('users.update-permissions');
+        Route::get('/users', [UserController::class, 'index'])->middleware('permission:users.view')->name('users');
+        Route::get('/users/export', [UserController::class, 'export'])->middleware('permission:users.view')->name('users.export');
+        Route::get('/users/create', [UserController::class, 'create'])->middleware('permission:users.create')->name('users.create');
+        Route::post('/users', [UserController::class, 'store'])->middleware('permission:users.create')->name('users.store');
+        Route::get('/users/{user}', [UserController::class, 'show'])->middleware('permission:users.view')->name('users.show');
+        Route::get('/users/{user}/edit', [UserController::class, 'edit'])->middleware('permission:users.update')->name('users.edit');
+        Route::put('/users/{user}', [UserController::class, 'update'])->middleware('permission:users.update')->name('users.update');
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])->middleware('permission:users.delete')->name('users.destroy');
+        Route::put('/users/{user}/permissions', [UserController::class, 'updatePermissions'])->middleware('permission:permissions.view')->name('users.update-permissions');
 
         // Unified Roles & Permissions Management
-        Route::get('/role-permissions', [RolePermissionController::class, 'index'])->name('role-permissions.index');
-        Route::post('/role-permissions/{user}/assign', [RolePermissionController::class, 'assignPermissions'])->name('role-permissions.assign');
+        Route::get('/role-permissions', [RolePermissionController::class, 'index'])->middleware('permission:permissions.view')->name('role-permissions.index');
+        Route::post('/role-permissions/{user}/assign', [RolePermissionController::class, 'assignPermissions'])->middleware('permission:permissions.view')->name('role-permissions.assign');
+        Route::post('/role-permissions/role/{role}/update', [RolePermissionController::class, 'updateRolePermissions'])->middleware('permission:permissions.view')->name('role-permissions.update-role');
+        Route::post('/role-permissions/{user}/apply-template', [RolePermissionController::class, 'applyTemplate'])->middleware('permission:permissions.view')->name('role-permissions.apply-template');
+        Route::post('/role-permissions/bulk-assign', [RolePermissionController::class, 'bulkAssignPermissions'])->middleware('permission:permissions.view')->name('role-permissions.bulk-assign');
+        Route::get('/role-permissions/audit-log', [RolePermissionController::class, 'auditLog'])->middleware('permission:permissions.view')->name('role-permissions.audit-log');
+        Route::get('/role-permissions/usage-report', [RolePermissionController::class, 'usageReport'])->middleware('permission:permissions.view')->name('role-permissions.usage-report');
 
         // Legacy Routes (kept for backward compatibility, redirect to unified page)
         Route::get('/roles', function () {
@@ -130,13 +134,15 @@ Route::middleware('auth')->group(function () {
 
 
         // Products Management
-        Route::get('/products', [ProductController::class, 'index'])->name('products.index');
-        Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
-        Route::get('/products/{product}/review', [ProductReviewController::class, 'review'])->name('products.review');
-        Route::post('/products/{product}/approve', [ProductReviewController::class, 'approve'])->name('products.approve');
-        Route::post('/products/{product}/reject', [ProductReviewController::class, 'reject'])->name('products.reject');
-        Route::post('/products/{product}/request-changes', [ProductReviewController::class, 'requestChanges'])->name('products.request_changes');
-        Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+        Route::get('/products', [ProductController::class, 'index'])->middleware('permission:products.view')->name('products.index');
+        Route::get('/products/{product}', [ProductController::class, 'show'])->middleware('permission:products.view')->name('products.show');
+        Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->middleware('permission:products.update')->name('products.edit');
+        Route::put('/products/{product}', [ProductController::class, 'update'])->middleware('permission:products.update')->name('products.update');
+        Route::get('/products/{product}/review', [ProductReviewController::class, 'review'])->middleware('permission:products.view')->name('products.review');
+        Route::post('/products/{product}/approve', [ProductReviewController::class, 'approve'])->middleware('permission:products.approve')->name('products.approve');
+        Route::post('/products/{product}/reject', [ProductReviewController::class, 'reject'])->middleware('permission:products.reject')->name('products.reject');
+        Route::post('/products/{product}/request-changes', [ProductReviewController::class, 'requestChanges'])->middleware('permission:products.request_changes')->name('products.request_changes');
+        Route::delete('/products/{product}', [ProductController::class, 'destroy'])->middleware('permission:products.delete')->name('products.destroy');
 
         // Product Requests Management (Canonical Catalog Workflow)
         Route::prefix('product-requests')->name('product-requests.')->group(function () {
@@ -147,6 +153,9 @@ Route::middleware('auth')->group(function () {
             Route::post('/{productRequest}/merge', [\App\Http\Controllers\Web\AdminProductRequestController::class, 'merge'])->name('merge');
             Route::post('/{productRequest}/reject', [\App\Http\Controllers\Web\AdminProductRequestController::class, 'reject'])->name('reject');
         });
+
+        // Diagnostics
+        Route::get('/diagnostics/factory-data', [\App\Http\Controllers\Web\AdminDiagnosticsController::class, 'factoryData'])->middleware('permission:products.view')->name('diagnostics.factory-data');
 
         // Product Categories Management
         Route::get('/categories', [ProductCategoryController::class, 'index'])->name('categories.index');
@@ -277,7 +286,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // Supplier Routes
-    Route::prefix('supplier')->name('supplier.')->middleware('role:Supplier')->group(function () {
+    Route::prefix('supplier')->name('supplier.')->middleware(['role:Supplier', 'supplier.profile'])->group(function () {
         // Supplier Dashboard
         Route::get('/dashboard', [SupplierDashboardController::class, 'index'])->name('dashboard');
 
@@ -344,6 +353,10 @@ Route::middleware('auth')->group(function () {
 
         // Supplier Reports
         Route::get('/reports', [SupplierReportsController::class, 'index'])->name('reports.index');
+
+        // Supplier Performance Dashboard
+        Route::get('/performance', [\App\Http\Controllers\Web\Suppliers\SupplierPerformanceController::class, 'index'])->name('performance.index');
+        Route::get('/performance/{metric}', [\App\Http\Controllers\Web\Suppliers\SupplierPerformanceController::class, 'show'])->name('performance.show');
     });
 
     // Buyer Routes
@@ -369,6 +382,21 @@ Route::middleware('auth')->group(function () {
         Route::delete('/rfqs/{rfq}', [\App\Http\Controllers\Web\Buyers\BuyerRfqController::class, 'destroy'])->name('rfqs.destroy');
         Route::patch('/rfqs/{rfq}/status', [\App\Http\Controllers\Web\Buyers\BuyerRfqController::class, 'updateStatus'])->name('rfqs.update-status');
 
+        // Smart RFQ Features
+        Route::post('/rfqs/{rfq}/duplicate', [\App\Http\Controllers\Web\Buyers\BuyerRfqController::class, 'duplicate'])->name('rfqs.duplicate');
+        Route::post('/rfqs/import-csv', [\App\Http\Controllers\Web\Buyers\BuyerRfqController::class, 'importCsv'])->name('rfqs.import-csv');
+        Route::get('/rfqs/csv-sample/download', [\App\Http\Controllers\Web\Buyers\BuyerRfqController::class, 'downloadCsvSample'])->name('rfqs.csv-sample');
+        Route::post('/rfqs/estimate-budget', [\App\Http\Controllers\Web\Buyers\BuyerRfqController::class, 'estimateBudget'])->name('rfqs.estimate-budget');
+        Route::post('/rfqs/suggest-suppliers', [\App\Http\Controllers\Web\Buyers\BuyerRfqController::class, 'suggestSuppliers'])->name('rfqs.suggest-suppliers');
+        Route::post('/rfqs/suggest-deadline', [\App\Http\Controllers\Web\Buyers\BuyerRfqController::class, 'suggestDeadline'])->name('rfqs.suggest-deadline');
+
+        // RFQ Templates
+        Route::get('/rfq-templates', [\App\Http\Controllers\Web\Buyers\BuyerRfqTemplateController::class, 'index'])->name('rfq-templates.index');
+        Route::get('/rfq-templates/{template}', [\App\Http\Controllers\Web\Buyers\BuyerRfqTemplateController::class, 'show'])->name('rfq-templates.show');
+        Route::post('/rfq-templates/{template}/use', [\App\Http\Controllers\Web\Buyers\BuyerRfqTemplateController::class, 'use'])->name('rfq-templates.use');
+        Route::post('/rfqs/{rfq}/save-as-template', [\App\Http\Controllers\Web\Buyers\BuyerRfqTemplateController::class, 'saveFromRfq'])->name('rfqs.save-as-template');
+        Route::delete('/rfq-templates/{template}', [\App\Http\Controllers\Web\Buyers\BuyerRfqTemplateController::class, 'destroy'])->name('rfq-templates.destroy');
+
         // Buyer Quotations Management
         Route::get('/quotations', [\App\Http\Controllers\Web\Buyers\BuyerQuotationController::class, 'index'])->name('quotations.index');
         Route::get('/quotations/compare', [\App\Http\Controllers\Web\Buyers\BuyerQuotationController::class, 'compare'])->name('quotations.compare');
@@ -386,7 +414,10 @@ Route::middleware('auth')->group(function () {
 
         // Buyer Orders
         Route::get('/orders', [\App\Http\Controllers\Web\Buyers\BuyerOrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/history', [\App\Http\Controllers\Web\Buyers\BuyerOrderController::class, 'history'])->name('orders.history');
         Route::get('/orders/{order}', [\App\Http\Controllers\Web\Buyers\BuyerOrderController::class, 'show'])->name('orders.show');
+        Route::post('/orders/{order}/reorder', [\App\Http\Controllers\Web\Buyers\BuyerOrderController::class, 'reorder'])->name('orders.reorder');
+        Route::post('/orders/{order}/add-to-cart', [\App\Http\Controllers\Web\Buyers\BuyerOrderController::class, 'addToCart'])->name('orders.add-to-cart');
 
         // Buyer Invoices
         Route::get('/invoices', [\App\Http\Controllers\Web\Buyers\BuyerInvoiceController::class, 'index'])->name('invoices.index');
@@ -412,8 +443,11 @@ Route::middleware('auth')->group(function () {
         // Buyer Cart / RFQ Builder
         Route::get('/cart', [\App\Http\Controllers\Web\Buyers\BuyerCartController::class, 'index'])->name('cart.index');
         Route::post('/cart/add/{product}', [\App\Http\Controllers\Web\Buyers\BuyerCartController::class, 'add'])->name('cart.add');
-        Route::put('/cart/update/{product}', [\App\Http\Controllers\Web\Buyers\BuyerCartController::class, 'update'])->name('cart.update');
-        Route::delete('/cart/remove/{product}', [\App\Http\Controllers\Web\Buyers\BuyerCartController::class, 'remove'])->name('cart.remove');
+        Route::put('/cart/items/{cartItem}', [\App\Http\Controllers\Web\Buyers\BuyerCartController::class, 'update'])->name('cart.update');
+        Route::delete('/cart/items/{cartItem}', [\App\Http\Controllers\Web\Buyers\BuyerCartController::class, 'remove'])->name('cart.remove');
+        // Backward compatibility route (for old views)
+        Route::put('/cart/update/{product}', [\App\Http\Controllers\Web\Buyers\BuyerCartController::class, 'updateByProduct'])->name('cart.update.legacy');
+        Route::delete('/cart/remove/{product}', [\App\Http\Controllers\Web\Buyers\BuyerCartController::class, 'removeByProduct'])->name('cart.remove.legacy');
         Route::delete('/cart/clear', [\App\Http\Controllers\Web\Buyers\BuyerCartController::class, 'clear'])->name('cart.clear');
         Route::get('/cart/count', [\App\Http\Controllers\Web\Buyers\BuyerCartController::class, 'count'])->name('cart.count');
         Route::get('/cart/checkout', [\App\Http\Controllers\Web\Buyers\BuyerCartController::class, 'checkout'])->name('cart.checkout');
@@ -430,6 +464,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/reviews/{review}/edit', [\App\Http\Controllers\Web\Buyers\BuyerReviewController::class, 'edit'])->name('reviews.edit');
         Route::put('/reviews/{review}', [\App\Http\Controllers\Web\Buyers\BuyerReviewController::class, 'update'])->name('reviews.update');
         Route::delete('/reviews/{review}', [\App\Http\Controllers\Web\Buyers\BuyerReviewController::class, 'destroy'])->name('reviews.destroy');
+
+        // Buyer Delivery Tracking & Disputes
+        Route::get('/deliveries/{order}/tracking', [\App\Http\Controllers\Web\Buyers\BuyerDeliveryTrackingController::class, 'show'])->name('deliveries.tracking');
+        Route::get('/deliveries/calendar', [\App\Http\Controllers\Web\Buyers\BuyerDeliveryTrackingController::class, 'calendar'])->name('deliveries.calendar');
+        Route::get('/deliveries/{order}/create-dispute', [\App\Http\Controllers\Web\Buyers\BuyerDeliveryTrackingController::class, 'createDispute'])->name('deliveries.create-dispute');
+        Route::post('/deliveries/{order}/disputes', [\App\Http\Controllers\Web\Buyers\BuyerDeliveryTrackingController::class, 'storeDispute'])->name('deliveries.store-dispute');
+        Route::get('/deliveries/disputes', [\App\Http\Controllers\Web\Buyers\BuyerDeliveryTrackingController::class, 'disputes'])->name('deliveries.disputes');
+        Route::get('/deliveries/disputes/{dispute}', [\App\Http\Controllers\Web\Buyers\BuyerDeliveryTrackingController::class, 'showDispute'])->name('deliveries.dispute');
 
         // Legacy routes (redirect for backward compatibility)
         Route::get('/favorites', fn() => redirect()->route('buyer.products.favorites'))->name('favorites');

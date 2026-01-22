@@ -8,6 +8,7 @@
     'trendValue' => null,
     'color' => 'blue', // 'blue', 'green', 'red', 'gray'
     'loading' => false,
+    'url' => null, // Optional URL to make card clickable
 ])
 
 @php
@@ -41,8 +42,13 @@
     $colors = $colorClasses[$color] ?? $colorClasses['blue'];
 @endphp
 
-<div
-    class="bg-white rounded-2xl p-6 shadow-medical hover:shadow-medical-lg transition-all duration-300 animate-fade-in-up">
+@if($url)
+    <a href="{{ $url }}" 
+       class="block bg-white rounded-2xl p-6 shadow-medical hover:shadow-medical-lg transition-all duration-300 animate-fade-in-up cursor-pointer hover:scale-105">
+@else
+    <div
+        class="bg-white rounded-2xl p-6 shadow-medical hover:shadow-medical-lg transition-all duration-300 animate-fade-in-up">
+@endif
     @if ($loading)
         {{-- Loading Skeleton --}}
         <div class="animate-pulse">
@@ -76,4 +82,8 @@
             </div>
         @endif
     @endif
-</div>
+@if($url)
+    </a>
+@else
+    </div>
+@endif

@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Web\Buyers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Buyer;
+use App\Models\BuyerCart;
+use App\Models\BuyerCartItem;
 use App\Models\Product;
 use App\Models\Rfq;
 use App\Models\RfqItem;
@@ -34,36 +37,43 @@ class BuyerCartController extends Controller
      */
     public function index(): View
     {
-        $cartItems = $this->getCart();
+        $buyer = Auth::user()->buyerProfile;
+
+        if (!$buyer) {
+            abort(403, 'لا يوجد ملف تعريف للمشتري');
+        }
+
+        // Get or create active cart
+        $cart = BuyerCart::getOrCreateActive($buyer);
+
+        // Migrate session cart if exists (one-time migration)
+        $this->migrateSessionCartIfExists($buyer, $cart);
+
+        // Load cart items with products
+        $cartItems = $cart->items()
+            ->with(['product.category', 'product.suppliers' => function ($q) {
+                $q->where('is_verified', true)->where('is_active', true);
+            }, 'supplier'])
+            ->get();
+
         $products = [];
         $totalItems = 0;
 
-        if (!empty($cartItems)) {
-            $productIds = array_keys($cartItems);
-            $productsQuery = Product::whereIn('id', $productIds)
-                ->where('is_active', true)
-                ->where('review_status', 'approved')
-                ->with(['category', 'suppliers' => function ($q) {
-                    $q->where('is_verified', true)->where('is_active', true);
-                }])
-                ->get()
-                ->keyBy('id');
-
-            foreach ($cartItems as $productId => $item) {
-                if ($productsQuery->has($productId)) {
-                    $product = $productsQuery->get($productId);
-                    $products[] = [
-                        'product' => $product,
-                        'quantity' => $item['quantity'],
-                        'specifications' => $item['specifications'] ?? '',
-                        'unit' => $item['unit'] ?? 'وحدة',
-                    ];
-                    $totalItems += $item['quantity'];
-                }
+        foreach ($cartItems as $item) {
+            if ($item->product && $item->product->is_active && $item->product->review_status === 'approved') {
+                $products[] = [
+                    'item' => $item,
+                    'product' => $item->product,
+                    'quantity' => $item->quantity,
+                    'specifications' => $item->specifications ?? '',
+                    'unit' => $item->unit ?? 'وحدة',
+                    'supplier_id' => $item->supplier_id,
+                ];
+                $totalItems += $item->quantity;
             }
         }
 
-        return view('buyer.cart.index', compact('products', 'totalItems'));
+        return view('buyer.cart.index', compact('products', 'totalItems', 'cart'));
     }
 
     /**
@@ -71,6 +81,12 @@ class BuyerCartController extends Controller
      */
     public function add(Request $request, Product $product): JsonResponse|RedirectResponse
     {
+        $buyer = Auth::user()->buyerProfile;
+
+        if (!$buyer) {
+            abort(403, 'لا يوجد ملف تعريف للمشتري');
+        }
+
         // Validate product is available
         if (!$product->is_active || $product->review_status !== 'approved') {
             $message = 'هذا المنتج غير متاح حالياً';
@@ -84,33 +100,38 @@ class BuyerCartController extends Controller
             'quantity' => 'required|integer|min:1|max:10000',
             'specifications' => 'nullable|string|max:1000',
             'unit' => 'nullable|string|max:50',
+            'supplier_id' => 'nullable|exists:suppliers,id',
         ]);
 
-        $cart = $this->getCart();
-        $productId = $product->id;
+        // Get or create active cart
+        $cart = BuyerCart::getOrCreateActive($buyer);
 
-        if (isset($cart[$productId])) {
+        // Check if item already exists
+        $existingItem = BuyerCartItem::where('cart_id', $cart->id)
+            ->where('product_id', $product->id)
+            ->where('supplier_id', $validated['supplier_id'] ?? null)
+            ->first();
+
+        if ($existingItem) {
             // Update existing item
-            $cart[$productId]['quantity'] += $validated['quantity'];
-            if (!empty($validated['specifications'])) {
-                $cart[$productId]['specifications'] = $validated['specifications'];
-            }
-            if (!empty($validated['unit'])) {
-                $cart[$productId]['unit'] = $validated['unit'];
-            }
+            $existingItem->update([
+                'quantity' => $existingItem->quantity + $validated['quantity'],
+                'specifications' => $validated['specifications'] ?? $existingItem->specifications,
+                'unit' => $validated['unit'] ?? $existingItem->unit,
+            ]);
         } else {
-            // Add new item
-            $cart[$productId] = [
+            // Create new item
+            BuyerCartItem::create([
+                'cart_id' => $cart->id,
+                'product_id' => $product->id,
                 'quantity' => $validated['quantity'],
-                'specifications' => $validated['specifications'] ?? '',
+                'specifications' => $validated['specifications'] ?? null,
                 'unit' => $validated['unit'] ?? 'وحدة',
-                'added_at' => now()->toIso8601String(),
-            ];
+                'supplier_id' => $validated['supplier_id'] ?? null,
+            ]);
         }
 
-        $this->saveCart($cart);
-
-        $cartCount = count($cart);
+        $cartCount = $cart->items()->count();
         $message = 'تم إضافة المنتج إلى سلة طلبات العروض';
 
         if ($request->expectsJson()) {
@@ -127,32 +148,78 @@ class BuyerCartController extends Controller
     /**
      * Update cart item quantity.
      */
-    public function update(Request $request, Product $product): JsonResponse|RedirectResponse
+    public function update(Request $request, BuyerCartItem $cartItem): JsonResponse|RedirectResponse
     {
+        $buyer = Auth::user()->buyerProfile;
+
+        if (!$buyer || $cartItem->cart->buyer_id !== $buyer->id) {
+            abort(403, 'ليس لديك صلاحية لتعديل هذا العنصر');
+        }
+
         $validated = $request->validate([
             'quantity' => 'required|integer|min:1|max:10000',
             'specifications' => 'nullable|string|max:1000',
             'unit' => 'nullable|string|max:50',
+            'supplier_id' => 'nullable|exists:suppliers,id',
         ]);
 
-        $cart = $this->getCart();
-        $productId = $product->id;
+        $cartItem->update([
+            'quantity' => $validated['quantity'],
+            'specifications' => $validated['specifications'] ?? $cartItem->specifications,
+            'unit' => $validated['unit'] ?? $cartItem->unit,
+            'supplier_id' => $validated['supplier_id'] ?? $cartItem->supplier_id,
+        ]);
 
-        if (isset($cart[$productId])) {
-            $cart[$productId]['quantity'] = $validated['quantity'];
-            if (isset($validated['specifications'])) {
-                $cart[$productId]['specifications'] = $validated['specifications'];
-            }
-            if (isset($validated['unit'])) {
-                $cart[$productId]['unit'] = $validated['unit'];
-            }
-            $this->saveCart($cart);
+        $message = 'تم تحديث الكمية';
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => $message]);
+        }
+        return back()->with('success', $message);
+    }
 
-            $message = 'تم تحديث الكمية';
-            if ($request->expectsJson()) {
-                return response()->json(['success' => true, 'message' => $message]);
-            }
-            return back()->with('success', $message);
+    /**
+     * Remove a product from the cart (by cart item).
+     */
+    public function remove(Request $request, BuyerCartItem $cartItem): JsonResponse|RedirectResponse
+    {
+        $buyer = Auth::user()->buyerProfile;
+
+        if (!$buyer || $cartItem->cart->buyer_id !== $buyer->id) {
+            abort(403, 'ليس لديك صلاحية لحذف هذا العنصر');
+        }
+
+        $cart = $cartItem->cart;
+        $cartItem->delete();
+
+        $cartCount = $cart->items()->count();
+        $message = 'تم حذف المنتج من السلة';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'cart_count' => $cartCount,
+            ]);
+        }
+        return back()->with('success', $message);
+    }
+
+    /**
+     * Remove a product from the cart (by product - legacy support).
+     */
+    public function removeByProduct(Request $request, Product $product): JsonResponse|RedirectResponse
+    {
+        $buyer = Auth::user()->buyerProfile;
+
+        if (!$buyer) {
+            abort(403, 'لا يوجد ملف تعريف للمشتري');
+        }
+
+        $cart = BuyerCart::getOrCreateActive($buyer);
+        $cartItem = $cart->items()->where('product_id', $product->id)->first();
+
+        if ($cartItem) {
+            return $this->remove($request, $cartItem);
         }
 
         $message = 'المنتج غير موجود في السلة';
@@ -163,26 +230,21 @@ class BuyerCartController extends Controller
     }
 
     /**
-     * Remove a product from the cart.
+     * Update cart item (by product - legacy support).
      */
-    public function remove(Request $request, Product $product): JsonResponse|RedirectResponse
+    public function updateByProduct(Request $request, Product $product): JsonResponse|RedirectResponse
     {
-        $cart = $this->getCart();
-        $productId = $product->id;
+        $buyer = Auth::user()->buyerProfile;
 
-        if (isset($cart[$productId])) {
-            unset($cart[$productId]);
-            $this->saveCart($cart);
+        if (!$buyer) {
+            abort(403, 'لا يوجد ملف تعريف للمشتري');
+        }
 
-            $message = 'تم حذف المنتج من السلة';
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => $message,
-                    'cart_count' => count($cart),
-                ]);
-            }
-            return back()->with('success', $message);
+        $cart = BuyerCart::getOrCreateActive($buyer);
+        $cartItem = $cart->items()->where('product_id', $product->id)->first();
+
+        if ($cartItem) {
+            return $this->update($request, $cartItem);
         }
 
         $message = 'المنتج غير موجود في السلة';
@@ -197,7 +259,14 @@ class BuyerCartController extends Controller
      */
     public function clear(Request $request): JsonResponse|RedirectResponse
     {
-        $this->saveCart([]);
+        $buyer = Auth::user()->buyerProfile;
+
+        if (!$buyer) {
+            abort(403, 'لا يوجد ملف تعريف للمشتري');
+        }
+
+        $cart = BuyerCart::getOrCreateActive($buyer);
+        $cart->items()->delete();
 
         $message = 'تم إفراغ السلة';
         if ($request->expectsJson()) {
@@ -211,8 +280,18 @@ class BuyerCartController extends Controller
      */
     public function count(): JsonResponse
     {
-        $cart = $this->getCart();
-        return response()->json(['count' => count($cart)]);
+        $buyer = Auth::user()->buyerProfile;
+
+        if (!$buyer) {
+            return response()->json(['count' => 0]);
+        }
+
+        $cart = BuyerCart::where('buyer_id', $buyer->id)
+            ->where('is_active', true)
+            ->first();
+
+        $count = $cart ? $cart->items()->count() : 0;
+        return response()->json(['count' => $count]);
     }
 
     /**
@@ -220,29 +299,32 @@ class BuyerCartController extends Controller
      */
     public function checkout(): View|RedirectResponse
     {
-        $cartItems = $this->getCart();
+        $buyer = Auth::user()->buyerProfile;
 
-        if (empty($cartItems)) {
+        if (!$buyer) {
+            abort(403, 'لا يوجد ملف تعريف للمشتري');
+        }
+
+        $cart = BuyerCart::getOrCreateActive($buyer);
+        $cartItems = $cart->items()
+            ->with(['product.category', 'supplier'])
+            ->get();
+
+        if ($cartItems->isEmpty()) {
             return redirect()->route('buyer.cart.index')
                 ->with('error', 'السلة فارغة. أضف منتجات أولاً.');
         }
 
-        $productIds = array_keys($cartItems);
-        $products = Product::whereIn('id', $productIds)
-            ->where('is_active', true)
-            ->with(['category'])
-            ->get()
-            ->keyBy('id');
-
         $items = [];
-        foreach ($cartItems as $productId => $cartItem) {
-            if ($products->has($productId)) {
-                $product = $products->get($productId);
+        foreach ($cartItems as $item) {
+            if ($item->product && $item->product->is_active && $item->product->review_status === 'approved') {
                 $items[] = [
-                    'product' => $product,
-                    'quantity' => $cartItem['quantity'],
-                    'specifications' => $cartItem['specifications'] ?? '',
-                    'unit' => $cartItem['unit'] ?? 'وحدة',
+                    'item' => $item,
+                    'product' => $item->product,
+                    'quantity' => $item->quantity,
+                    'specifications' => $item->specifications ?? '',
+                    'unit' => $item->unit ?? 'وحدة',
+                    'supplier_id' => $item->supplier_id,
                 ];
             }
         }
@@ -252,7 +334,7 @@ class BuyerCartController extends Controller
                 ->with('error', 'لا توجد منتجات صالحة في السلة.');
         }
 
-        return view('buyer.cart.checkout', compact('items'));
+        return view('buyer.cart.checkout', compact('items', 'cart'));
     }
 
     /**
@@ -266,9 +348,10 @@ class BuyerCartController extends Controller
             abort(403, 'لا يوجد ملف تعريف للمشتري');
         }
 
-        $cartItems = $this->getCart();
+        $cart = BuyerCart::getOrCreateActive($buyer);
+        $cartItems = $cart->items()->with('product')->get();
 
-        if (empty($cartItems)) {
+        if ($cartItems->isEmpty()) {
             return redirect()->route('buyer.cart.index')
                 ->with('error', 'السلة فارغة');
         }
@@ -299,21 +382,16 @@ class BuyerCartController extends Controller
                 ),
             ]);
 
-            // Get products data
-            $productIds = array_keys($cartItems);
-            $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
-
-            // Create RFQ items from cart
-            foreach ($cartItems as $productId => $cartItem) {
-                if ($products->has($productId)) {
-                    $product = $products->get($productId);
+            // Create RFQ items from cart items
+            foreach ($cartItems as $cartItem) {
+                if ($cartItem->product) {
                     RfqItem::create([
                         'rfq_id' => $rfq->id,
-                        'product_id' => $productId,
-                        'item_name' => $product->name,
-                        'specifications' => $cartItem['specifications'] ?? null,
-                        'quantity' => $cartItem['quantity'],
-                        'unit' => $cartItem['unit'] ?? 'وحدة',
+                        'product_id' => $cartItem->product_id,
+                        'item_name' => $cartItem->product->name,
+                        'specifications' => $cartItem->specifications,
+                        'quantity' => $cartItem->quantity,
+                        'unit' => $cartItem->unit ?? 'وحدة',
                     ]);
                 }
             }
@@ -341,13 +419,13 @@ class BuyerCartController extends Controller
                     'buyer_id' => $rfq->buyer_id,
                     'status' => $rfq->status,
                     'reference_code' => $rfq->reference_code,
-                    'items_count' => count($cartItems),
+                    'items_count' => $cartItems->count(),
                     'source' => 'cart',
                 ])
                 ->log('قام المشتري بإنشاء RFQ من السلة');
 
-            // Clear cart after successful submission
-            $this->saveCart([]);
+            // Clear cart items after successful submission
+            $cart->items()->delete();
 
             DB::commit();
 
@@ -370,19 +448,35 @@ class BuyerCartController extends Controller
     }
 
     /**
-     * Get the cart contents from session.
+     * Migrate session cart to database (one-time migration for existing users).
      */
-    private function getCart(): array
+    private function migrateSessionCartIfExists(Buyer $buyer, BuyerCart $cart): void
     {
-        return Session::get(self::CART_SESSION_KEY, []);
-    }
+        $sessionCart = Session::get(self::CART_SESSION_KEY, []);
 
-    /**
-     * Save cart contents to session.
-     */
-    private function saveCart(array $cart): void
-    {
-        Session::put(self::CART_SESSION_KEY, $cart);
+        if (empty($sessionCart) || $cart->items()->count() > 0) {
+            // No session cart or cart already has items, skip migration
+            return;
+        }
+
+        // Migrate session cart items to database
+        foreach ($sessionCart as $productId => $item) {
+            $product = Product::find($productId);
+
+            if ($product && $product->is_active && $product->review_status === 'approved') {
+                BuyerCartItem::create([
+                    'cart_id' => $cart->id,
+                    'product_id' => $productId,
+                    'quantity' => $item['quantity'] ?? 1,
+                    'specifications' => $item['specifications'] ?? null,
+                    'unit' => $item['unit'] ?? 'وحدة',
+                    'supplier_id' => $item['supplier_id'] ?? null,
+                ]);
+            }
+        }
+
+        // Clear session cart after migration
+        Session::forget(self::CART_SESSION_KEY);
     }
 }
 

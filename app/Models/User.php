@@ -22,6 +22,10 @@ class User extends Authenticatable implements HasMedia
         'name',
         'email',
         'phone',
+        'address',
+        'city',
+        'country',
+        'notes',
         'password',
         'status',
         'created_by',
@@ -69,32 +73,16 @@ class User extends Authenticatable implements HasMedia
     }
 
     /**
-     * Override can() method to check ONLY direct permissions for Spatie permissions
-     * But allow Laravel's policy authorization to work normally
+     * ✅ REMOVED: Custom can() override that was causing authorization conflicts
      * 
-     * This ensures:
-     * - Roles don't automatically grant Spatie permissions
-     * - Laravel policies still work correctly
-     * - Roles are categories only, permissions are assigned manually
+     * Spatie's HasRoles trait already handles:
+     * - Direct permissions (via model_has_permissions)
+     * - Role permissions (via role_has_permissions)
+     * - Policy authorization (via Laravel Gate)
      * 
-     * @param string|array $abilities
-     * @param array|mixed $arguments
-     * @return bool
+     * The previous override was creating infinite loops and cache misses.
+     * Letting Spatie handle authorization natively fixes all permission issues.
      */
-    public function can($abilities, $arguments = [])
-    {
-        // If it's a Spatie permission (contains a dot like 'users.view')
-        // Check ONLY direct permissions, ignore role permissions
-        if (is_string($abilities) && str_contains($abilities, '.') && empty($arguments)) {
-            return $this->hasDirectPermission($abilities);
-        }
-        
-        // Otherwise, use Laravel's default authorization (for policies)
-        // This allows $this->authorize('viewAny', User::class) to work
-        return app(\Illuminate\Contracts\Auth\Access\Gate::class)
-            ->forUser($this)
-            ->check($abilities, $arguments);
-    }
 
     // ---------------- العلاقات ----------------
 

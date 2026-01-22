@@ -10,3 +10,25 @@ Artisan::command('inspire', function () {
 
 // Schedule automatic RFQ closing
 Schedule::command('rfqs:close-expired')->hourly();
+
+// Schedule deadline reminders (every 6 hours)
+Schedule::command('rfqs:send-reminders --hours=24')->everySixHours();
+Schedule::command('rfqs:send-reminders --hours=6')->everySixHours();
+
+// 📧 Send Abandoned Cart Reminders - Run every 6 hours
+Schedule::command('cart:send-abandoned-reminders --type=all')
+    ->everySixHours()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// 📊 Calculate Supplier Performance Metrics - Run daily at 2 AM
+Schedule::command('suppliers:calculate-performance --period=current_month')
+    ->dailyAt('02:00')
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// 📊 Calculate Last Month Performance - Run on 1st of each month
+Schedule::command('suppliers:calculate-performance --period=last_month')
+    ->monthlyOn(1, '03:00')
+    ->withoutOverlapping()
+    ->runInBackground();

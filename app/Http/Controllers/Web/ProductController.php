@@ -128,6 +128,103 @@ class ProductController extends Controller
     }
 
     /**
+     * Show the form for editing the specified product.
+     *
+     * @param Product $product
+     * @return View
+     */
+    public function edit(Product $product): View
+    {
+        // Check permission
+        if (!auth()->user()->can('products.edit')) {
+            abort(403, 'ليس لديك صلاحية تعديل المنتجات');
+        }
+
+        $product->load(['category', 'manufacturer', 'suppliers']);
+
+        // Get filter options for dropdowns
+        $categories = ProductCategory::active()
+            ->ordered()
+            ->get()
+            ->mapWithKeys(function ($cat) {
+                return [$cat->id => $cat->full_path];
+            });
+
+        $manufacturers = Manufacturer::active()->pluck('name', 'id');
+
+        return view('admin.products.edit', compact('product', 'categories', 'manufacturers'));
+    }
+
+    /**
+     * Update the specified product in storage.
+     *
+     * @param Request $request
+     * @param Product $product
+     * @return RedirectResponse
+     */
+    public function update(Request $request, Product $product): RedirectResponse
+    {
+        // Check permission
+        if (!auth()->user()->can('products.edit')) {
+            abort(403, 'ليس لديك صلاحية تعديل المنتجات');
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:200',
+            'model' => 'nullable|string|max:100',
+            'brand' => 'nullable|string|max:100',
+            'sku' => 'nullable|string|max:100|unique:products,sku,' . $product->id,
+            'manufacturer_id' => 'nullable|exists:manufacturers,id',
+            'category_id' => 'nullable|exists:product_categories,id',
+            'description' => 'nullable|string',
+            'is_active' => 'boolean',
+            'review_status' => 'required|in:pending,approved,needs_update,rejected',
+            'review_notes' => 'nullable|string',
+            'rejection_reason' => 'nullable|string',
+            'specifications' => 'nullable|array',
+            'features' => 'nullable|array',
+            'technical_data' => 'nullable|array',
+            'certifications' => 'nullable|array',
+            'installation_requirements' => 'nullable|string',
+            'medical_class' => 'nullable|string',
+            'ce_marked' => 'boolean',
+            'fda_cleared' => 'boolean',
+            'iso_certification' => 'nullable|string',
+        ]);
+
+        try {
+            $validated['updated_by'] = Auth::id();
+            $validated['is_active'] = $request->has('is_active');
+            $validated['ce_marked'] = $request->has('ce_marked');
+            $validated['fda_cleared'] = $request->has('fda_cleared');
+
+            $product->update($validated);
+
+            // Log activity
+            activity('products')
+                ->performedOn($product)
+                ->causedBy(Auth::user())
+                ->withProperties(['product_name' => $product->name])
+                ->log('تم تحديث المنتج');
+
+            return redirect()
+                ->route('admin.products.show', $product)
+                ->with('success', 'تم تحديث المنتج بنجاح');
+
+        } catch (\Throwable $e) {
+            Log::error('Product update error', [
+                'product_id' => $product->id,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return back()->withErrors([
+                'error' => 'فشل تحديث المنتج. يرجى المحاولة مرة أخرى.'
+            ])->withInput();
+        }
+    }
+
+    /**
      * NOTE: Product review methods (review, approve, reject, requestChanges) 
      * are handled by ProductReviewController to maintain separation of concerns.
      * Routes point to ProductReviewController, not this controller.
@@ -178,7 +275,7 @@ class ProductController extends Controller
                 ->log('❌ تم حذف المنتج');
 
             return redirect()
-                ->route('admin.products')
+                ->route('admin.products.index')
                 ->with('success', '❌ تم حذف المنتج بنجاح');
 
         } catch (\Throwable $e) {

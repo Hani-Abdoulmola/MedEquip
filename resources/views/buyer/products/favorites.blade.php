@@ -21,15 +21,15 @@
             @foreach($favorites as $favorite)
                 @php $product = $favorite->product; @endphp
                 @if($product)
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow group">
+                <div class="bg-white rounded-xl shadow-sm border-2 border-gray-200 overflow-hidden hover:shadow-lg hover:border-medical-blue-300 transition-all duration-200 group">
                     {{-- Image --}}
                     <div class="relative aspect-[4/3] bg-gray-100">
                         @if($product->getFirstMediaUrl('product_images'))
                             <img src="{{ $product->getFirstMediaUrl('product_images', 'preview') }}" 
                                  alt="{{ $product->name }}"
-                                 class="w-full h-full object-cover">
+                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                         @else
-                            <div class="w-full h-full flex items-center justify-center text-gray-400">
+                            <div class="w-full h-full flex items-center justify-center text-gray-300">
                                 <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                 </svg>
@@ -41,7 +41,7 @@
                               class="absolute top-3 left-3">
                             @csrf
                             <button type="submit" 
-                                    class="p-2 bg-white rounded-full shadow-sm hover:bg-red-50 transition-colors"
+                                    class="p-2.5 bg-white/90 backdrop-blur rounded-full shadow-md hover:bg-red-50 transition-all"
                                     title="إزالة من المفضلة">
                                 <svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
@@ -50,31 +50,52 @@
                         </form>
 
                         {{-- Added Date --}}
-                        <div class="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                        <div class="absolute bottom-3 right-3 bg-black/70 backdrop-blur text-white text-xs px-2.5 py-1 rounded-full">
                             أضيف {{ $favorite->created_at->diffForHumans() }}
                         </div>
                     </div>
 
                     {{-- Content --}}
-                    <div class="p-4">
-                        <div class="mb-2">
+                    <div class="p-5">
+                        <div class="mb-3">
                             @if($product->category)
-                                <span class="text-xs text-medical-blue-600 font-medium">{{ $product->category->name }}</span>
+                                <a href="{{ route('buyer.products.index', ['category' => $product->category->id]) }}" 
+                                   class="text-xs text-medical-blue-600 font-semibold hover:text-medical-blue-800 bg-medical-blue-50 px-2 py-1 rounded-full inline-block">
+                                    {{ $product->category->name }}
+                                </a>
                             @endif
                         </div>
-                        <h3 class="font-medium text-gray-900 mb-1 line-clamp-2">{{ $product->name }}</h3>
+                        <h3 class="font-bold text-gray-900 mb-2 line-clamp-2 min-h-[3rem] group-hover:text-medical-blue-600 transition-colors">
+                            <a href="{{ route('buyer.products.show', $product) }}">{{ $product->name }}</a>
+                        </h3>
                         @if($product->brand)
-                            <p class="text-sm text-gray-500 mb-2">{{ $product->brand }}</p>
+                            <p class="text-sm text-gray-600 mb-3 font-medium">{{ $product->brand }}</p>
+                        @endif
+
+                        {{-- Price --}}
+                        @if($product->suppliers->count() > 0)
+                            @php
+                                $prices = $product->suppliers->pluck('pivot.price')->filter();
+                                $minPrice = $prices->min();
+                            @endphp
+                            @if($minPrice)
+                                <div class="mb-4 p-3 bg-gradient-to-br from-medical-blue-50 to-medical-green-50 rounded-xl border border-medical-blue-200">
+                                    <div class="text-xs text-gray-600 mb-1">يبدأ من</div>
+                                    <div class="text-xl font-bold text-medical-blue-600">
+                                        {{ number_format($minPrice, 0) }} <span class="text-sm font-normal">د.ل</span>
+                                    </div>
+                                </div>
+                            @endif
                         @endif
 
                         {{-- Actions --}}
-                        <div class="mt-4 flex gap-2">
+                        <div class="flex gap-2">
                             <a href="{{ route('buyer.products.show', $product) }}" 
-                               class="flex-1 text-center px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
+                               class="flex-1 text-center px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all text-sm font-semibold">
                                 التفاصيل
                             </a>
                             <a href="{{ route('buyer.products.create-rfq', $product) }}" 
-                               class="flex-1 text-center px-3 py-2 bg-medical-blue-600 text-white rounded-lg hover:bg-medical-blue-700 transition-colors text-sm font-medium">
+                               class="flex-1 text-center px-4 py-2.5 bg-medical-blue-600 text-white rounded-xl hover:bg-medical-blue-700 transition-all text-sm font-semibold shadow-sm hover:shadow-md">
                                 طلب سعر
                             </a>
                         </div>

@@ -1,0 +1,106 @@
+#!/bin/bash
+
+# Pre-commit hook for Permission Validation
+# Automatically checks permission integrity before commits
+# 
+# This hook can be installed by running: scripts/install-git-hooks.sh
+# Or manually: cp .githooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+set -e
+
+echo "🔍 Running permission validation checks..."
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Check if permission seeder was modified
+SEEDER_MODIFIED=$(git diff --cached --name-only | grep -E "(UnifiedRolePermissionSeeder|AdminSeeder)" || true)
+
+if [ -n "$SEEDER_MODIFIED" ]; then
+    echo -e "${YELLOW}⚠️  Permission seeder modified. Running permission tests...${NC}"
+    
+    # Run permission tests
+    php artisan test --filter=PermissionTest --stop-on-failure
+    
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}❌ Permission tests failed. Fix issues before committing.${NC}"
+        echo -e "${YELLOW}💡 Run: php artisan test --filter=PermissionTest${NC}"
+        exit 1
+    fi
+    
+    echo -e "${GREEN}✅ Permission tests passed${NC}"
+fi
+
+# Check if UserController was modified
+USER_CONTROLLER_MODIFIED=$(git diff --cached --name-only | grep "UserController.php" || true)
+
+if [ -n "$USER_CONTROLLER_MODIFIED" ]; then
+    echo -e "${YELLOW}⚠️  UserController modified. Checking for syncPermissions() misuse...${NC}"
+    
+    # Check for syncPermissions([]) after assignRole
+    if git diff --cached app/Http/Controllers/Web/UserController.php | grep -A 5 "assignRole" | grep "syncPermissions(\[\])" > /dev/null; then
+        echo -e "${RED}❌ ERROR: Found syncPermissions([]) after assignRole() in UserController${NC}"
+        echo -e "${RED}   This clears role permissions and violates RBAC design.${NC}"
+        echo -e "${YELLOW}   Remove this line and let users inherit permissions from roles.${NC}"
+        exit 1
+    fi
+    
+    echo -e "${GREEN}✅ UserController changes look good${NC}"
+fi
+
+# Check if AdminSeeder was modified
+ADMIN_SEEDER_MODIFIED=$(git diff --cached --name-only | grep "AdminSeeder.php" || true)
+
+if [ -n "$ADMIN_SEEDER_MODIFIED" ]; then
+    echo -e "${YELLOW}⚠️  AdminSeeder modified. Checking for direct permission assignment...${NC}"
+    
+    # Check for direct permission assignment to admin user
+    if git diff --cached database/seeders/AdminSeeder.php | grep '^\+.*\$admin.*syncPermissions' > /dev/null; then
+        echo -e "${RED}❌ ERROR: Found direct permission assignment to admin user in AdminSeeder${NC}"
+        echo -e "${RED}   Admin should inherit permissions from Admin role, not direct assignment.${NC}"
+        echo -e "${YELLOW}   Only assign permissions to \$adminRole, not \$admin.${NC}"
+        exit 1
+    fi
+    
+    echo -e "${GREEN}✅ AdminSeeder changes look good${NC}"
+fi
+
+# Check if EnsureInternalUser middleware was modified
+MIDDLEWARE_MODIFIED=$(git diff --cached --name-only | grep "EnsureInternalUser.php" || true)
+
+if [ -n "$MIDDLEWARE_MODIFIED" ]; then
+    echo -e "${YELLOW}⚠️  EnsureInternalUser middleware modified. Checking for user_type bypass...${NC}"
+    
+    # Check for user_type bypass
+    if git diff --cached app/Http/Middleware/EnsureInternalUser.php | grep '^\+.*user_type' > /dev/null; then
+        echo -e "${RED}❌ ERROR: Found user_type check in EnsureInternalUser middleware${NC}"
+        echo -e "${RED}   Authorization should be 100% role-based, no user_type bypass allowed.${NC}"
+        echo -e "${YELLOW}   Use only hasRole(['Admin', 'Staff']) for authorization.${NC}"
+        exit 1
+    fi
+    
+    echo -e "${GREEN}✅ Middleware changes look good${NC}"
+fi
+
+# Check sidebar component
+SIDEBAR_MODIFIED=$(git diff --cached --name-only | grep "sidebar.blade.php" || true)
+
+if [ -n "$SIDEBAR_MODIFIED" ]; then
+    echo -e "${YELLOW}⚠️  Sidebar component modified. Checking for permissive defaults...${NC}"
+    
+    # Check for return true in canAccessMenuItem
+    if git diff --cached resources/views/components/dashboard/sidebar.blade.php | grep '^\+.*return true.*Default' > /dev/null; then
+        echo -e "${RED}❌ ERROR: Found 'return true' default in sidebar canAccessMenuItem function${NC}"
+        echo -e "${RED}   Sidebar should use restrictive default (return false).${NC}"
+        echo -e "${YELLOW}   Items without explicit permission/role should be hidden.${NC}"
+        exit 1
+    fi
+    
+    echo -e "${GREEN}✅ Sidebar changes look good${NC}"
+fi
+
+echo -e "${GREEN}✅ All permission validation checks passed${NC}"
+exit 0

@@ -29,19 +29,13 @@ class CloseExpiredRfqs extends Command
     {
         $this->info('Closing expired RFQs...');
 
-        $closedCount = Rfq::where('status', 'open')
-            ->whereNotNull('deadline')
-            ->where('deadline', '<', now())
-            ->update([
-                'status' => 'closed',
-                'closed_at' => now(),
-            ]);
+        $closed = \App\Services\RfqWorkflowService::closeExpiredRfqs();
 
-        if ($closedCount > 0) {
-            $this->info("Closed {$closedCount} expired RFQ(s).");
-            Log::info("Closed {$closedCount} expired RFQ(s) via scheduled command.");
+        if ($closed > 0) {
+            $this->info("✅ Closed {$closed} expired RFQ(s).");
+            Log::info("Closed {$closed} expired RFQ(s) via scheduled command.");
         } else {
-            $this->info('No expired RFQs to close.');
+            $this->info('ℹ️  No expired RFQs to close.');
         }
 
         return Command::SUCCESS;

@@ -118,6 +118,23 @@ class Buyer extends Model implements HasMedia
     }
 
     /**
+     * Get the buyer's carts.
+     */
+    public function carts(): HasMany
+    {
+        return $this->hasMany(BuyerCart::class, 'buyer_id');
+    }
+
+    /**
+     * Get the active cart for this buyer.
+     */
+    public function activeCart(): HasMany
+    {
+        return $this->hasMany(BuyerCart::class, 'buyer_id')
+            ->where('is_active', true);
+    }
+
+    /**
      * Get buyer's favorite products.
      */
     public function favoriteProducts(): BelongsToMany

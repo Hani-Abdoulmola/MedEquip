@@ -263,6 +263,31 @@
                 </div>
             </div>
 
+            {{-- Role Selection Section --}}
+            <div class="mb-8">
+                <h2 class="text-xl font-bold text-medical-gray-900 mb-6 pb-3 border-b border-medical-gray-200">
+                    الدور والصلاحيات
+                </h2>
+
+                <div class="max-w-md">
+                    <label for="role" class="block text-sm font-medium text-medical-gray-700 mb-2">
+                        تعيين دور (اختياري)
+                    </label>
+                    <select id="role" name="role"
+                        class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent transition-all duration-200">
+                        <option value="">بدون دور</option>
+                        @foreach ($roles as $roleName => $roleLabel)
+                            <option value="{{ $roleName }}" {{ old('role') === $roleName ? 'selected' : '' }}>
+                                {{ $roleLabel }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="mt-2 text-xs text-medical-gray-500">
+                        يمكن تعديل الصلاحيات لاحقاً من صفحة تعديل المستخدم
+                    </p>
+                </div>
+            </div>
+
             {{-- Account Settings Section --}}
             <div class="mb-8">
                 <h2 class="text-xl font-bold text-medical-gray-900 mb-6 pb-3 border-b border-medical-gray-200">

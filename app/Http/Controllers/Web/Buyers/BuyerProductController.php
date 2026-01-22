@@ -48,13 +48,18 @@ class BuyerProductController extends Controller
                   ->where('suppliers.is_active', true);
             }]);
 
-        // Filter by category
+        // Filter by category (supports parent_category and subcategory)
         if ($request->filled('category')) {
+            // If specific subcategory is selected, filter by that only
             $categoryId = $request->category;
-            $query->where(function ($q) use ($categoryId) {
-                $q->where('category_id', $categoryId)
-                  ->orWhereHas('category', function ($cat) use ($categoryId) {
-                      $cat->where('parent_id', $categoryId);
+            $query->where('category_id', $categoryId);
+        } elseif ($request->filled('parent_category')) {
+            // If only parent category is selected, show parent and all its children
+            $parentCategoryId = $request->parent_category;
+            $query->where(function ($q) use ($parentCategoryId) {
+                $q->where('category_id', $parentCategoryId)
+                  ->orWhereHas('category', function ($cat) use ($parentCategoryId) {
+                      $cat->where('parent_id', $parentCategoryId);
                   });
             });
         }
@@ -64,15 +69,67 @@ class BuyerProductController extends Controller
             $query->where('manufacturer_id', $request->manufacturer);
         }
 
-        // Filter by price range (from pivot table)
+        // Filter by price range (from pivot table) - improved to use minimum available price
         if ($request->filled('min_price') || $request->filled('max_price')) {
             $query->whereHas('suppliers', function ($q) use ($request) {
+                $q->where('product_supplier.status', 'available')
+                  ->where('suppliers.is_verified', true)
+                  ->where('suppliers.is_active', true);
+                
                 if ($request->filled('min_price')) {
                     $q->where('product_supplier.price', '>=', $request->min_price);
                 }
                 if ($request->filled('max_price')) {
                     $q->where('product_supplier.price', '<=', $request->max_price);
                 }
+            });
+        }
+
+        // Filter by stock status
+        if ($request->filled('stock_status')) {
+            $stockStatus = $request->stock_status;
+            $query->whereHas('suppliers', function ($q) use ($stockStatus) {
+                $q->where('product_supplier.status', 'available')
+                  ->where('suppliers.is_verified', true)
+                  ->where('suppliers.is_active', true);
+                
+                match ($stockStatus) {
+                    'in_stock' => $q->where('product_supplier.stock_quantity', '>', 0),
+                    'low_stock' => $q->whereBetween('product_supplier.stock_quantity', [1, 10]),
+                    'out_of_stock' => $q->where('product_supplier.stock_quantity', '<=', 0),
+                    default => null,
+                };
+            });
+        }
+
+        // Filter by lead time
+        if ($request->filled('lead_time')) {
+            $leadTime = $request->lead_time;
+            $query->whereHas('suppliers', function ($q) use ($leadTime) {
+                $q->where('product_supplier.status', 'available')
+                  ->where('suppliers.is_verified', true)
+                  ->where('suppliers.is_active', true);
+                
+                match ($leadTime) {
+                    'fast' => $q->where('product_supplier.lead_time', '<=', 7),
+                    'medium' => $q->whereBetween('product_supplier.lead_time', [8, 14]),
+                    'standard' => $q->whereBetween('product_supplier.lead_time', [15, 30]),
+                    'extended' => $q->where('product_supplier.lead_time', '>', 30),
+                    default => null,
+                };
+            });
+        }
+
+        // Filter by supplier rating (if rating system exists)
+        // Note: This assumes a supplier rating system will be implemented
+        // For now, we'll filter by verified suppliers only
+        if ($request->filled('supplier_rating')) {
+            $minRating = $request->supplier_rating;
+            // This will be implemented when supplier rating system is added
+            // For now, just ensure suppliers are verified
+            $query->whereHas('suppliers', function ($q) {
+                $q->where('suppliers.is_verified', true)
+                  ->where('suppliers.is_active', true);
             });
         }
 
@@ -98,6 +155,24 @@ class BuyerProductController extends Controller
                 $q->where('product_supplier.status', 'available')
                   ->where('suppliers.is_verified', true)
             ])->orderBy('suppliers_count', 'desc');
+        } elseif ($sortField === 'price_asc') {
+            // Sort by minimum price ascending using subquery
+            $query->addSelect([
+                'min_price' => \DB::table('product_supplier')
+                    ->selectRaw('MIN(price)')
+                    ->whereColumn('product_supplier.product_id', 'products.id')
+                    ->where('product_supplier.status', 'available')
+                    ->limit(1)
+            ])->orderBy('min_price', 'asc');
+        } elseif ($sortField === 'price_desc') {
+            // Sort by minimum price descending using subquery
+            $query->addSelect([
+                'min_price' => \DB::table('product_supplier')
+                    ->selectRaw('MIN(price)')
+                    ->whereColumn('product_supplier.product_id', 'products.id')
+                    ->where('product_supplier.status', 'available')
+                    ->limit(1)
+            ])->orderBy('min_price', 'desc');
         } elseif (in_array($sortField, ['name', 'created_at', 'updated_at'])) {
             $query->orderBy($sortField, $sortField === 'name' ? 'asc' : $sortDirection);
         } else {

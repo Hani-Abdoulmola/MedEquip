@@ -101,12 +101,11 @@ class UserController extends Controller
 
             $user = User::create($data);
 
-            // 🧩 تعيين الدور (الدور للتصنيف فقط، لا يعطي صلاحيات تلقائياً)
+            // 🧩 تعيين الدور (Role grants permissions automatically via Spatie)
             if ($request->filled('role')) {
                 $user->assignRole($request->role);
-                // Important: Revoke any role permissions to ensure clean state
-                // User will get permissions manually via "الأدوار و الصلاحيات" page
-                $user->syncPermissions([]);
+                // User now inherits all permissions from assigned role
+                // Additional permissions can be granted via "الأدوار و الصلاحيات" page
             }
 
             // 🧾 سجل النشاط
@@ -325,8 +324,27 @@ class UserController extends Controller
         DB::beginTransaction();
 
         try {
-            if (isset($validated['permissions'])) {
-                $permissions = \Spatie\Permission\Models\Permission::whereIn('id', $validated['permissions'])->get();
+            $requestedPermissionIds = $validated['permissions'] ?? [];
+
+            // SECURITY: Filter permissions to admin-only (no supplier/buyer permissions)
+            $adminPermissionService = app(\App\Services\AdminPermissionService::class);
+            $adminPermissionIds = $adminPermissionService->getAdminPermissions()->pluck('id')->toArray();
+            
+            // Only allow admin permissions to be assigned
+            $validPermissionIds = array_intersect($requestedPermissionIds, $adminPermissionIds);
+            
+            // Warn if any permissions were filtered out
+            $filteredCount = count($requestedPermissionIds) - count($validPermissionIds);
+            if ($filteredCount > 0) {
+                Log::warning('Filtered out non-admin permissions', [
+                    'user_id' => $user->id,
+                    'filtered_count' => $filteredCount,
+                    'admin_user' => Auth::id(),
+                ]);
+            }
+
+            if (!empty($validPermissionIds)) {
+                $permissions = Permission::whereIn('id', $validPermissionIds)->get();
                 $user->syncPermissions($permissions);
             } else {
                 $user->syncPermissions([]);
@@ -336,15 +354,21 @@ class UserController extends Controller
                 ->performedOn($user)
                 ->causedBy(Auth::user())
                 ->withProperties([
-                    'permissions_count' => count($validated['permissions'] ?? []),
+                    'permissions_count' => count($validPermissionIds),
+                    'permission_names' => $permissions->pluck('name')->toArray() ?? [],
                 ])
                 ->log('🔐 تم تحديث صلاحيات المستخدم');
 
             DB::commit();
 
+            $successMessage = '✅ تم تحديث صلاحيات المستخدم بنجاح.';
+            if ($filteredCount > 0) {
+                $successMessage .= " (تم تجاهل {$filteredCount} صلاحية غير مسموحة)";
+            }
+
             return redirect()
                 ->route('admin.users.edit', $user)
-                ->with('success', '✅ تم تحديث صلاحيات المستخدم بنجاح.');
+                ->with('success', $successMessage);
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('User permissions update error: ' . $e->getMessage());

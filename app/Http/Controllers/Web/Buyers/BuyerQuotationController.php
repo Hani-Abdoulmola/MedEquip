@@ -65,6 +65,15 @@ class BuyerQuotationController extends Controller
 
         $quotations = $query->paginate(15)->withQueryString();
 
+        // Add scores to quotations for pending ones
+        $quotations->getCollection()->transform(function ($quotation) {
+            if ($quotation->status === 'pending') {
+                $quotation->score = $quotation->calculateScore();
+                $quotation->score_breakdown = $quotation->getScoreBreakdown();
+            }
+            return $quotation;
+        });
+
         // Stats
         $stats = [
             'total' => Quotation::whereHas('rfq', fn($q) => $q->where('buyer_id', $buyer->id))->count(),
@@ -104,7 +113,23 @@ class BuyerQuotationController extends Controller
             'items.rfqItem',
         ]);
 
-        return view('buyer.quotations.show', compact('quotation'));
+        // Calculate score and breakdown for this quotation
+        $quotation->score = $quotation->calculateScore();
+        $quotation->score_breakdown = $quotation->getScoreBreakdown();
+        $quotation->is_best_value = $quotation->isBestValue();
+
+        // Get other quotations for comparison context
+        $otherQuotations = Quotation::where('rfq_id', $quotation->rfq_id)
+            ->where('id', '!=', $quotation->id)
+            ->where('status', 'pending')
+            ->with(['supplier'])
+            ->get()
+            ->map(function ($q) {
+                $q->score = $q->calculateScore();
+                return $q;
+            });
+
+        return view('buyer.quotations.show', compact('quotation', 'otherQuotations'));
     }
 
     /**
@@ -116,7 +141,7 @@ class BuyerQuotationController extends Controller
 
         $validated = $request->validate([
             'rfq_id' => 'required|exists:rfqs,id',
-            'sort_by' => 'nullable|in:price_asc,price_desc,date_asc,date_desc,supplier',
+            'sort_by' => 'nullable|in:price_asc,price_desc,date_asc,date_desc,supplier,score',
             'filter_status' => 'nullable|in:pending,accepted,rejected',
         ]);
 
@@ -158,17 +183,33 @@ class BuyerQuotationController extends Controller
             $quotations = $quotations->sortBy('total_price');
         }
 
+        // Calculate scores for all quotations
+        $quotationsArray = $quotations->toArray();
+        $scoredQuotations = $quotations->map(function ($quotation) use ($quotationsArray) {
+            $quotation->score = $quotation->calculateScore($quotationsArray);
+            $quotation->score_breakdown = $quotation->getScoreBreakdown($quotationsArray);
+            $quotation->is_best_value = $quotation->isBestValue();
+            return $quotation;
+        });
+
+        // Re-sort by score if requested
+        if ($request->filled('sort_by') && $request->sort_by === 'score') {
+            $scoredQuotations = $scoredQuotations->sortByDesc('score');
+        }
+
         // Calculate comparison statistics
         $stats = [
-            'total_quotations' => $quotations->count(),
-            'min_price' => $quotations->min('total_price'),
-            'max_price' => $quotations->max('total_price'),
-            'avg_price' => $quotations->avg('total_price'),
-            'price_range' => $quotations->max('total_price') - $quotations->min('total_price'),
+            'total_quotations' => $scoredQuotations->count(),
+            'min_price' => $scoredQuotations->min('total_price'),
+            'max_price' => $scoredQuotations->max('total_price'),
+            'avg_price' => $scoredQuotations->avg('total_price'),
+            'price_range' => $scoredQuotations->max('total_price') - $scoredQuotations->min('total_price'),
+            'best_score' => $scoredQuotations->max('score'),
+            'avg_score' => $scoredQuotations->avg('score'),
         ];
 
-        // Replace quotations collection with sorted/filtered one
-        $rfq->setRelation('quotations', $quotations);
+        // Replace quotations collection with sorted/filtered and scored one
+        $rfq->setRelation('quotations', $scoredQuotations);
 
         return view('buyer.quotations.compare', compact('rfq', 'stats'));
     }
@@ -219,19 +260,10 @@ class BuyerQuotationController extends Controller
             // Create Order automatically from accepted quotation
             $order = $this->createOrderFromQuotation($quotation, $buyer);
 
-            // Notify supplier
-            if ($quotation->supplier && $quotation->supplier->user) {
-                NotificationService::send(
-                    $quotation->supplier->user,
-                    '🎉 تم قبول عرض السعر الخاص بك!',
-                    "تم قبول عرضك للطلب: {$quotation->rfq->title}",
-                    route('supplier.quotations.show', $quotation->id),
-                    'fas fa-check-circle',
-                    'success'
-                );
-            }
+            // Notify supplier using workflow service
+            \App\Services\RfqWorkflowService::notifyQuotationDecision($quotation, 'accepted');
 
-            // Notify rejected suppliers
+            // Notify rejected suppliers using workflow service
             $rejectedQuotations = Quotation::where('rfq_id', $quotation->rfq_id)
                 ->where('id', '!=', $quotation->id)
                 ->where('status', 'rejected')
@@ -239,16 +271,11 @@ class BuyerQuotationController extends Controller
                 ->get();
 
             foreach ($rejectedQuotations as $rejected) {
-                if ($rejected->supplier && $rejected->supplier->user) {
-                    NotificationService::send(
-                        $rejected->supplier->user,
-                        '❌ لم يتم قبول عرض السعر',
-                        "للأسف، لم يتم قبول عرضك للطلب: {$quotation->rfq->title}. تم ترسية الطلب لمورد آخر.",
-                        route('supplier.quotations.show', $rejected->id),
-                        'fas fa-times-circle',
-                        'warning'
-                    );
-                }
+                \App\Services\RfqWorkflowService::notifyQuotationDecision(
+                    $rejected, 
+                    'rejected', 
+                    $rejected->rejection_reason
+                );
             }
 
             // Log activity
@@ -313,17 +340,12 @@ class BuyerQuotationController extends Controller
                 'updated_by' => Auth::id(),
             ]);
 
-            // Notify supplier
-            if ($quotation->supplier && $quotation->supplier->user) {
-                NotificationService::send(
-                    $quotation->supplier->user,
-                    '❌ لم يتم قبول عرض السعر',
-                    "للأسف، لم يتم قبول عرضك للطلب: {$quotation->rfq->title}. " . ($validated['rejection_reason'] ?? ''),
-                    route('supplier.quotations.show', $quotation->id),
-                    'fas fa-times-circle',
-                    'warning'
-                );
-            }
+            // Notify supplier using workflow service
+            \App\Services\RfqWorkflowService::notifyQuotationDecision(
+                $quotation, 
+                'rejected', 
+                $validated['rejection_reason'] ?? null
+            );
 
             // Log activity
             activity('buyer_quotations')
@@ -416,6 +438,21 @@ class BuyerQuotationController extends Controller
             "تم إنشاء طلب شراء جديد رقم {$order->order_number}",
             route('admin.orders.show', $order->id)
         );
+
+        // Send order confirmation email to buyer
+        try {
+            if ($buyer->user && $buyer->user->email) {
+                \Illuminate\Support\Facades\Mail::to($buyer->user->email)
+                    ->send(new \App\Mail\OrderConfirmation($order));
+            }
+        } catch (\Throwable $e) {
+            // Log email error but don't fail the order creation
+            Log::warning('Failed to send order confirmation email', [
+                'order_id' => $order->id,
+                'buyer_email' => $buyer->user->email ?? 'N/A',
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         // Log activity
         activity('buyer_orders')
