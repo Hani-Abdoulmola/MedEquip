@@ -34,6 +34,23 @@ return new class extends Migration
 
     public function down(): void
     {
+        // Drop foreign key constraints that reference users table first
+        // Check if sent_notifications table exists and drop its foreign key
+        if (Schema::hasTable('sent_notifications')) {
+            Schema::table('sent_notifications', function (Blueprint $table) {
+                $table->dropForeign(['sender_id']);
+            });
+        }
+        
+        // Drop self-referencing foreign keys in users table
+        if (Schema::hasTable('users')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->dropForeign(['created_by']);
+                $table->dropForeign(['updated_by']);
+            });
+        }
+        
+        // Drop the users table
         Schema::dropIfExists('users');
     }
 };
