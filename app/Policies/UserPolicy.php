@@ -11,6 +11,7 @@ class UserPolicy
      */
     public function viewAny(User $user): bool
     {
+        // Gate::before() handles Admin bypass
         return $user->can('users.view');
     }
 
@@ -32,6 +33,7 @@ class UserPolicy
      */
     public function create(User $user): bool
     {
+        // Gate::before() handles Admin bypass
         return $user->can('users.create');
     }
 
@@ -45,6 +47,7 @@ class UserPolicy
             return true;
         }
 
+        // Gate::before() handles Admin bypass
         return $user->can('users.update');
     }
 
@@ -58,6 +61,7 @@ class UserPolicy
             return false;
         }
 
+        // Gate::before() handles Admin bypass
         return $user->can('users.delete');
     }
 
@@ -71,6 +75,7 @@ class UserPolicy
             return false;
         }
 
+        // Gate::before() handles Admin bypass
         return $user->can('users.manage_permissions');
     }
 }

@@ -29,11 +29,7 @@ class PaymentController extends Controller
      */
     public function index(): View
     {
-        // Check permission
-        if (!auth()->user()->can('payments.view')) {
-            abort(403, 'ليس لديك صلاحية عرض المدفوعات');
-        }
-        
+        // Permission check is handled by route middleware
         $query = Payment::with(['invoice', 'order', 'buyer', 'supplier']);
 
         // Apply filters
@@ -130,16 +126,8 @@ class PaymentController extends Controller
 
             // ✅ تحديث حالة الفاتورة تلقائيًا
             if ($payment->invoice) {
-                $totalPaid = $payment->invoice->payments()->sum('amount');
-                $invoiceTotal = $payment->invoice->total_amount;
-
-                if ($totalPaid >= $invoiceTotal) {
-                    $payment->invoice->update(['payment_status' => 'paid']);
-                } elseif ($totalPaid > 0) {
-                    $payment->invoice->update(['payment_status' => 'partial']);
-                } else {
-                    $payment->invoice->update(['payment_status' => 'unpaid']);
-                }
+                $invoicePaymentService = app(\App\Services\InvoicePaymentService::class);
+                $invoicePaymentService->refreshPaymentStatus($payment->invoice);
             }
 
             // 🔔 إشعارات لجميع الأطراف
@@ -221,6 +209,12 @@ class PaymentController extends Controller
         try {
             $payment->update($request->validated());
 
+            // ✅ تحديث حالة الفاتورة تلقائيًا
+            if ($payment->invoice) {
+                $invoicePaymentService = app(\App\Services\InvoicePaymentService::class);
+                $invoicePaymentService->refreshPaymentStatus($payment->invoice);
+            }
+
             activity()
                 ->performedOn($payment)
                 ->causedBy(Auth::user())
@@ -247,7 +241,15 @@ class PaymentController extends Controller
     public function destroy(Payment $payment): RedirectResponse
     {
         try {
+            $invoice = $payment->invoice;
+            
             $payment->delete();
+
+            // ✅ تحديث حالة الفاتورة تلقائيًا بعد حذف الدفعة
+            if ($invoice) {
+                $invoicePaymentService = app(\App\Services\InvoicePaymentService::class);
+                $invoicePaymentService->refreshPaymentStatus($invoice);
+            }
 
             activity()
                 ->performedOn($payment)

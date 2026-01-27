@@ -12,7 +12,14 @@ class PaymentPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['Admin', 'Buyer', 'Supplier']);
+        // Gate::before() handles Admin bypass
+        // Buyers and Suppliers can view their own payments
+        if ($user->hasAnyRole(['Buyer', 'Supplier'])) {
+            return true;
+        }
+        
+        // Staff users need explicit permission
+        return $user->can('payments.view');
     }
 
     /**
@@ -20,7 +27,8 @@ class PaymentPolicy
      */
     public function view(User $user, Payment $payment): bool
     {
-        // Admin can view all payments
+        // Gate::before() handles Admin bypass
+        // Staff users with permission can view all payments
         if ($user->can('payments.view')) {
             return true;
         }
@@ -43,8 +51,14 @@ class PaymentPolicy
      */
     public function create(User $user): bool
     {
-        // Admin and buyers can create payments
-        return $user->hasAnyRole(['Admin', 'Buyer']);
+        // Gate::before() handles Admin bypass
+        // Buyers can create payments
+        if ($user->hasRole('Buyer')) {
+            return true;
+        }
+        
+        // Staff users need explicit permission
+        return $user->can('payments.create');
     }
 
     /**
@@ -52,7 +66,7 @@ class PaymentPolicy
      */
     public function update(User $user, Payment $payment): bool
     {
-        // Only admin can update payments
+        // Gate::before() handles Admin bypass
         return $user->can('payments.update');
     }
 
@@ -61,7 +75,7 @@ class PaymentPolicy
      */
     public function delete(User $user, Payment $payment): bool
     {
-        // Only admin can delete payments
+        // Gate::before() handles Admin bypass
         return $user->can('payments.delete');
     }
 }

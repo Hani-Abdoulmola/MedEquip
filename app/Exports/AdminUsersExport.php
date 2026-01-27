@@ -21,7 +21,29 @@ class AdminUsersExport implements FromQuery, WithHeadings, WithMapping, WithStyl
 
     public function query()
     {
-        $query = User::with('roles');
+        // تصدير فقط المستخدمين الإداريين (Admin/Staff)
+        // Support both Admin and Staff user types
+        $adminType = \App\Models\UserType::where('slug', 'admin')->first();
+        $staffType = \App\Models\UserType::where('slug', 'staff')->first();
+        
+        $userTypeIds = [];
+        if ($adminType) {
+            $userTypeIds[] = $adminType->id;
+        }
+        if ($staffType) {
+            $userTypeIds[] = $staffType->id;
+        }
+        
+        // Fallback: if types don't exist, use Admin type only (backward compatibility)
+        if (empty($userTypeIds)) {
+            $userTypeIds = [1];
+        }
+        
+        $query = User::with('roles')
+            ->whereIn('user_type_id', $userTypeIds) // Admin and/or Staff user types
+            ->whereHas('roles', function ($q) {
+                $q->whereIn('name', ['Admin', 'Staff']);
+            });
 
         // Apply filters
         if (!empty($this->filters['search'])) {
@@ -34,6 +56,10 @@ class AdminUsersExport implements FromQuery, WithHeadings, WithMapping, WithStyl
 
         if (!empty($this->filters['role'])) {
             $query->role($this->filters['role']);
+        }
+
+        if (!empty($this->filters['status'])) {
+            $query->where('status', $this->filters['status']);
         }
 
         return $query->orderBy('created_at', 'desc');

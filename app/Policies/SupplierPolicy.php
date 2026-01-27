@@ -12,6 +12,8 @@ class SupplierPolicy
      */
     public function viewAny(User $user): bool
     {
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('suppliers.view');
     }
 
@@ -25,6 +27,8 @@ class SupplierPolicy
             return true;
         }
 
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('suppliers.view');
     }
 
@@ -33,6 +37,8 @@ class SupplierPolicy
      */
     public function create(User $user): bool
     {
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('suppliers.create');
     }
 
@@ -46,6 +52,8 @@ class SupplierPolicy
             return true;
         }
 
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('suppliers.update');
     }
 
@@ -54,6 +62,8 @@ class SupplierPolicy
      */
     public function delete(User $user, Supplier $supplier): bool
     {
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('suppliers.delete');
     }
 
@@ -62,6 +72,8 @@ class SupplierPolicy
      */
     public function verify(User $user, Supplier $supplier): bool
     {
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('suppliers.verify');
     }
 
@@ -70,6 +82,8 @@ class SupplierPolicy
      */
     public function toggleActive(User $user, Supplier $supplier): bool
     {
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('suppliers.toggle_active');
     }
 }

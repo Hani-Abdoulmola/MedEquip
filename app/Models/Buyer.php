@@ -151,6 +151,22 @@ class Buyer extends Model implements HasMedia
         return $this->hasMany(BuyerFavorite::class, 'buyer_id');
     }
 
+    /**
+     * Get buyer's price alerts (Phase 3).
+     */
+    public function priceAlerts(): HasMany
+    {
+        return $this->hasMany(\App\Models\BuyerPriceAlert::class, 'buyer_id');
+    }
+
+    /**
+     * Get buyer's stock alerts (Phase 3).
+     */
+    public function stockAlerts(): HasMany
+    {
+        return $this->hasMany(\App\Models\BuyerStockAlert::class, 'buyer_id');
+    }
+
     // ======================
     // 🔍 Query Scopes
     // ======================

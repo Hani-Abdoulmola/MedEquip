@@ -18,9 +18,13 @@
         {{-- Left Column - Images --}}
         <div class="space-y-4">
             {{-- Main Image --}}
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden aspect-square" x-data="{ currentImage: '{{ $product->getFirstMediaUrl('product_images', 'preview') ?: '' }}' }">
-                @if($product->getFirstMediaUrl('product_images'))
-                    <img :src="currentImage || '{{ $product->getFirstMediaUrl('product_images', 'preview') }}'" 
+            @php
+                $firstMedia = $product->hasMedia('product_images') ? $product->getFirstMedia('product_images') : null;
+                $mainImageUrl = $firstMedia ? ($firstMedia->getUrl('preview') ?: $firstMedia->getUrl()) : '';
+            @endphp
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden aspect-square" x-data="{ currentImage: '{{ $mainImageUrl }}' }">
+                @if($firstMedia && $mainImageUrl)
+                    <img :src="currentImage || '{{ $mainImageUrl }}'" 
                          alt="{{ $product->name }}"
                          class="w-full h-full object-contain p-4">
                 @else
@@ -33,12 +37,16 @@
             </div>
 
             {{-- Thumbnails --}}
-            @if($product->getMedia('product_images')->count() > 1)
+            @if($product->hasMedia('product_images') && $product->getMedia('product_images')->count() > 1)
                 <div class="flex gap-2 overflow-x-auto pb-2">
                     @foreach($product->getMedia('product_images') as $media)
-                        <button @click="currentImage = '{{ $media->getUrl('preview') }}'"
+                        @php
+                            $thumbUrl = $media->getUrl('thumb') ?: $media->getUrl();
+                            $previewUrl = $media->getUrl('preview') ?: $media->getUrl();
+                        @endphp
+                        <button @click="currentImage = '{{ $previewUrl }}'"
                                 class="flex-shrink-0 w-20 h-20 rounded-lg border-2 border-gray-200 overflow-hidden hover:border-medical-blue-500 transition-colors">
-                            <img src="{{ $media->getUrl('thumb') }}" 
+                            <img src="{{ $thumbUrl }}" 
                                  alt="{{ $product->name }}"
                                  class="w-full h-full object-cover">
                         </button>
@@ -72,8 +80,12 @@
                 </div>
             </div>
 
-            {{-- Price Range --}}
-            @if($product->suppliers->count() > 0)
+            {{-- Availability & Price Range (Phase 2) --}}
+            @php
+                $availability = $product->getAvailabilityStatus();
+                $sc = $product->suppliers_count ?? 0;
+            @endphp
+            @if($sc > 0)
                 @php
                     $prices = $product->suppliers->pluck('pivot.price')->filter();
                     $minPrice = $prices->min();
@@ -81,11 +93,15 @@
                 @endphp
                 @if($minPrice)
                     <div class="bg-gradient-to-br from-medical-blue-50 via-medical-green-50 to-medical-blue-50 rounded-xl p-5 border-2 border-medical-blue-200 shadow-sm">
-                        <div class="flex items-center justify-between mb-2">
-                            <div class="text-sm font-semibold text-medical-blue-700">نطاق الأسعار</div>
-                            <span class="text-xs font-bold text-medical-blue-600 bg-white px-2 py-1 rounded-full">
-                                {{ $product->suppliers->count() }} مورد
-                            </span>
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold px-3 py-1 rounded-full border {{ $availability['color'] }}">
+                                    {{ $availability['badge'] }}
+                                </span>
+                                <span class="text-xs font-bold text-medical-blue-600 bg-white px-2 py-1 rounded-full">
+                                    {{ $sc }} {{ $sc == 1 ? 'مورد' : 'موردين' }}
+                                </span>
+                            </div>
                         </div>
                         <div class="text-3xl font-bold text-medical-blue-600 mb-1">
                             {{ number_format($minPrice, 2) }}
@@ -95,8 +111,17 @@
                             <span class="text-lg font-normal"> د.ل</span>
                         </div>
                         <div class="text-xs text-medical-blue-600 mt-2">
-                            💡 يمكنك مقارنة الأسعار من جميع الموردين أدناه
+                            💡 قارن الأسعار، مدة التوريد، والضمان من جميع الموردين أدناه
                         </div>
+                    </div>
+                @else
+                    <div class="bg-gray-50 rounded-xl p-5 border-2 border-gray-200">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-xs font-bold px-3 py-1 rounded-full border {{ $availability['color'] }}">
+                                {{ $availability['badge'] }}
+                            </span>
+                        </div>
+                        <div class="text-sm text-gray-600">اتصل بالسعر</div>
                     </div>
                 @endif
             @else
@@ -108,30 +133,76 @@
 
             {{-- Actions --}}
             <div class="flex gap-3">
-                <a href="{{ route('buyer.products.create-rfq', $product) }}" 
-                   class="flex-1 text-center px-6 py-3.5 bg-medical-blue-600 text-white rounded-xl hover:bg-medical-blue-700 transition-all font-semibold shadow-sm hover:shadow-md">
-                    <svg class="w-5 h-5 inline-block ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                    </svg>
-                    طلب عرض سعر
-                </a>
-                <form action="{{ route('buyer.products.favorite', $product) }}" method="POST" class="flex-shrink-0">
-                    @csrf
-                    <button type="submit" 
-                            class="px-6 py-3.5 border-2 {{ $isFavorite ? 'border-red-500 bg-red-50 text-red-600' : 'border-gray-300 text-gray-700 hover:bg-gray-50' }} rounded-xl transition-all font-semibold">
-                        @if($isFavorite)
-                            <svg class="w-5 h-5 inline-block ml-2" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                @if($sc > 0)
+                    <form action="{{ route('buyer.cart.add', $product) }}" method="POST" class="flex-1">
+                        @csrf
+                        <input type="hidden" name="quantity" value="1">
+                        <button type="submit" class="w-full text-center px-6 py-3.5 bg-gradient-to-r from-medical-blue-600 to-medical-green-600 text-white rounded-xl hover:from-medical-blue-700 hover:to-medical-green-700 transition-all font-semibold shadow-sm hover:shadow-md flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
                             </svg>
-                            في المفضلة
-                        @else
-                            <svg class="w-5 h-5 inline-block ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                            </svg>
-                            أضف للمفضلة
-                        @endif
-                    </button>
-                </form>
+                            أضف إلى السلة
+                        </button>
+                    </form>
+                @else
+                    <a href="{{ route('buyer.products.create-rfq', $product) }}" 
+                       class="flex-1 text-center px-6 py-3.5 bg-medical-blue-600 text-white rounded-xl hover:bg-medical-blue-700 transition-all font-semibold shadow-sm hover:shadow-md">
+                        <svg class="w-5 h-5 inline-block ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                        طلب عرض سعر
+                    </a>
+                @endif
+                <div class="flex-shrink-0 flex gap-2">
+                    <form action="{{ route('buyer.products.favorite', $product) }}" method="POST">
+                        @csrf
+                        <button type="submit" 
+                                class="px-4 py-3.5 border-2 {{ $isFavorite ? 'border-red-500 bg-red-50 text-red-600' : 'border-gray-300 text-gray-700 hover:bg-gray-50' }} rounded-xl transition-all font-semibold">
+                            @if($isFavorite)
+                                <svg class="w-5 h-5 inline-block ml-2" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                                </svg>
+                                في المفضلة
+                            @else
+                                <svg class="w-5 h-5 inline-block ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                </svg>
+                                أضف للمفضلة
+                            @endif
+                        </button>
+                    </form>
+                    @if($isFavorite && $sc > 0 && ($product->min_price ?? null))
+                        <div class="relative" x-data="{ showPriceAlert: false }">
+                            <button @click="showPriceAlert = true" 
+                                class="px-4 py-3.5 border-2 border-blue-300 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-all font-semibold">
+                                🔔 تنبيه السعر
+                            </button>
+                            <div x-show="showPriceAlert" x-cloak @click.away="showPriceAlert = false"
+                                class="absolute bottom-full mb-2 right-0 bg-white rounded-lg shadow-lg border border-gray-200 p-4 min-w-[250px] z-10">
+                                <h4 class="font-bold text-gray-900 mb-2">تنبيه انخفاض السعر</h4>
+                                <form action="{{ route('buyer.products.price-alert', $product) }}" method="POST">
+                                    @csrf
+                                    <div class="mb-3">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">عندما ينخفض السعر إلى</label>
+                                        <input type="number" name="target_price" step="0.01" min="0" 
+                                            value="{{ number_format($product->min_price * 0.9, 2) }}"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                                        <p class="text-xs text-gray-500 mt-1">السعر الحالي: {{ number_format($product->min_price, 2) }} د.ل</p>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button type="button" @click="showPriceAlert = false"
+                                            class="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm">
+                                            إلغاء
+                                        </button>
+                                        <button type="submit" class="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                                            حفظ
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    @endif
+                </div>
             </div>
 
             {{-- Description --}}
@@ -189,32 +260,151 @@
         </div>
     </div>
 
-    {{-- Suppliers Cards --}}
+    {{-- Suppliers Comparison Table (Phase 2) --}}
     @if($product->suppliers->count() > 0)
-        <div class="bg-white rounded-xl shadow-sm border-2 border-gray-200 overflow-hidden">
+        <div class="bg-white rounded-xl shadow-sm border-2 border-gray-200 overflow-hidden" x-data="{ view: 'table' }">
             <div class="p-6 border-b-2 border-gray-200 bg-gradient-to-r from-medical-blue-50 to-white">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-bold text-gray-900">الموردين المتاحين</h2>
-                    <span class="text-sm font-semibold text-medical-blue-600 bg-white px-3 py-1 rounded-full border border-medical-blue-200">
-                        {{ $product->suppliers->count() }} مورد
-                    </span>
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-xl font-bold text-gray-900">مقارنة الموردين</h2>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-semibold text-medical-blue-600 bg-white px-3 py-1 rounded-full border border-medical-blue-200">
+                            {{ $product->suppliers->count() }} {{ $product->suppliers->count() == 1 ? 'مورد' : 'موردين' }}
+                        </span>
+                        <div class="flex items-center bg-white rounded-lg p-1 border border-gray-200">
+                            <button @click="view = 'table'" :class="view === 'table' ? 'bg-medical-blue-600 text-white' : 'text-gray-600'" class="px-3 py-1 rounded text-sm font-semibold transition-colors">
+                                جدول
+                            </button>
+                            <button @click="view = 'cards'" :class="view === 'cards' ? 'bg-medical-blue-600 text-white' : 'text-gray-600'" class="px-3 py-1 rounded text-sm font-semibold transition-colors">
+                                بطاقات
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <p class="text-sm text-gray-600 mt-1">اختر المورد الأنسب لمتطلباتك</p>
+                <p class="text-sm text-gray-600">قارن الأسعار، مدة التوريد، والضمان من جميع الموردين</p>
             </div>
-            <div class="p-6">
+
+            {{-- Table View --}}
+            <div x-show="view === 'table'" class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b-2 border-gray-200">
+                        <tr>
+                            <th class="px-4 py-3 text-right text-sm font-bold text-gray-700">المورد</th>
+                            <th class="px-4 py-3 text-right text-sm font-bold text-gray-700">السعر</th>
+                            <th class="px-4 py-3 text-right text-sm font-bold text-gray-700">المخزون</th>
+                            <th class="px-4 py-3 text-right text-sm font-bold text-gray-700">مدة التوريد</th>
+                            <th class="px-4 py-3 text-right text-sm font-bold text-gray-700">الضمان</th>
+                            <th class="px-4 py-3 text-right text-sm font-bold text-gray-700">القيمة</th>
+                            <th class="px-4 py-3 text-center text-sm font-bold text-gray-700">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @foreach($product->suppliers->sortByDesc('value_score') as $supplier)
+                            <tr class="hover:bg-gray-50 transition-colors {{ ($supplier->is_best_value ?? false) ? 'bg-green-50 border-l-4 border-green-500' : '' }}">
+                                <td class="px-4 py-4">
+                                    <div class="flex items-center gap-3">
+                                        @if($supplier->is_best_value ?? false)
+                                            <span class="text-yellow-500 text-lg">⭐</span>
+                                        @endif
+                                        <div>
+                                            <div class="font-bold text-gray-900">{{ $supplier->company_name }}</div>
+                                            <div class="text-xs text-gray-500">{{ $supplier->user?->name ?? 'مورد' }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-4">
+                                    @if($supplier->pivot->price)
+                                        <div class="font-bold text-medical-blue-600">{{ number_format($supplier->pivot->price, 2) }} د.ل</div>
+                                        @php
+                                            $prices = $product->suppliers->pluck('pivot.price')->filter();
+                                            $minPrice = $prices->min();
+                                            $isBestPrice = $supplier->pivot->price == $minPrice;
+                                        @endphp
+                                        @if($isBestPrice && $product->suppliers->count() > 1)
+                                            <span class="text-xs text-green-600 font-semibold">أفضل سعر</span>
+                                        @endif
+                                    @else
+                                        <span class="text-sm text-gray-400">عند الطلب</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-4">
+                                    @if($supplier->pivot->stock_quantity)
+                                        <span class="text-sm font-semibold {{ $supplier->pivot->stock_quantity > 10 ? 'text-green-600' : ($supplier->pivot->stock_quantity > 0 ? 'text-yellow-600' : 'text-red-600') }}">
+                                            {{ $supplier->pivot->stock_quantity }} وحدة
+                                        </span>
+                                    @else
+                                        <span class="text-sm text-gray-400">-</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-4">
+                                    @if($supplier->pivot->lead_time)
+                                        <span class="text-sm font-semibold text-gray-900">{{ $supplier->pivot->lead_time }}</span>
+                                    @else
+                                        <span class="text-sm text-gray-400">-</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-4">
+                                    @if($supplier->pivot->warranty)
+                                        <span class="text-sm font-semibold text-blue-600">{{ $supplier->pivot->warranty }}</span>
+                                    @else
+                                        <span class="text-sm text-gray-400">-</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-4">
+                                    @if(isset($supplier->value_score))
+                                        <div class="flex items-center gap-2">
+                                            <div class="flex-1 bg-gray-200 rounded-full h-2 max-w-[60px]">
+                                                <div class="bg-gradient-to-r from-medical-blue-500 to-medical-green-500 h-2 rounded-full" style="width: {{ min(100, ($supplier->value_score / 10)) }}%"></div>
+                                            </div>
+                                            <span class="text-xs font-bold text-gray-700">{{ number_format($supplier->value_score, 0) }}</span>
+                                        </div>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-4">
+                                    <div class="flex items-center gap-2 justify-center">
+                                        <a href="{{ route('buyer.suppliers.show', $supplier) }}" 
+                                           class="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-semibold">
+                                            عرض
+                                        </a>
+                                        <form action="{{ route('buyer.cart.add', $product) }}" method="POST" class="inline">
+                                            @csrf
+                                            <input type="hidden" name="quantity" value="1">
+                                            <input type="hidden" name="supplier_id" value="{{ $supplier->id }}">
+                                            <button type="submit" class="px-3 py-1.5 text-xs bg-medical-blue-600 text-white rounded-lg hover:bg-medical-blue-700 transition-colors font-semibold flex items-center gap-1">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                                </svg>
+                                                أضف إلى السلة
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            {{-- Cards View (Original) --}}
+            <div x-show="view === 'cards'" class="p-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    @foreach($product->suppliers as $supplier)
+                    @foreach($product->suppliers->sortByDesc('value_score') as $supplier)
                         @php
                             $prices = $product->suppliers->pluck('pivot.price')->filter();
                             $minPrice = $prices->min();
                             $isBestPrice = $supplier->pivot->price && $supplier->pivot->price == $minPrice;
                         @endphp
-                        <div class="border-2 {{ $isBestPrice ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-white' }} rounded-xl p-5 hover:shadow-md transition-all">
-                            {{-- Best Price Badge --}}
-                            @if($isBestPrice && $product->suppliers->count() > 1)
+                        <div class="border-2 {{ ($supplier->is_best_value ?? false) ? 'border-green-300 bg-green-50' : ($isBestPrice ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200 bg-white') }} rounded-xl p-5 hover:shadow-md transition-all">
+                            {{-- Best Value / Best Price Badge --}}
+                            @if(($supplier->is_best_value ?? false) && $product->suppliers->count() > 1)
                                 <div class="flex items-center gap-2 mb-3">
                                     <span class="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded-full">
-                                        ⭐ أفضل سعر
+                                        ⭐ أفضل قيمة
+                                    </span>
+                                </div>
+                            @elseif($isBestPrice && $product->suppliers->count() > 1)
+                                <div class="flex items-center gap-2 mb-3">
+                                    <span class="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-1 rounded-full">
+                                        💰 أفضل سعر
                                     </span>
                                 </div>
                             @endif
@@ -287,16 +477,36 @@
                                 </div>
                             @endif
 
+                            {{-- Value Score (Phase 2) --}}
+                            @if(isset($supplier->value_score))
+                                <div class="mb-4 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                                    <div class="text-xs text-blue-700 mb-1">نقاط القيمة</div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                            <div class="bg-gradient-to-r from-medical-blue-500 to-medical-green-500 h-2 rounded-full" style="width: {{ min(100, ($supplier->value_score / 10)) }}%"></div>
+                                        </div>
+                                        <span class="text-xs font-bold text-blue-900">{{ number_format($supplier->value_score, 0) }}</span>
+                                    </div>
+                                </div>
+                            @endif
+
                             {{-- Actions --}}
                             <div class="flex gap-2">
                                 <a href="{{ route('buyer.suppliers.show', $supplier) }}" 
                                    class="flex-1 text-center px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all text-sm font-semibold">
                                     عرض الملف
                                 </a>
-                                <a href="{{ route('buyer.products.create-rfq', $product) }}" 
-                                   class="flex-1 text-center px-4 py-2 bg-medical-blue-600 text-white rounded-xl hover:bg-medical-blue-700 transition-all text-sm font-semibold shadow-sm hover:shadow-md">
-                                    طلب سعر
-                                </a>
+                                <form action="{{ route('buyer.cart.add', $product) }}" method="POST" class="flex-1">
+                                    @csrf
+                                    <input type="hidden" name="quantity" value="1">
+                                    <input type="hidden" name="supplier_id" value="{{ $supplier->id }}">
+                                    <button type="submit" class="w-full px-4 py-2 bg-gradient-to-r from-medical-blue-600 to-medical-green-600 text-white rounded-xl hover:from-medical-blue-700 hover:to-medical-green-700 transition-all text-sm font-semibold shadow-sm hover:shadow-md flex items-center justify-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                        </svg>
+                                        أضف إلى السلة
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     @endforeach
@@ -319,10 +529,22 @@
                     <a href="{{ route('buyer.products.show', $related) }}" 
                        class="bg-white rounded-xl shadow-sm border-2 border-gray-200 overflow-hidden hover:shadow-lg hover:border-medical-blue-300 transition-all duration-200 group">
                         <div class="aspect-square bg-gray-100 relative overflow-hidden">
-                            @if($related->getFirstMediaUrl('product_images'))
-                                <img src="{{ $related->getFirstMediaUrl('product_images', 'thumb') }}" 
-                                     alt="{{ $related->name }}"
-                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                            @if($related->hasMedia('product_images'))
+                                @php
+                                    $relatedMedia = $related->getFirstMedia('product_images');
+                                    $relatedImageUrl = $relatedMedia ? ($relatedMedia->getUrl('thumb') ?: $relatedMedia->getUrl()) : null;
+                                @endphp
+                                @if($relatedImageUrl)
+                                    <img src="{{ $relatedImageUrl }}" 
+                                         alt="{{ $related->name }}"
+                                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                @else
+                                    <div class="w-full h-full flex items-center justify-center text-gray-300">
+                                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                    </div>
+                                @endif
                             @else
                                 <div class="w-full h-full flex items-center justify-center text-gray-300">
                                     <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">

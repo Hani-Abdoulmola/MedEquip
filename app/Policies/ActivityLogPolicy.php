@@ -20,7 +20,8 @@ class ActivityLogPolicy
      */
     public function view(User $user, ActivityLog $activityLog): bool
     {
-        // Admin can view all activity logs
+        // Gate::before() handles Admin bypass
+        // Staff users with permission can view all activity logs
         if ($user->can('activity_logs.view')) {
             return true;
         }
@@ -78,7 +79,7 @@ class ActivityLogPolicy
      */
     public function delete(User $user, ActivityLog $activityLog): bool
     {
-        // Only admin can delete activity logs
+        // Gate::before() handles Admin bypass
         return $user->can('activity_logs.delete');
     }
 }

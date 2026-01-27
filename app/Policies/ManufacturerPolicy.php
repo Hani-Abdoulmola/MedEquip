@@ -28,7 +28,7 @@ class ManufacturerPolicy
      */
     public function create(User $user): bool
     {
-        // Only admin can create manufacturers
+        // Gate::before() handles Admin bypass
         return $user->can('manufacturers.create');
     }
 
@@ -37,7 +37,7 @@ class ManufacturerPolicy
      */
     public function update(User $user, Manufacturer $manufacturer): bool
     {
-        // Only admin can update manufacturers
+        // Gate::before() handles Admin bypass
         return $user->can('manufacturers.update');
     }
 
@@ -46,7 +46,7 @@ class ManufacturerPolicy
      */
     public function delete(User $user, Manufacturer $manufacturer): bool
     {
-        // Only admin can delete manufacturers
+        // Gate::before() handles Admin bypass
         return $user->can('manufacturers.delete');
     }
 }

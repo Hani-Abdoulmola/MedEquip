@@ -3,11 +3,10 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 
-class SystemNotification extends Notification implements ShouldQueue
+class SystemNotification extends Notification
 {
     use Queueable;
 
@@ -21,16 +20,19 @@ class SystemNotification extends Notification implements ShouldQueue
 
     public ?string $type;
 
+    public ?string $parentNotificationId;
+
     /**
      * 🔔 تهيئة الإشعار العام
      */
-    public function __construct(string $title, string $message, ?string $url = null, ?string $icon = null, ?string $type = 'info')
+    public function __construct(string $title, string $message, ?string $url = null, ?string $icon = null, ?string $type = 'info', ?string $parentNotificationId = null)
     {
         $this->title = $title;
         $this->message = $message;
         $this->url = $url;
         $this->icon = $icon;
         $this->type = $type;
+        $this->parentNotificationId = $parentNotificationId;
     }
 
     /**
@@ -55,6 +57,7 @@ class SystemNotification extends Notification implements ShouldQueue
             'sent_by' => Auth::user()->name ?? 'System',
             'sent_by_id' => Auth::id(),
             'timestamp' => now()->format('Y-m-d H:i:s'),
+            'parent_notification_id' => $this->parentNotificationId,
         ];
     }
 }

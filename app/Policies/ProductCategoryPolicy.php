@@ -28,7 +28,7 @@ class ProductCategoryPolicy
      */
     public function create(User $user): bool
     {
-        // Only admin can create categories
+        // Gate::before() handles Admin bypass
         return $user->can('categories.create');
     }
 
@@ -37,7 +37,7 @@ class ProductCategoryPolicy
      */
     public function update(User $user, ProductCategory $category): bool
     {
-        // Only admin can update categories
+        // Gate::before() handles Admin bypass
         return $user->can('categories.update');
     }
 
@@ -46,7 +46,7 @@ class ProductCategoryPolicy
      */
     public function delete(User $user, ProductCategory $category): bool
     {
-        // Only admin can delete categories
+        // Gate::before() handles Admin bypass
         // Should check if category has products before allowing deletion
         return $user->can('categories.delete');
     }

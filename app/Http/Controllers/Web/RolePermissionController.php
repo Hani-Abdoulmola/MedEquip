@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Permission;
 use App\Services\AdminPermissionService;
-use App\Services\PermissionTemplateService;
 use App\Services\PermissionAuditService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,16 +16,13 @@ use Illuminate\View\View;
 class RolePermissionController extends Controller
 {
     protected AdminPermissionService $adminPermissionService;
-    protected PermissionTemplateService $templateService;
     protected PermissionAuditService $auditService;
 
     public function __construct(
         AdminPermissionService $adminPermissionService,
-        PermissionTemplateService $templateService,
         PermissionAuditService $auditService
     ) {
         $this->adminPermissionService = $adminPermissionService;
-        $this->templateService = $templateService;
         $this->auditService = $auditService;
     }
 
@@ -60,20 +56,14 @@ class RolePermissionController extends Controller
         // Get selected user from request
         $selectedUser = null;
         $userPermissions = [];
-        $detectedTemplate = null;
 
         if ($request->filled('user_id')) {
             $selectedUser = User::with(['roles', 'permissions'])->find($request->user_id);
             if ($selectedUser) {
                 // Get only direct permissions (not role permissions)
                 $userPermissions = $selectedUser->permissions->pluck('id')->toArray();
-                // Detect template that matches current permissions
-                $detectedTemplate = $this->templateService->detectUserTemplate($selectedUser);
             }
         }
-
-        // Get permission templates
-        $templates = $this->templateService->getTemplates();
 
         // Get selected role from request
         $selectedRole = null;
@@ -93,11 +83,13 @@ class RolePermissionController extends Controller
                 return explode('.', $permission->name)[0];
             });
 
-        // Module labels in Arabic
+        // Module labels in Arabic (matching all permissions now enforced in routes)
         $moduleLabels = [
             'users' => 'المستخدمون',
             'roles' => 'الأدوار',
             'permissions' => 'الصلاحيات',
+            'suppliers' => 'الموردين',
+            'buyers' => 'المشترين',
             'products' => 'المنتجات',
             'orders' => 'الطلبات',
             'invoices' => 'الفواتير',
@@ -122,9 +114,7 @@ class RolePermissionController extends Controller
             'userPermissions',
             'rolePermissions',
             'moduleLabels',
-            'activeTab',
-            'templates',
-            'detectedTemplate'
+            'activeTab'
         ));
     }
 
@@ -263,48 +253,6 @@ class RolePermissionController extends Controller
         }
     }
 
-    /**
-     * Apply permission template to user
-     */
-    public function applyTemplate(Request $request, User $user): RedirectResponse
-    {
-        $this->authorize('update', $user);
-
-        $request->validate([
-            'template' => ['required', 'string'],
-            'merge' => ['nullable', 'boolean'],
-        ]);
-
-        DB::beginTransaction();
-
-        try {
-            $merge = $request->boolean('merge', false);
-            $count = $this->templateService->applyTemplateToUser($user, $request->template, $merge);
-
-            activity()
-                ->performedOn($user)
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'template' => $request->template,
-                    'merge' => $merge,
-                    'permissions_count' => $count,
-                ])
-                ->log('📋 تم تطبيق قالب صلاحيات على المستخدم');
-
-            DB::commit();
-
-            $action = $merge ? 'دمج' : 'استبدال';
-            return redirect()
-                ->route('admin.role-permissions.index', ['user_id' => $user->id, 'tab' => 'users'])
-                ->with('success', "✅ تم {$action} صلاحيات المستخدم بقالب ({$count} صلاحية)");
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            Log::error('Template application error: ' . $e->getMessage());
-
-            return back()
-                ->withErrors(['error' => 'حدث خطأ أثناء تطبيق القالب: ' . $e->getMessage()]);
-        }
-    }
 
     /**
      * Bulk assign permissions to multiple users
@@ -384,170 +332,5 @@ class RolePermissionController extends Controller
         }
     }
 
-    /**
-     * Show permission audit log
-     */
-    public function auditLog(Request $request): View
-    {
-        $this->authorize('viewAny', \App\Models\Permission::class);
-
-        // Get filter parameters
-        $entityType = $request->get('entity_type');
-        $entityId = $request->get('entity_id');
-        $adminUserId = $request->get('admin_user_id');
-        
-        // Build query
-        $query = \App\Models\PermissionAudit::with('adminUser')->latest();
-        
-        if ($entityType && $entityId) {
-            $query->where('entity_type', $entityType)
-                  ->where('entity_id', $entityId);
-        }
-        
-        if ($adminUserId) {
-            $query->where('admin_user_id', $adminUserId);
-        }
-        
-        $audits = $query->paginate(50);
-        
-        // Get statistics
-        $stats = $this->auditService->getStatistics(30);
-        
-        // Get all admins who made changes
-        $admins = User::whereIn('id', \App\Models\PermissionAudit::distinct()->pluck('admin_user_id'))
-            ->get();
-        
-        return view('admin.role-permissions.audit-log', compact('audits', 'stats', 'admins'));
-    }
-
-    /**
-     * Show permission usage report
-     */
-    public function usageReport(): View
-    {
-        $this->authorize('viewAny', \App\Models\Permission::class);
-
-        // Get all admin permissions
-        $allPermissions = $this->adminPermissionService->getAdminPermissions();
-        
-        // Calculate usage for each permission
-        $permissionUsage = [];
-        
-        foreach ($allPermissions as $permission) {
-            // Count direct assignments (users with this permission directly)
-            $directUsersCount = \DB::table('model_has_permissions')
-                ->where('permission_id', $permission->id)
-                ->where('model_type', 'App\\Models\\User')
-                ->count();
-            
-            // Count role assignments (roles with this permission)
-            $rolesCount = \DB::table('role_has_permissions')
-                ->where('permission_id', $permission->id)
-                ->count();
-            
-            // Count users via roles
-            $roleIds = \DB::table('role_has_permissions')
-                ->where('permission_id', $permission->id)
-                ->pluck('role_id');
-            
-            $roleUsersCount = \DB::table('model_has_roles')
-                ->whereIn('role_id', $roleIds)
-                ->where('model_type', 'App\\Models\\User')
-                ->distinct('model_id')
-                ->count('model_id');
-            
-            // Total effective users (unique users with this permission via any method)
-            $totalUsersCount = User::permission($permission->name)->count();
-            
-            // Calculate usage percentage (out of all staff users)
-            $totalStaffUsers = User::role(['Admin', 'Staff'])->count();
-            $usagePercentage = $totalStaffUsers > 0 
-                ? round(($totalUsersCount / $totalStaffUsers) * 100, 1)
-                : 0;
-            
-            // Check if permission is used in code (search for permission name in policies/controllers)
-            $isUsedInCode = $this->isPermissionUsedInCode($permission->name);
-            
-            $permissionUsage[] = [
-                'permission' => $permission,
-                'direct_users' => $directUsersCount,
-                'roles_count' => $rolesCount,
-                'role_users' => $roleUsersCount,
-                'total_users' => $totalUsersCount,
-                'usage_percentage' => $usagePercentage,
-                'is_used_in_code' => $isUsedInCode,
-                'status' => $this->getPermissionStatus($totalUsersCount, $isUsedInCode),
-            ];
-        }
-        
-        // Sort by usage (most used first)
-        usort($permissionUsage, function($a, $b) {
-            return $b['total_users'] <=> $a['total_users'];
-        });
-        
-        // Group by module
-        $usageByModule = collect($permissionUsage)->groupBy(function($item) {
-            return explode('.', $item['permission']->name)[0];
-        });
-        
-        // Calculate summary stats
-        $totalPermissions = count($permissionUsage);
-        $usedPermissions = collect($permissionUsage)->where('total_users', '>', 0)->count();
-        $unusedPermissions = $totalPermissions - $usedPermissions;
-        $codeOnlyPermissions = collect($permissionUsage)
-            ->where('total_users', 0)
-            ->where('is_used_in_code', true)
-            ->count();
-        
-        $summary = [
-            'total' => $totalPermissions,
-            'used' => $usedPermissions,
-            'unused' => $unusedPermissions,
-            'code_only' => $codeOnlyPermissions,
-        ];
-        
-        return view('admin.role-permissions.usage-report', compact(
-            'permissionUsage',
-            'usageByModule',
-            'summary'
-        ));
-    }
-
-    /**
-     * Check if permission is used in code
-     */
-    private function isPermissionUsedInCode(string $permissionName): bool
-    {
-        // Search in middleware declarations (routes/web.php)
-        $routesFile = file_get_contents(base_path('routes/web.php'));
-        if (str_contains($routesFile, "permission:{$permissionName}")) {
-            return true;
-        }
-        
-        // Search in policy files
-        $policyFiles = glob(app_path('Policies/*.php'));
-        foreach ($policyFiles as $file) {
-            $content = file_get_contents($file);
-            if (str_contains($content, "'{$permissionName}'") || str_contains($content, "\"{$permissionName}\"")) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-
-    /**
-     * Get permission status (active, unused, code-only)
-     */
-    private function getPermissionStatus(int $totalUsers, bool $isUsedInCode): string
-    {
-        if ($totalUsers > 0) {
-            return 'active'; // Permission is assigned to users
-        } elseif ($isUsedInCode) {
-            return 'code-only'; // Permission exists in code but not assigned
-        } else {
-            return 'unused'; // Permission is not used anywhere
-        }
-    }
 }
 

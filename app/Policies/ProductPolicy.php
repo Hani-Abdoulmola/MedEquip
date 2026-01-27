@@ -30,6 +30,7 @@ class ProductPolicy
      */
     public function create(User $user): bool
     {
+        // Gate::before() handles Admin bypass
         return $user->can('products.create');
     }
 
@@ -48,7 +49,7 @@ class ProductPolicy
                 ->exists();
         }
 
-        // Admin/Staff need permission
+        // Gate::before() handles Admin bypass
         return $user->can('products.update');
     }
 
@@ -57,6 +58,7 @@ class ProductPolicy
      */
     public function delete(User $user, Product $product): bool
     {
+        // Gate::before() handles Admin bypass
         return $user->can('products.delete');
     }
 
@@ -65,6 +67,7 @@ class ProductPolicy
      */
     public function approve(User $user, Product $product): bool
     {
+        // Gate::before() handles Admin bypass
         return $user->can('products.approve');
     }
 
@@ -73,6 +76,7 @@ class ProductPolicy
      */
     public function reject(User $user, Product $product): bool
     {
+        // Gate::before() handles Admin bypass
         return $user->can('products.reject');
     }
 
@@ -81,6 +85,7 @@ class ProductPolicy
      */
     public function requestChanges(User $user, Product $product): bool
     {
+        // Gate::before() handles Admin bypass
         return $user->can('products.request_changes');
     }
 

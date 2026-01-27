@@ -4,12 +4,18 @@ namespace App\Http\Controllers\Web\Suppliers;
 
 use App\Exports\SupplierInvoicesExport;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\InvoiceRequest;
 use App\Models\Invoice;
+use App\Models\Order;
+use App\Services\NotificationService;
+use App\Services\ReferenceCodeService;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -234,6 +240,395 @@ class SupplierInvoiceController extends Controller
         $fileName = 'invoices-' . now()->format('Y-m-d-His') . '.xlsx';
 
         return Excel::download(new SupplierInvoicesExport($supplier->id, $filters), $fileName);
+    }
+
+    /**
+     * Show form to create a new invoice.
+     */
+    public function create(Request $request): View
+    {
+        $this->authorize('create', Invoice::class);
+
+        $supplier = Auth::user()->supplierProfile;
+
+        if (!$supplier) {
+            abort(403, 'لا يوجد ملف تعريف للمورد');
+        }
+
+        // Get delivered orders that don't have invoices yet
+        $orders = Order::where('supplier_id', $supplier->id)
+            ->where('status', Order::STATUS_DELIVERED)
+            ->whereDoesntHave('invoices', function ($q) {
+                $q->where('status', '!=', Invoice::STATUS_CANCELLED);
+            })
+            ->orderBy('order_number')
+            ->pluck('order_number', 'id');
+
+        // If order_id is provided, pre-select it
+        $selectedOrderId = $request->get('order_id');
+
+        return view('supplier.invoices.create', compact('orders', 'selectedOrderId'));
+    }
+
+    /**
+     * Store a newly created invoice.
+     */
+    public function store(InvoiceRequest $request): RedirectResponse
+    {
+        $this->authorize('create', Invoice::class);
+
+        $supplier = Auth::user()->supplierProfile;
+
+        if (!$supplier) {
+            abort(403, 'لا يوجد ملف تعريف للمورد');
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $data = $request->validated();
+
+            // Verify order belongs to supplier
+            $order = Order::findOrFail($data['order_id']);
+            if ($order->supplier_id !== $supplier->id) {
+                return back()->withErrors(['error' => 'ليس لديك صلاحية لإنشاء فاتورة لهذا الطلب']);
+            }
+
+            // Check if invoice already exists for this order
+            $existingInvoice = Invoice::where('order_id', $order->id)
+                ->where('status', '!=', Invoice::STATUS_CANCELLED)
+                ->first();
+
+            if ($existingInvoice) {
+                return back()->withErrors(['error' => 'يوجد فاتورة موجودة بالفعل لهذا الطلب']);
+            }
+
+            // Auto-calculate total_amount if not provided
+            if (!isset($data['total_amount']) || $data['total_amount'] === null) {
+                $data['total_amount'] = ($data['subtotal'] ?? 0)
+                    + ($data['tax'] ?? 0)
+                    - ($data['discount'] ?? 0);
+                $data['total_amount'] = max(0, $data['total_amount']);
+            }
+
+            $data['invoice_number'] = ReferenceCodeService::generateUnique(
+                ReferenceCodeService::PREFIX_INVOICE,
+                Invoice::class,
+                'invoice_number'
+            );
+            $data['created_by'] = Auth::id();
+            $data['status'] = $data['status'] ?? Invoice::STATUS_DRAFT;
+
+            $invoice = Invoice::create($data);
+
+            // Handle file uploads if any
+            if ($request->hasFile('invoice_documents')) {
+                foreach ($request->file('invoice_documents') as $file) {
+                    $invoice->addMediaFromRequest('invoice_documents[]')
+                        ->toMediaCollection('invoice_documents');
+                }
+            }
+
+            // Log activity
+            activity('supplier_invoices')
+                ->performedOn($invoice)
+                ->causedBy(Auth::user())
+                ->withProperties([
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'order_id' => $order->id,
+                    'total_amount' => $invoice->total_amount,
+                ])
+                ->log('قام المورد بإنشاء فاتورة جديدة');
+
+            // Notify buyer
+            if ($order->buyer && $order->buyer->user) {
+                NotificationService::send(
+                    $order->buyer->user,
+                    '📄 فاتورة جديدة لطلبك',
+                    "تم إصدار فاتورة جديدة للطلب رقم {$order->order_number}.",
+                    route('buyer.invoices.show', $invoice->id)
+                );
+            }
+
+            // Notify admins
+            NotificationService::notifyAdmins(
+                '🧾 فاتورة جديدة من مورد',
+                "قام المورد {$supplier->company_name} بإنشاء فاتورة رقم {$invoice->invoice_number} للطلب رقم {$order->order_number}.",
+                route('admin.invoices.show', $invoice->id)
+            );
+
+            DB::commit();
+
+            return redirect()
+                ->route('supplier.invoices.show', $invoice)
+                ->with('success', 'تم إنشاء الفاتورة بنجاح');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Supplier invoice creation error', [
+                'supplier_id' => $supplier->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['error' => 'فشل إنشاء الفاتورة: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Show form to edit an invoice.
+     */
+    public function edit(Invoice $invoice): View|RedirectResponse
+    {
+        $this->authorize('update', $invoice);
+
+        $supplier = Auth::user()->supplierProfile;
+
+        if (!$supplier) {
+            abort(403, 'لا يوجد ملف تعريف للمورد');
+        }
+
+        // Verify invoice belongs to supplier
+        if (!$invoice->order || $invoice->order->supplier_id !== $supplier->id) {
+            abort(403, 'ليس لديك صلاحية لتعديل هذه الفاتورة');
+        }
+
+        // Check if invoice can be edited
+        if (!in_array($invoice->status, [Invoice::STATUS_DRAFT, Invoice::STATUS_ISSUED])) {
+            return redirect()
+                ->route('supplier.invoices.show', $invoice)
+                ->with('error', 'لا يمكن تعديل الفاتورة بعد اعتمادها');
+        }
+
+        $invoice->load(['order.items.product', 'order.buyer']);
+
+        return view('supplier.invoices.edit', compact('invoice'));
+    }
+
+    /**
+     * Update an invoice.
+     */
+    public function update(InvoiceRequest $request, Invoice $invoice): RedirectResponse
+    {
+        $this->authorize('update', $invoice);
+
+        $supplier = Auth::user()->supplierProfile;
+
+        if (!$supplier) {
+            abort(403, 'لا يوجد ملف تعريف للمورد');
+        }
+
+        // Verify invoice belongs to supplier
+        if (!$invoice->order || $invoice->order->supplier_id !== $supplier->id) {
+            abort(403, 'ليس لديك صلاحية لتعديل هذه الفاتورة');
+        }
+
+        // Check if invoice can be edited
+        if (!in_array($invoice->status, [Invoice::STATUS_DRAFT, Invoice::STATUS_ISSUED])) {
+            return back()->withErrors(['error' => 'لا يمكن تعديل الفاتورة بعد اعتمادها']);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $data = $request->validated();
+
+            // Auto-calculate total_amount if not provided
+            if (!isset($data['total_amount']) || $data['total_amount'] === null) {
+                $data['total_amount'] = ($data['subtotal'] ?? $invoice->subtotal)
+                    + ($data['tax'] ?? $invoice->tax ?? 0)
+                    - ($data['discount'] ?? $invoice->discount ?? 0);
+                $data['total_amount'] = max(0, $data['total_amount']);
+            }
+
+            // Validate status transition
+            if (isset($data['status']) && $data['status'] !== $invoice->status) {
+                if (!$invoice->canTransitionTo($data['status'])) {
+                    DB::rollBack();
+                    return back()->withErrors([
+                        'status' => 'لا يمكن تغيير حالة الفاتورة من ' . $invoice->status . ' إلى ' . $data['status']
+                    ]);
+                }
+            }
+
+            $oldStatus = $invoice->status;
+            $invoice->update($data);
+
+            // Handle file uploads if any
+            if ($request->hasFile('invoice_documents')) {
+                foreach ($request->file('invoice_documents') as $file) {
+                    $invoice->addMediaFromRequest('invoice_documents[]')
+                        ->toMediaCollection('invoice_documents');
+                }
+            }
+
+            // Log activity
+            activity('supplier_invoices')
+                ->performedOn($invoice)
+                ->causedBy(Auth::user())
+                ->withProperties([
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'old_status' => $oldStatus,
+                    'new_status' => $invoice->status,
+                ])
+                ->log('قام المورد بتحديث الفاتورة');
+
+            // If status changed to issued, notify buyer
+            if ($oldStatus !== Invoice::STATUS_ISSUED && $invoice->status === Invoice::STATUS_ISSUED) {
+                if ($invoice->order->buyer && $invoice->order->buyer->user) {
+                    NotificationService::send(
+                        $invoice->order->buyer->user,
+                        '📄 فاتورة جديدة لطلبك',
+                        "تم إصدار فاتورة رقم {$invoice->invoice_number} للطلب رقم {$invoice->order->order_number}.",
+                        route('buyer.invoices.show', $invoice->id)
+                    );
+                }
+            }
+
+            DB::commit();
+
+            return redirect()
+                ->route('supplier.invoices.show', $invoice)
+                ->with('success', 'تم تحديث الفاتورة بنجاح');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Supplier invoice update error', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['error' => 'فشل تحديث الفاتورة: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Cancel an invoice.
+     */
+    public function cancel(Request $request, Invoice $invoice): RedirectResponse
+    {
+        $this->authorize('cancel', $invoice);
+
+        $supplier = Auth::user()->supplierProfile;
+
+        if (!$supplier) {
+            abort(403, 'لا يوجد ملف تعريف للمورد');
+        }
+
+        if ($invoice->status === Invoice::STATUS_CANCELLED) {
+            return back()->withErrors(['error' => 'الفاتورة ملغاة بالفعل']);
+        }
+
+        $validated = $request->validate([
+            'cancellation_reason' => 'nullable|string|max:500',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $oldStatus = $invoice->status;
+
+            $invoice->update([
+                'status' => Invoice::STATUS_CANCELLED,
+                'notes' => ($invoice->notes ? $invoice->notes . "\n\n" : '')
+                    . 'تم الإلغاء: ' . ($validated['cancellation_reason'] ?? 'بدون سبب'),
+            ]);
+
+            // Log activity
+            activity('supplier_invoices')
+                ->performedOn($invoice)
+                ->causedBy(Auth::user())
+                ->withProperties([
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'old_status' => $oldStatus,
+                    'new_status' => Invoice::STATUS_CANCELLED,
+                    'cancellation_reason' => $validated['cancellation_reason'] ?? null,
+                ])
+                ->log('قام المورد بإلغاء الفاتورة');
+
+            // Notify buyer
+            if ($invoice->order->buyer && $invoice->order->buyer->user) {
+                NotificationService::send(
+                    $invoice->order->buyer->user,
+                    '❌ تم إلغاء الفاتورة',
+                    "تم إلغاء الفاتورة رقم {$invoice->invoice_number} للطلب رقم {$invoice->order->order_number}.",
+                    route('buyer.invoices.show', $invoice->id)
+                );
+            }
+
+            // Notify admins
+            NotificationService::notifyAdmins(
+                '❌ تم إلغاء فاتورة',
+                "قام المورد {$supplier->company_name} بإلغاء الفاتورة رقم {$invoice->invoice_number}.",
+                route('admin.invoices.show', $invoice->id)
+            );
+
+            DB::commit();
+
+            return back()->with('success', 'تم إلغاء الفاتورة بنجاح');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Supplier invoice cancel error', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['error' => 'فشل إلغاء الفاتورة: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Send invoice to buyer via notification.
+     */
+    public function sendToBuyer(Invoice $invoice): RedirectResponse
+    {
+        $supplier = Auth::user()->supplierProfile;
+
+        if (!$supplier) {
+            abort(403, 'لا يوجد ملف تعريف للمورد');
+        }
+
+        // Verify invoice belongs to supplier
+        if (!$invoice->order || $invoice->order->supplier_id !== $supplier->id) {
+            abort(403, 'ليس لديك صلاحية لإرسال هذه الفاتورة');
+        }
+
+        try {
+            // Update status to issued if still draft
+            if ($invoice->status === Invoice::STATUS_DRAFT) {
+                $invoice->update(['status' => Invoice::STATUS_ISSUED]);
+            }
+
+            // Notify buyer
+            if ($invoice->order->buyer && $invoice->order->buyer->user) {
+                NotificationService::send(
+                    $invoice->order->buyer->user,
+                    '📄 فاتورة جديدة لطلبك',
+                    "تم إصدار فاتورة رقم {$invoice->invoice_number} للطلب رقم {$invoice->order->order_number} بقيمة {$invoice->total_amount} د.ل. يرجى مراجعة الفاتورة.",
+                    route('buyer.invoices.show', $invoice->id)
+                );
+            }
+
+            // Log activity
+            activity('supplier_invoices')
+                ->performedOn($invoice)
+                ->causedBy(Auth::user())
+                ->withProperties([
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'action' => 'send_to_buyer',
+                ])
+                ->log('قام المورد بإرسال الفاتورة للمشتري');
+
+            return back()->with('success', 'تم إرسال الفاتورة للمشتري بنجاح');
+        } catch (\Throwable $e) {
+            Log::error('Supplier send invoice error', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['error' => 'فشل إرسال الفاتورة: ' . $e->getMessage()]);
+        }
     }
 }
 

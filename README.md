@@ -1,124 +1,286 @@
 # MedEquip - B2B Medical Equipment Platform
 
 **Version:** 1.0.0  
-**Last Updated:** 2025-11-26  
+**Last Updated:** January 24, 2026  
 **Status:** ✅ Production Ready  
-**Laravel:** 12.x | **PHP:** 8.2+ | **Database:** SQLite/MySQL/PostgreSQL
+**Framework:** Laravel 12.x | **PHP:** 8.2+ | **Database:** SQLite/MySQL/PostgreSQL
 
 ---
 
 ## 📋 Table of Contents
 
 - [About MedEquip](#about-medequip)
-- [Quick Start](#quick-start)
+- [Project Goals](#project-goals)
+- [Key Features](#key-features)
 - [Technology Stack](#technology-stack)
 - [Project Structure](#project-structure)
-- [Core Features](#core-features)
-- [Implementation History](#implementation-history)
+- [Installation & Setup](#installation--setup)
+- [Usage Examples](#usage-examples)
+- [Dependencies & Requirements](#dependencies--requirements)
 - [Development Guide](#development-guide)
 - [Database Architecture](#database-architecture)
-- [Authentication System](#authentication-system)
+- [Authentication & Authorization](#authentication--authorization)
 - [Deployment](#deployment)
 - [Testing](#testing)
 - [Contributing](#contributing)
+- [Additional Resources](#additional-resources)
+- [License](#license)
 
 ---
 
 ## 🎯 About MedEquip
 
-**MedEquip** (MediTrust) is a comprehensive B2B medical equipment e-commerce platform designed to connect medical equipment suppliers with healthcare institutions across the Arab world, with a focus on the Libyan market.
+**MedEquip** (also known as MediTrust) is a comprehensive B2B (Business-to-Business) medical equipment e-commerce platform designed to connect medical equipment suppliers with healthcare institutions across the Arab world, with a primary focus on the Libyan market.
 
-### Mission
-Streamline the procurement process for medical equipment by providing a digital platform that enables:
-- Healthcare institutions to request quotations (RFQs)
-- Suppliers to submit competitive quotations
-- Transparent order processing and tracking
-- Secure payment and delivery management
+### What Problem Does It Solve?
+
+The medical equipment procurement process has traditionally been fragmented, time-consuming, and inefficient. Healthcare institutions often struggle to:
+
+- **Find reliable suppliers** for medical equipment
+- **Compare prices and specifications** across multiple vendors
+- **Request and manage quotations** efficiently
+- **Track orders and deliveries** transparently
+- **Manage payments and invoices** systematically
+
+MedEquip solves these challenges by providing a centralized digital platform that streamlines the entire procurement workflow from initial product discovery to final delivery and payment.
 
 ### Target Users
-1. **Healthcare Institutions (Buyers)** - Hospitals, clinics, medical centers, laboratories, pharmacies
-2. **Medical Equipment Suppliers** - Manufacturers, distributors, importers
-3. **System Administrators** - Platform management and oversight
+
+1. **Healthcare Institutions (Buyers)**
+   - Hospitals, clinics, medical centers
+   - Laboratories and diagnostic centers
+   - Pharmacies requiring medical equipment
+   - Healthcare administrators and procurement officers
+
+2. **Medical Equipment Suppliers**
+   - Manufacturers of medical devices
+   - Distributors and importers
+   - Regional suppliers serving the Arab market
+   - Equipment resellers
+
+3. **System Administrators**
+   - Platform managers and moderators
+   - Staff users with specific permissions
+   - System oversight and maintenance personnel
 
 ---
 
-## ⚡ Quick Start
+## 🎯 Project Goals
 
-### Prerequisites
-- PHP 8.2 or higher
-- Composer
-- Node.js & npm
-- SQLite/MySQL/PostgreSQL
-- Git
+### Primary Objectives
 
-### Installation
+1. **Streamline Procurement Process**
+   - Reduce time from product discovery to order placement by 70-90%
+   - Eliminate manual quotation management
+   - Automate order processing and tracking
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd MedEquip
+2. **Enable Competitive Pricing**
+   - Allow buyers to request quotations from multiple suppliers
+   - Facilitate transparent price comparison
+   - Support competitive bidding through RFQ system
 
-# Install PHP dependencies
-composer install
+3. **Ensure Transparency & Accountability**
+   - Complete audit trail of all transactions
+   - Activity logging for compliance
+   - Transparent order and delivery tracking
 
-# Install JavaScript dependencies
-npm install
+4. **Support Business Growth**
+   - Help suppliers reach more buyers
+   - Enable buyers to discover new suppliers
+   - Facilitate repeat business through saved templates and re-ordering
 
-# Environment setup
-cp .env.example .env
-php artisan key:generate
+5. **Maintain Data Integrity**
+   - Precise financial calculations (decimal precision)
+   - Protected financial records (RESTRICT on delete)
+   - Comprehensive validation and error handling
 
-# Database setup
-php artisan migrate --seed
+---
 
-# Build assets
-npm run build
+## ✨ Key Features
 
-# Start development server
-php artisan serve
+### 1. Multi-User Role System
+
+The platform supports three distinct user types with role-based access control:
+
+- **Admin** - Full system access and management capabilities
+- **Supplier** - Product management, quotation submission, order fulfillment
+- **Buyer** - RFQ creation, quotation evaluation, order placement
+
+**Advanced RBAC Features:**
+- Granular permission system using Spatie Laravel Permission
+- Staff users with customizable permissions
+- Permission templates for common roles
+- Frontend and backend permission enforcement
+
+### 2. Product Management
+
+- **Comprehensive Product Catalog**
+  - Hierarchical product categories (unlimited nesting)
+  - Product-supplier relationships (many-to-many)
+  - Manufacturer information
+  - Product images via Spatie Media Library
+  - Auto-slug generation for SEO-friendly URLs
+
+- **Advanced Product Features**
+  - Stock status tracking
+  - Lead time management
+  - Price history tracking
+  - Product reviews and ratings
+  - Favorites/wishlist functionality
+
+### 3. RFQ/Quotation Workflow
+
+**Complete Request-for-Quotation System:**
+
+```
+Buyer Creates RFQ → Suppliers View RFQ → Suppliers Submit Quotations 
+→ Buyer Compares Quotes → Buyer Accepts Quote → Order Created Automatically
 ```
 
-### Quick Development Start
+**Key Capabilities:**
+- Multi-item RFQ creation
+- RFQ templates for recurring orders
+- CSV bulk import for large RFQs
+- Smart supplier matching (AI-powered recommendations)
+- Budget estimation tools
+- Deadline suggestions
+- Quotation scoring system (multi-factor analysis)
+- Side-by-side quotation comparison
 
-```bash
-# Start all development services (recommended)
-composer dev
-# This runs: Laravel server + Queue worker + Logs + Vite dev server
+### 4. Order Processing
 
-# Or manually:
-php artisan serve          # Laravel (http://127.0.0.1:8000)
-npm run dev                # Vite assets
-php artisan queue:listen   # Queue worker
-php artisan pail           # Real-time logs
-```
+- **Automated Order Creation** from accepted quotations
+- **Order Status Tracking:**
+  - Pending → Processing → Shipped → Delivered → Cancelled
+- **Order Management:**
+  - Order items with quantity, pricing, and tax
+  - Unique reference code generation (ORD-YYYYMMDD-XXXXXX)
+  - Order history and analytics
+  - Re-order functionality (1-click repeat orders)
+  - Order cancellation workflow
 
-### Default Credentials
+### 5. Financial Management
 
-After seeding, you can login with:
+- **Invoice Generation**
+  - Auto-generated from orders
+  - PDF export capability
+  - Professional invoice templates
 
-**Admin:**
-- Email: `admin@medequip.ly`
-- Password: `password`
+- **Payment Tracking**
+  - Multiple payment methods (bank transfer, credit card, cash, check)
+  - Payment auto-sync (automatically syncs buyer_id and supplier_id from order)
+  - Payment status tracking
+  - Payment history
+
+- **Financial Precision**
+  - All financial columns use `decimal(15,2)` to prevent floating-point errors
+  - Currency support (LYD, USD, EUR)
+  - Protected financial records (RESTRICT on delete to prevent data loss)
+
+### 6. Delivery Management
+
+- Delivery tracking and status updates
+- Tracking numbers and delivery confirmation
+- Delivery items management
+- Delivery calendar view
+- Delivery disputes system
+- Delivery proof upload
+
+### 7. Shopping Cart & RFQ Builder
+
+- **Database-Backed Cart** (persists across sessions)
+- **Cart Features:**
+  - Add/remove/update items
+  - Supplier selection per item
+  - Cart expiration (30 days)
+  - Abandoned cart recovery emails
+  - Convert cart to RFQ
+
+- **Smart RFQ Builder:**
+  - Save RFQ as template
+  - Load templates for quick creation
+  - Duplicate existing RFQs
+  - CSV bulk import
+  - Budget estimation
+  - Supplier suggestions
+
+### 8. Activity Logging & Audit Trails
+
+- Comprehensive audit logging using Spatie Activity Log
+- Track all CRUD operations
+- User activity monitoring
+- Filterable activity logs (by user, date, event, model)
+- Permission audit trail
+
+### 9. Registration & Approval System
+
+- Dual user type registration (Buyers & Suppliers)
+- Admin approval workflow for new accounts
+- Status tracking (pending → approved → rejected)
+- Email notifications for status changes
+- "Waiting Approval" page for pending users
+- Account verification system
+
+### 10. User Experience Enhancements
+
+- **Product Discovery:**
+  - Advanced filtering (stock, lead time, supplier rating, price range)
+  - Multiple sorting options
+  - Product comparison tool
+  - Favorites management
+
+- **Notifications:**
+  - Real-time notifications
+  - Email notifications
+  - Notification preferences
+
+- **Reports & Analytics:**
+  - Buyer reports (order history, spending analytics)
+  - Supplier reports (performance metrics, sales analytics)
+  - Admin reports (system-wide analytics)
+
+### 11. Responsive Design
+
+- Mobile-first approach
+- Tailwind CSS medical theme
+- Professional color palette (Medical Blue, Green, Gray)
+- Smooth animations and transitions
+- RTL support for Arabic content
+- Accessible design patterns
+
+### 12. Landing Page
+
+- Hero slideshow with medical imagery
+- About section
+- Services showcase
+- Product categories display
+- Partners section
+- Image gallery
+- FAQ accordion
+- Contact form with map integration
 
 ---
 
 ## 🛠 Technology Stack
 
 ### Backend
+
 - **Framework:** Laravel 12.x
-- **PHP Version:** 8.2+
-- **Database:** SQLite (dev), MySQL/PostgreSQL (production)
+- **PHP Version:** 8.2 or higher
+- **Database:** SQLite (development), MySQL/PostgreSQL (production)
 - **Authentication:** Laravel Sanctum & Breeze
 - **Authorization:** Spatie Laravel Permission (roles & permissions)
 
 ### Frontend
+
 - **CSS Framework:** Tailwind CSS 3.x
 - **JavaScript:** Alpine.js 3.4.2
 - **Build Tool:** Vite 7.x
-- **Templating:** Blade
+- **Templating:** Blade (Laravel)
 - **Fonts:** Inter, Poppins, Cairo (Arabic support)
 
 ### Key Packages
+
 ```json
 {
     "spatie/laravel-permission": "^6.22",      // Roles & Permissions
@@ -132,10 +294,12 @@ After seeding, you can login with:
 ```
 
 ### Development Tools
+
 - **Debugbar:** Laravel Debugbar
 - **IDE Helper:** Laravel IDE Helper
-- **Code Style:** Laravel Pint
+- **Code Style:** Laravel Pint (PSR-12)
 - **Testing:** PHPUnit
+- **Logging:** Laravel Pail (real-time logs)
 
 ---
 
@@ -145,243 +309,409 @@ After seeding, you can login with:
 MedEquip/
 ├── app/
 │   ├── Console/              # Artisan commands
+│   │   └── Commands/         # Custom commands (abandoned cart, price alerts, etc.)
+│   ├── Exports/              # Excel export classes
 │   ├── Filters/              # Query filters (ActivityLogFilter)
 │   ├── Http/
 │   │   ├── Controllers/
-│   │   │   ├── Auth/         # Authentication (9 controllers)
-│   │   │   └── Web/          # Application (13 controllers)
-│   │   └── Requests/         # Form validation (15 requests)
-│   ├── Models/               # Eloquent models (17 models)
+│   │   │   ├── Auth/         # Authentication controllers (9 controllers)
+│   │   │   ├── Api/          # API controllers
+│   │   │   └── Web/          # Application controllers
+│   │   │       ├── Buyers/   # Buyer-specific controllers
+│   │   │       └── Suppliers/ # Supplier-specific controllers
+│   │   ├── Middleware/       # Custom middleware
+│   │   └── Requests/         # Form validation (20+ request classes)
+│   ├── Mail/                 # Mailable classes
+│   ├── Models/               # Eloquent models (35+ models)
 │   ├── Notifications/        # Custom notifications
+│   ├── Observers/            # Model observers
+│   ├── Policies/             # Authorization policies
 │   ├── Providers/            # Service providers
-│   ├── Services/             # Business logic (2 services)
+│   ├── Services/             # Business logic services (18 services)
 │   ├── Traits/               # Reusable traits (Auditable)
 │   └── View/                 # View composers
 │
 ├── database/
 │   ├── factories/            # Model factories
-│   ├── migrations/           # Database migrations (28 migrations)
-│   ├── seeders/              # Database seeders (4 seeders)
-│   └── database.sqlite       # SQLite database
+│   ├── migrations/          # Database migrations (50+ migrations)
+│   ├── seeders/              # Database seeders
+│   └── database.sqlite      # SQLite database (development)
 │
 ├── resources/
 │   ├── css/                  # Custom CSS
 │   ├── js/                   # JavaScript files
 │   └── views/
-│       ├── admin/            # Admin panel (9 sections)
-│       ├── auth/             # Authentication pages (7 pages)
-│       ├── components/       # Blade components (33 components)
+│       ├── admin/            # Admin panel views
+│       ├── auth/             # Authentication pages
+│       ├── buyer/            # Buyer interface views
+│       ├── components/       # Blade components (33+ components)
 │       ├── dashboards/       # Role-based dashboards
-│       ├── layouts/          # Layout templates (4 layouts)
-│       ├── sections/         # Landing page sections (8 sections)
-│       └── vendor/           # Third-party views
+│       ├── emails/           # Email templates
+│       ├── errors/           # Error pages
+│       ├── layouts/          # Layout templates
+│       ├── sections/         # Landing page sections
+│       └── supplier/         # Supplier interface views
 │
 ├── routes/
 │   ├── auth.php              # Authentication routes
-│   ├── console.php           # Console routes
-│   └── web.php               # Web application routes
+│   ├── console.php          # Console routes
+│   └── web.php               # Web application routes (498 lines)
 │
 ├── public/
 │   ├── assets/               # Static assets
 │   └── build/                # Vite build output
 │
-├── config/                   # Configuration files (20 files)
+├── config/                   # Configuration files (20+ files)
 ├── storage/                  # File storage & logs
-├── tests/                    # Test suites
+├── tests/                    # Test suites (27 test files)
 └── vendor/                   # Composer dependencies
 ```
 
----
+### Key Components
 
-## ✨ Core Features
+**Models (35+):**
+- User management: `User`, `UserType`, `Role`, `Permission`
+- Business entities: `Supplier`, `Buyer`, `Product`, `ProductCategory`, `Manufacturer`
+- Transaction flow: `Rfq`, `RfqItem`, `Quotation`, `QuotationItem`, `Order`, `OrderItem`
+- Financial: `Invoice`, `Payment`
+- Delivery: `Delivery`, `DeliveryTracking`, `DeliveryDispute`
+- System: `ActivityLog`, `Setting`, `Notification`
 
-### 1. Multi-User Role System
-- **Admin** - Full system access and management
-- **Supplier** - Product management, quotation submission, order fulfillment
-- **Buyer** - RFQ creation, quotation evaluation, order placement
+**Controllers (46+):**
+- Admin controllers: User, Supplier, Buyer, Product, Order, RFQ, Quotation management
+- Buyer controllers: Product browsing, Cart, RFQ, Order, Invoice, Delivery tracking
+- Supplier controllers: Product management, RFQ viewing, Quotation submission, Order fulfillment
 
-### 2. Product Management
-- Comprehensive product catalog
-- **Hierarchical categories** (unlimited nesting)
-- Product-supplier relationships (many-to-many)
-- Spatie Media Library integration for images
-- Auto-slug generation for SEO
-
-### 3. RFQ/Quotation Workflow
-```
-Buyer → Create RFQ → Suppliers View RFQ → Suppliers Submit Quotations 
-→ Buyer Compares Quotes → Buyer Accepts Quote → Order Created
-```
-
-- RFQ with multiple line items
-- Quotation submission with competitive pricing
-- Quote comparison and evaluation
-- Acceptance/rejection workflow
-
-### 4. Order Processing
-- Convert accepted quotations to orders
-- Order status tracking (pending → processing → shipped → delivered → cancelled)
-- Order items with quantity, pricing, tax
-- Reference code generation (ORD-YYYYMMDD-XXXXXX)
-
-### 5. Financial Management
-- **Invoice generation** (auto-generated from orders)
-- **Payment tracking** (multiple methods: bank transfer, credit card, cash, check)
-- **Payment auto-sync** (automatically syncs buyer_id and supplier_id from order)
-- **Decimal precision** for financial data (no rounding errors)
-- **Currency support** (LYD, USD, EUR)
-
-### 6. Delivery Management
-- Delivery tracking and status updates
-- Tracking numbers
-- Delivery confirmation
-- Delivery items management
-
-### 7. Activity Logging & Audit Trails
-- Comprehensive audit logging using Spatie Activity Log
-- Track all CRUD operations
-- User activity monitoring
-- Filterable activity logs (by user, date, event, model)
-
-### 8. Registration & Approval System
-- Dual user type registration (Buyers & Suppliers)
-- Admin approval workflow for new accounts
-- Status tracking (pending → approved → rejected)
-- Email notifications for status changes
-- "Waiting Approval" page for pending users
-
-### 9. Responsive Design
-- Mobile-first approach
-- Tailwind CSS medical theme
-- Professional color palette (Medical Blue, Green, Gray)
-- Smooth animations and transitions
-- RTL support for Arabic content
-
-### 10. Landing Page
-- Hero slideshow with medical imagery
-- About section
-- Services showcase
-- Product categories display
-- Partners section
-- Image gallery
-- FAQ accordion
-- Contact form
+**Services (18):**
+- `RfqWorkflowService` - RFQ state management
+- `QuotationWorkflowService` - Quotation state management
+- `RfqBuilderService` - RFQ creation logic
+- `RfqImportService` - CSV import functionality
+- `SupplierSuggestionService` - AI supplier matching
+- `BuyerProductService` - Product browsing logic
+- `BuyerOrderService` - Order processing
+- `BuyerAlertService` - Price and stock alerts
+- `ReferenceCodeService` - Unique code generation
+- `NotificationService` - Centralized notifications
+- And more...
 
 ---
 
-## 📜 Implementation History
+## 🚀 Installation & Setup
 
-### Phase 1: Foundation (November 2025)
-✅ **Laravel 12 Setup & Configuration**
-- Laravel 12 framework installation
-- Tailwind CSS integration
-- Alpine.js setup
-- Database configuration
+### Prerequisites
 
-✅ **Core Models & Migrations**
-- 28 database migrations
-- 17 Eloquent models
-- Spatie packages integration
-- Soft deletes implementation
+Before you begin, ensure you have the following installed:
 
-### Phase 2: Database Improvements (November 14, 2025)
-✅ **Database Refactoring** - "Fix at Source" Philosophy
-- Fixed RFQ items relationship (created RfqItem model)
-- Fixed Buyer invoices (hasManyThrough relationship)
-- Removed dual file storage (kept Spatie Media Library only)
-- Created quotation_items table
-- Created order_items table
-- Changed financial columns from `double` to `decimal(15,2)`
-- Changed CASCADE to RESTRICT for financial FK constraints
-- Added Payment auto-sync observer
-- Changed default currency from USD to LYD
+- **PHP** 8.2 or higher
+- **Composer** (PHP package manager)
+- **Node.js** 18+ and **npm**
+- **Database:** SQLite (for development) or MySQL/PostgreSQL (for production)
+- **Git** (for version control)
 
-**Results:**
-- ✅ 40% fewer migrations
-- ✅ Cleaner migration history
-- ✅ No precision loss in financial calculations
-- ✅ Production-ready from start
-- ✅ All tests passing (10/10)
+### Step 1: Clone the Repository
 
-### Phase 3: Product Categories (November 14, 2025)
-✅ **Hierarchical Product Categories System**
-- Created `product_categories` table (9 columns)
-- Built ProductCategory model with full features
-- Unlimited parent-child nesting support
-- Auto-slug generation
-- Query scopes (active, roots, ordered)
-- Helper methods (isRoot, hasChildren, full_path)
-- Modified products table (category_id FK)
-- Updated Product model relationship
+```bash
+git clone <repository-url>
+cd MedEquip
+```
 
-**Results:**
-- ✅ 20/20 tests passing
-- ✅ SEO-friendly slugs
-- ✅ Flexible hierarchy
-- ✅ Soft delete support
+### Step 2: Install PHP Dependencies
 
-### Phase 4: Code Quality Improvements (November 14, 2025)
-✅ **App Directory Review & Fixes**
-- Fixed ProductRequest validation (category → category_id)
-- Deleted broken FileController
-- Created ReferenceCodeService (centralized code generation)
-- Updated 6 controllers to use ReferenceCodeService
-- Standardized reference code format (PREFIX-YYYYMMDD-XXXXXX)
-- Added currency validation using model constants
-- Implemented ActivityLogFilter usage in controller
+```bash
+composer install
+```
 
-**Results:**
-- ✅ 67% reduction in code duplication
-- ✅ 100% standardized reference codes
-- ✅ Type-safe currency validation
-- ✅ 18/18 tests passing
-- ✅ Overall Grade: A (95/100)
+### Step 3: Install JavaScript Dependencies
 
-### Phase 5: Authentication Redesign (November 15, 2025)
-✅ **Medical-Themed Auth Pages**
-- Redesigned registration page (dual user type system)
-- Redesigned login page
-- Created medical-themed auth layout
-- Toggle mechanism buyer/supplier (Alpine.js)
-- Created BuyerRegistrationRequest validation
-- Created SupplierRegistrationRequest validation
-- Added storeBuyer() and storeSupplier() controller methods
-- Database transactions for data integrity
-- Auto-login after registration
+```bash
+npm install
+```
 
-**Results:**
-- ✅ 20/20 tests passing
-- ✅ Professional medical design
-- ✅ Complete validation
-- ✅ Responsive across devices
+### Step 4: Environment Configuration
 
-✅ **Auth Issues Resolution**
-- Fixed debug statement blocking supplier registration
-- Fixed Blade syntax error in register view
-- Added comprehensive error logging
-- Implemented split-screen auth layout
-- Medical-themed right panel with features
-- Responsive design (desktop split, mobile stacked)
+```bash
+# Copy the example environment file
+cp .env.example .env
 
-### Phase 6: Landing Page Design (November 21-24, 2025)
-✅ **Modern Landing Page**
-- Light, modern color scheme
-- Hero section with slideshow (5-second timing)
-- About section
-- Services carousel
-- Modern categories section (e-commerce best practices)
-- Featured collections with premium design
-- Partners section
-- Gallery
-- FAQ accordion
-- Contact form with map integration
+# Generate application key
+php artisan key:generate
+```
 
-✅ **Design Refresh**
-- Migrated from Bootstrap to Tailwind CSS
-- Created Tailwind design system
-- Medical color palette (Blues, Greens, Grays)
-- Custom animations (fade-in, slide-in, pulse)
-- Professional shadows and gradients
+**Configure your `.env` file:**
+
+```env
+APP_NAME=MedEquip
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://localhost:8000
+
+# Database Configuration (SQLite for development)
+DB_CONNECTION=sqlite
+# DB_DATABASE=/absolute/path/to/database/database.sqlite
+
+# Or MySQL/PostgreSQL for production
+# DB_CONNECTION=mysql
+# DB_HOST=127.0.0.1
+# DB_PORT=3306
+# DB_DATABASE=medequip
+# DB_USERNAME=root
+# DB_PASSWORD=
+
+# Mail Configuration
+MAIL_MAILER=smtp
+MAIL_HOST=mailpit
+MAIL_PORT=1025
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_ENCRYPTION=null
+MAIL_FROM_ADDRESS="hello@example.com"
+MAIL_FROM_NAME="${APP_NAME}"
+
+# Default Currency
+DEFAULT_CURRENCY=LYD
+```
+
+### Step 5: Database Setup
+
+```bash
+# Create SQLite database (if using SQLite)
+touch database/database.sqlite
+
+# Run migrations
+php artisan migrate
+
+# Seed the database with initial data
+php artisan db:seed
+```
+
+**Available Seeders:**
+- `UserTypeSeeder` - Creates user types (Admin, Supplier, Buyer)
+- `UnifiedRolePermissionSeeder` - Creates roles and permissions
+- `ProductCatalogSeeder` - Seeds product catalog (optional)
+
+### Step 6: Build Frontend Assets
+
+```bash
+# Development build (with hot reload)
+npm run dev
+
+# Production build
+npm run build
+```
+
+### Step 7: Create Storage Link
+
+```bash
+php artisan storage:link
+```
+
+### Step 8: Start Development Server
+
+```bash
+# Option 1: Simple server
+php artisan serve
+
+# Option 2: Full development environment (recommended)
+composer dev
+# This runs: Laravel server + Queue worker + Logs + Vite dev server
+```
+
+### Step 9: Access the Application
+
+Open your browser and navigate to:
+- **Application:** http://localhost:8000
+- **Default Admin Credentials:**
+  - Email: `admin@medequip.ly`
+  - Password: `password`
+
+---
+
+## 💡 Usage Examples
+
+### Example 1: Buyer Creates an RFQ
+
+```php
+// 1. Buyer browses products and adds to cart
+POST /buyer/cart/add/{product}
+{
+    "quantity": 10,
+    "supplier_id": 1
+}
+
+// 2. Buyer creates RFQ from cart
+POST /buyer/cart/submit-rfq
+{
+    "title": "Medical Equipment for Hospital",
+    "deadline": "2026-02-15",
+    "notes": "Urgent requirement"
+}
+
+// 3. System creates RFQ and notifies suppliers
+// Suppliers can now view and submit quotations
+```
+
+### Example 2: Supplier Submits Quotation
+
+```php
+// 1. Supplier views available RFQs
+GET /supplier/rfqs
+
+// 2. Supplier creates quotation for an RFQ
+POST /supplier/rfqs/{rfq}/quote
+{
+    "items": [
+        {
+            "rfq_item_id": 1,
+            "unit_price": 1500.00,
+            "lead_time_days": 14,
+            "notes": "In stock, ready to ship"
+        }
+    ],
+    "valid_until": "2026-02-10",
+    "terms": "Payment: 30% advance, 70% on delivery"
+}
+
+// 3. Buyer receives notification and can compare quotations
+```
+
+### Example 3: Buyer Accepts Quotation (Creates Order)
+
+```php
+// 1. Buyer compares quotations
+GET /buyer/quotations/compare?rfq_id=1
+
+// 2. Buyer accepts best quotation
+POST /buyer/quotations/{quotation}/accept
+
+// 3. System automatically:
+//    - Creates order from quotation
+//    - Generates invoice
+//    - Sends confirmation emails
+//    - Updates RFQ status
+```
+
+### Example 4: Using RFQ Templates
+
+```php
+// 1. Save an RFQ as template
+POST /buyer/rfqs/{rfq}/save-as-template
+{
+    "name": "Monthly Hospital Supplies",
+    "category": "recurring",
+    "department": "Procurement"
+}
+
+// 2. Create new RFQ from template
+POST /buyer/rfq-templates/{template}/use
+{
+    "title": "February 2026 Supplies",
+    "deadline": "2026-02-20"
+}
+
+// 3. System creates RFQ with all items from template
+```
+
+### Example 5: Bulk Import RFQ Items
+
+```php
+// 1. Download CSV sample template
+GET /buyer/rfqs/csv-sample/download
+
+// 2. Fill CSV with products:
+// product_name,quantity,notes
+// "Stethoscope",10,"Digital preferred"
+// "Blood Pressure Monitor",5,""
+
+// 3. Upload CSV
+POST /buyer/rfqs/import-csv
+{
+    "file": <csv_file>,
+    "rfq_id": null  // Creates new RFQ
+}
+
+// 4. System matches products and creates RFQ items
+```
+
+### Example 6: Re-order from Past Order
+
+```php
+// 1. View order history
+GET /buyer/orders/history
+
+// 2. Re-order with one click
+POST /buyer/orders/{order}/reorder
+{
+    "create_rfq": true  // Creates RFQ directly
+}
+
+// 3. Or add to cart for modifications
+POST /buyer/orders/{order}/add-to-cart
+```
+
+---
+
+## 📦 Dependencies & Requirements
+
+### System Requirements
+
+**Minimum:**
+- PHP 8.2
+- MySQL 5.7+ / PostgreSQL 10+ / SQLite 3.8+
+- 512MB RAM
+- 100MB disk space
+
+**Recommended:**
+- PHP 8.3+
+- MySQL 8.0+ / PostgreSQL 14+
+- 2GB+ RAM
+- 1GB+ disk space
+
+### PHP Extensions Required
+
+```ini
+php8.2-cli
+php8.2-fpm
+php8.2-mbstring
+php8.2-xml
+php8.2-curl
+php8.2-zip
+php8.2-gd
+php8.2-mysql  # For MySQL
+php8.2-pgsql  # For PostgreSQL
+php8.2-sqlite3  # For SQLite
+php8.2-bcmath
+php8.2-intl
+```
+
+### Composer Dependencies
+
+**Production Dependencies:**
+- `laravel/framework: ^12.0`
+- `spatie/laravel-permission: ^6.22`
+- `spatie/laravel-medialibrary: ^11.17`
+- `spatie/laravel-activitylog: ^4.10`
+- `barryvdh/laravel-dompdf: ^3.1`
+- `maatwebsite/excel: ^3.1`
+- `intervention/image: ^3.11`
+
+**Development Dependencies:**
+- `laravel/breeze: ^2.3`
+- `barryvdh/laravel-debugbar: ^3.16`
+- `barryvdh/laravel-ide-helper: ^3.6`
+- `laravel/pint: ^1.24`
+- `phpunit/phpunit: ^11.5.3`
+
+### NPM Dependencies
+
+```json
+{
+  "alpinejs": "^3.4.2",
+  "tailwindcss": "^3.1.0",
+  "vite": "^7.0.7",
+  "axios": "^1.11.0"
+}
+```
 
 ---
 
@@ -389,9 +719,9 @@ Buyer → Create RFQ → Suppliers View RFQ → Suppliers Submit Quotations
 
 ### Code Standards
 
-**PSR-12 Coding Standard**
+**PSR-12 Coding Standard:**
 ```bash
-# Format code
+# Format code automatically
 vendor/bin/pint
 ```
 
@@ -402,74 +732,39 @@ vendor/bin/pint
 - **Routes:** Plural kebab-case (e.g., `/admin/suppliers`)
 - **Views:** Snake_case (e.g., `create.blade.php`)
 
-**Arabic Comments with Emoji:**
-```php
-/**
- * 🔍 جلب جميع المنتجات النشطة
- * Get all active products
- */
-public function getActiveProducts()
-{
-    return Product::where('is_active', true)->get();
-}
-```
+### Development Workflow
 
-### Project Patterns
-
-**1. Controller Structure**
-- Permission middleware in `__construct()`
-- Standard CRUD methods
-- Database transactions for data integrity
-- Activity logging on all operations
-- Proper error handling with try-catch
-- Notification integration
-
-**2. Service Layer**
-- **NotificationService** - Centralized notifications
-- **ReferenceCodeService** - Unique code generation
-
-**3. Request Validation**
-- Form Request classes for all operations
-- Custom Arabic validation messages
-- Business logic validation in `withValidator()`
-
-**4. Model Features**
-- Auditable trait for activity logging
-- Soft deletes where appropriate
-- Proper relationships (bidirectional)
-- Constants for status values
-- Casts for data types
-
-### Common Tasks
-
-**Create New Module:**
+**1. Create New Feature:**
 ```bash
-# Model with migration
+# Create model with migration
 php artisan make:model Example -m
 
-# Controller with resource methods
+# Create controller
 php artisan make:controller ExampleController --resource
 
-# Form Request
+# Create form request
 php artisan make:request ExampleRequest
+
+# Create policy
+php artisan make:policy ExamplePolicy --model=Example
 ```
 
-**Database Operations:**
+**2. Database Operations:**
 ```bash
-# Fresh migration (⚠️ deletes data)
-php artisan migrate:fresh --seed
+# Create migration
+php artisan make:migration create_examples_table
+
+# Run migrations
+php artisan migrate
 
 # Rollback last migration
 php artisan migrate:rollback
 
-# Migration status
-php artisan migrate:status
-
-# Tinker (REPL)
-php artisan tinker
+# Fresh migration (⚠️ deletes data)
+php artisan migrate:fresh --seed
 ```
 
-**Cache Management:**
+**3. Cache Management:**
 ```bash
 # Clear all caches
 php artisan cache:clear
@@ -483,12 +778,34 @@ php artisan route:cache
 php artisan view:cache
 ```
 
-**IDE Helpers:**
+### Common Development Tasks
+
+**Run Queue Worker:**
 ```bash
-# Generate IDE helper files
+php artisan queue:listen
+# Or in development:
+composer dev  # Runs queue worker automatically
+```
+
+**View Logs:**
+```bash
+# Real-time logs
+php artisan pail
+
+# Or traditional
+tail -f storage/logs/laravel.log
+```
+
+**Generate IDE Helpers:**
+```bash
 php artisan ide-helper:generate
 php artisan ide-helper:models
 php artisan ide-helper:meta
+```
+
+**Tinker (REPL):**
+```bash
+php artisan tinker
 ```
 
 ---
@@ -498,47 +815,28 @@ php artisan ide-helper:meta
 ### Entity Relationship Overview
 
 ```
-Users (17 models, 28 migrations)
-├── user_types (Admin, Supplier, Buyer)
-├── users
-├── permissions & roles (Spatie)
+Users (user_types, users, roles, permissions)
+├── Suppliers (suppliers, product_supplier)
+├── Buyers (buyers)
 │
-├── Suppliers
-│   ├── suppliers
-│   └── product_supplier (pivot)
-│
-├── Buyers
-│   └── buyers
-│
-├── Products
-│   ├── product_categories (hierarchical)
-│   └── products
+├── Products (products, product_categories, manufacturers)
 │
 └── Transaction Flow
-    ├── RFQs
-    │   ├── rfqs
-    │   └── rfq_items
-    ├── Quotations
-    │   ├── quotations
-    │   └── quotation_items
-    ├── Orders
-    │   ├── orders
-    │   └── order_items
-    ├── Invoices
-    │   └── invoices
-    ├── Payments
-    │   └── payments
-    └── Deliveries
-        └── deliveries
+    ├── RFQs (rfqs, rfq_items, rfq_templates)
+    ├── Quotations (quotations, quotation_items)
+    ├── Orders (orders, order_items)
+    ├── Invoices (invoices)
+    ├── Payments (payments)
+    └── Deliveries (deliveries, delivery_tracking)
 ```
 
 ### Key Tables
 
-**Users & Authentication:**
-- `user_types` - User role definitions
-- `users` - User accounts
-- `permissions`, `roles`, `model_has_permissions`, `model_has_roles` - Spatie permission tables
-- `sessions`, `password_reset_tokens` - Authentication
+**User Management:**
+- `user_types` - User role definitions (Admin, Supplier, Buyer, Staff)
+- `users` - User accounts with relationships
+- `permissions`, `roles` - Spatie permission system
+- `model_has_permissions`, `model_has_roles` - Permission assignments
 
 **Business Entities:**
 - `suppliers` - Supplier companies (approval required)
@@ -546,21 +844,24 @@ Users (17 models, 28 migrations)
 - `products` - Medical equipment catalog
 - `product_categories` - Hierarchical categorization
 - `product_supplier` - Many-to-many relationships
+- `manufacturers` - Product manufacturers
 
 **Transaction Flow:**
 - `rfqs` & `rfq_items` - Request for Quotations
+- `rfq_templates` & `rfq_template_items` - Reusable RFQ templates
 - `quotations` & `quotation_items` - Supplier quotes
 - `orders` & `order_items` - Purchase orders
 - `invoices` - Generated invoices
 - `payments` - Payment records (auto-synced with orders)
 - `deliveries` - Delivery tracking
 
-**System:**
+**System Tables:**
 - `activity_log` - Audit trail (Spatie)
-- `media` - File storage (Spatie)
+- `media` - File storage (Spatie Media Library)
 - `notifications` - System notifications
-- `jobs`, `failed_jobs`, `job_batches` - Queue system
-- `cache`, `cache_locks` - Caching
+- `buyer_carts` & `buyer_cart_items` - Shopping carts
+- `buyer_price_alerts` & `buyer_stock_alerts` - Alert system
+- `product_price_history` - Price tracking
 
 ### Financial Data Precision
 
@@ -574,110 +875,74 @@ All financial columns use `decimal(15,2)` to prevent floating-point precision lo
 ### Foreign Key Cascading Rules
 
 **Protective (RESTRICT):**
-```php
-// Financial records - prevent accidental deletion
-$table->foreign('order_id')->references('id')->on('orders')->restrictOnDelete();
-$table->foreign('quotation_id')->references('id')->on('quotations')->restrictOnDelete();
-```
+- Financial records prevent accidental deletion
+- Orders, quotations, invoices cannot be deleted if related records exist
 
 **Graceful Degradation (NULL ON DELETE):**
-```php
-// Optional relationships - set to null when parent deleted
-$table->foreign('category_id')->references('id')->on('product_categories')->nullOnDelete();
-$table->foreign('parent_id')->references('id')->on('product_categories')->nullOnDelete();
-```
+- Optional relationships set to null when parent deleted
+- Categories, manufacturers can be deleted (products remain)
 
 ---
 
-## 🔐 Authentication System
+## 🔐 Authentication & Authorization
 
 ### User Types
 
 | Type | ID | Slug | Description |
 |------|----|----- |-------------|
 | Admin | 1 | `admin` | Full system access |
+| Staff | 1 | `staff` | Limited permissions (customizable) |
 | Supplier | 2 | `supplier` | Product & order management |
 | Buyer | 3 | `buyer` | RFQ & purchasing |
 
 ### Registration Flow
 
 **Buyer Registration:**
-```
-1. Visit /register
+1. Visit `/register`
 2. Select "مشتري (Buyer)"
 3. Fill user info (name, email, phone, password)
 4. Fill organization info (name, type, license, location)
 5. Submit → Creates user + buyer profile
 6. Status: pending (requires admin approval)
-7. Redirect to /waiting-approval
-```
+7. Redirect to `/waiting-approval`
 
 **Supplier Registration:**
-```
-1. Visit /register
+1. Visit `/register`
 2. Select "مورد (Supplier)"
 3. Fill user info (name, email, phone, password)
 4. Fill company info (name, commercial register, tax number, location)
 5. Submit → Creates user + supplier profile
 6. Status: pending (requires admin approval)
-7. Redirect to /waiting-approval
-```
+7. Redirect to `/waiting-approval`
 
-### Approval Workflow
-
-```
-Pending → Admin Reviews → Approved/Rejected
-                        ↓
-               Email Notification
-                        ↓
-            User Can Access Dashboard
-```
-
-**Admin Routes:**
-- `/admin/registrations/pending` - View pending registrations
-- POST `/admin/registrations/{type}/{id}/approve` - Approve
-- POST `/admin/registrations/{type}/{id}/reject` - Reject
-
-### Permissions System
+### Permission System
 
 **Permission Structure:**
 ```
 {action} {resource}
 
-Actions: view, create, edit, delete
-Resources: users, suppliers, buyers, products, orders, activity logs
+Actions: view, create, update, delete, approve, reject, etc.
+Resources: users, suppliers, buyers, products, orders, etc.
 ```
 
 **Examples:**
-- `view products`
-- `create orders`
-- `edit suppliers`
-- `delete users`
+- `users.view` - View users list
+- `products.create` - Create new products
+- `orders.update` - Edit orders
+- `quotations.accept` - Accept quotations
 
 **Middleware Usage:**
 ```php
 Route::get('/admin/products', [ProductController::class, 'index'])
-    ->middleware('permission:view products');
+    ->middleware('permission:products.view');
 ```
 
-### Auth Layout Features
-
-**Split-Screen Design:**
-- **Desktop (1024px+):** 50/50 split (form left, branding right)
-- **Mobile (<1024px):** Vertical stack (form only)
-
-**Right Panel (Desktop):**
-- Medical-themed gradient background
-- Animated gradient orbs
-- MedEquip logo with tagline
-- Three feature cards (reliability, speed, network)
-- Decorative medical icons
-
-**Left Panel:**
-- Clean white card
-- Form content
-- Footer links (Privacy, Terms, Contact)
-- Responsive padding
+**Blade Directive:**
+```blade
+@can('products.create')
+    <a href="{{ route('admin.products.create') }}">Create Product</a>
+@endcan
+```
 
 ---
 
@@ -709,8 +974,9 @@ Route::get('/admin/products', [ProductController::class, 'index'])
 # Update system
 sudo apt update && sudo apt upgrade
 
-# Install PHP 8.2, MySQL, Nginx/Apache
-sudo apt install php8.2 php8.2-fpm php8.2-mysql php8.2-mbstring php8.2-xml php8.2-zip
+# Install PHP 8.2, MySQL, Nginx
+sudo apt install php8.2 php8.2-fpm php8.2-mysql php8.2-mbstring \
+    php8.2-xml php8.2-zip php8.2-gd php8.2-bcmath
 
 # Install Composer
 curl -sS https://getcomposer.org/installer | php
@@ -735,6 +1001,7 @@ npm run build
 # Set permissions
 sudo chown -R www-data:www-data /var/www/medequip
 sudo chmod -R 755 /var/www/medequip/storage
+sudo chmod -R 755 /var/www/medequip/bootstrap/cache
 
 # Environment
 cp .env.example .env
@@ -755,8 +1022,7 @@ php artisan migrate --force
 
 # Seed (if first deployment)
 php artisan db:seed --class=UserTypeSeeder
-php artisan db:seed --class=RolePermissionSeeder
-php artisan db:seed --class=AdminSeeder
+php artisan db:seed --class=UnifiedRolePermissionSeeder
 
 php artisan up  # Exit maintenance mode
 ```
@@ -774,14 +1040,14 @@ composer dump-autoload --optimize
 
 **5. Queue & Scheduler:**
 ```bash
-# Supervisor for queues (install first)
+# Install Supervisor
 sudo apt install supervisor
 
-# Create supervisor config
+# Create supervisor config for queue worker
 sudo nano /etc/supervisor/conf.d/medequip-worker.conf
 ```
 
-Config file:
+**Supervisor Config:**
 ```ini
 [program:medequip-worker]
 process_name=%(program_name)s_%(process_num)02d
@@ -801,191 +1067,70 @@ sudo supervisorctl update
 sudo supervisorctl start medequip-worker:*
 ```
 
-**Cron for scheduler:**
+**Cron for Scheduler:**
 ```bash
 crontab -e
 # Add:
 * * * * * cd /var/www/medequip && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-### Production Monitoring
-
-**Monitor Logs:**
-```bash
-# Application logs
-tail -f storage/logs/laravel.log
-
-# Queue worker logs
-tail -f storage/logs/worker.log
-
-# Nginx/Apache logs
-sudo tail -f /var/log/nginx/error.log
-```
-
-**Health Checks:**
-```bash
-# Database connection
-php artisan tinker
->>> DB::connection()->getPdo();
-
-# Queue status
-php artisan queue:failed
-
-# Cache test
-php artisan cache:table
-```
-
-### Rollback Procedure
-
-```bash
-# If issues arise
-php artisan down
-
-# Rollback migrations
-php artisan migrate:rollback --step=X
-
-# Or restore database backup
-mysql -u root -p medequip < backup_YYYYMMDD_HHMMSS.sql
-
-# Clear caches
-php artisan cache:clear
-php artisan config:clear
-
-php artisan up
-```
-
 ---
 
 ## 🧪 Testing
 
+### Running Tests
+
+```bash
+# Run all tests
+php artisan test
+
+# Run specific test file
+php artisan test --filter=ExampleTest
+
+# Run with coverage (requires Xdebug)
+php artisan test --coverage
+```
+
 ### Test Suites
 
 **Available Tests:**
-1. `tests/app_improvements_test.php` - Code quality improvements (18 tests)
-2. `tests/auth_registration_test.php` - Authentication system (20 tests)
-3. `tests/database_improvements_test.php` - Database integrity (10 tests)
-4. `tests/product_categories_test.php` - Product categories (20 tests)
-
-**Run Tests:**
-```bash
-# Run specific test file
-php tests/app_improvements_test.php
-
-# Or using PHPUnit
-vendor/bin/phpunit tests/
-
-# With coverage (if xdebug installed)
-vendor/bin/phpunit --coverage-html coverage/
-```
+- `tests/Feature/RbacVerificationTest.php` - RBAC system tests
+- `tests/Feature/RfqQuotationWorkflowTest.php` - RFQ/Quotation workflow
+- `tests/Unit/QuotationStateMachineTest.php` - State machine tests
+- `tests/Unit/RfqStateMachineTest.php` - RFQ state machine tests
 
 ### Manual Testing Checklist
 
 **Authentication:**
-- [ ] Register as buyer (all fields)
-- [ ] Register as supplier (all fields)
-- [ ] Login with buyer account
-- [ ] Login with supplier account
-- [ ] Login with admin account
-- [ ] Logout
+- [ ] Register as buyer
+- [ ] Register as supplier
+- [ ] Login with different user types
 - [ ] Password reset flow
-- [ ] Email verification (if enabled)
+- [ ] Email verification
 
 **Buyer Workflow:**
-- [ ] Create new RFQ
-- [ ] Add multiple items to RFQ
-- [ ] View submitted RFQs
-- [ ] View received quotations
+- [ ] Browse products with filters
+- [ ] Add products to cart
+- [ ] Create RFQ from cart
+- [ ] View quotations
 - [ ] Compare quotations
-- [ ] Accept a quotation
-- [ ] View created order
-- [ ] Track order status
-- [ ] View invoices
-- [ ] Record payment
+- [ ] Accept quotation (creates order)
+- [ ] View order history
+- [ ] Re-order from past order
 
 **Supplier Workflow:**
-- [ ] Add new product
-- [ ] Update product details
-- [ ] Upload product images
+- [ ] Add product to catalog
 - [ ] View available RFQs
 - [ ] Submit quotation
-- [ ] Edit pending quotation
 - [ ] View accepted orders
 - [ ] Update order status
 - [ ] Create delivery record
-- [ ] View payment received
 
 **Admin Workflow:**
-- [ ] View pending registrations
-- [ ] Approve buyer registration
-- [ ] Approve supplier registration
-- [ ] Reject registration
-- [ ] Manage users
-- [ ] Manage products
-- [ ] Manage categories
-- [ ] View all orders
+- [ ] Approve/reject registrations
+- [ ] Manage users and permissions
 - [ ] View activity logs
-- [ ] Filter activity logs
 - [ ] Generate reports
-
----
-
-## 📊 Performance Best Practices
-
-### Database Optimization
-
-**Eager Loading:**
-```php
-// ❌ N+1 Query Problem
-$products = Product::all();
-foreach ($products as $product) {
-    echo $product->category->name;  // Query for each product
-}
-
-// ✅ Solution: Eager Load
-$products = Product::with('category')->get();
-foreach ($products as $product) {
-    echo $product->category->name;  // Single query
-}
-```
-
-**Query Scopes:**
-```php
-// Use model scopes for common queries
-$activeProducts = Product::active()->with('category')->get();
-$rootCategories = ProductCategory::active()->roots()->ordered()->get();
-```
-
-**Pagination:**
-```php
-// Always paginate large result sets
-$products = Product::latest()->paginate(20);
-
-// Or using cursor pagination for better performance
-$products = Product::latest()->cursorPaginate(20);
-```
-
-### Caching Strategy
-
-```php
-// Cache expensive queries
-$categories = Cache::remember('all_categories', 3600, function () {
-    return ProductCategory::active()->with('children')->get();
-});
-
-// Clear cache when data changes
-Cache::forget('all_categories');
-```
-
-### Asset Optimization
-
-```bash
-# Production build
-npm run build
-
-# Optimize images
-# Use WebP format for images
-# Lazy load images below the fold
-```
 
 ---
 
@@ -993,53 +1138,84 @@ npm run build
 
 ### Development Workflow
 
-1. **Fork & Clone**
+1. **Fork & Clone** the repository
 2. **Create Feature Branch:** `git checkout -b feature/amazing-feature`
-3. **Code & Test**
+3. **Code & Test** your changes
 4. **Commit:** `git commit -m 'Add amazing feature'`
 5. **Push:** `git push origin feature/amazing-feature`
-6. **Pull Request**
+6. **Create Pull Request**
 
 ### Code Review Checklist
 
 - [ ] Follows PSR-12 coding standards
-- [ ] Arabic comments with emoji icons
 - [ ] Proper PHPDoc blocks
-- [ ] Tests included
-- [ ] No debug code
+- [ ] Tests included and passing
+- [ ] No debug code (`dd()`, `dump()`, etc.)
 - [ ] Migrations tested
 - [ ] Documentation updated
+- [ ] Authorization checks implemented
+- [ ] Error handling comprehensive
+
+### Commit Message Format
+
+```
+type(scope): subject
+
+body (optional)
+
+footer (optional)
+```
+
+**Types:**
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation
+- `style`: Code style changes
+- `refactor`: Code refactoring
+- `test`: Test additions/changes
+- `chore`: Maintenance tasks
 
 ---
 
-## 📖 Additional Documentation
+## 📚 Additional Resources
+
+### Documentation Files
 
 All detailed documentation is available in the project root:
 
 - **CODEBASE_INDEX.md** - Complete codebase structure and reference
 - **QUICK_START.md** - Fast setup guide
-- **APP_REVIEW_REPORT.md** - Code quality analysis
-- **APP_IMPROVEMENTS_COMPLETED.md** - Completed improvements
-- **AUTH_REDESIGN_IMPLEMENTATION.md** - Authentication system details
-- **AUTH_ISSUES_RESOLVED.md** - Auth troubleshooting guide
-- **DATABASE_IMPROVEMENT_PLAN.md** - Database architecture decisions
+- **RBAC_SYSTEM_DESIGN.md** - RBAC architecture details
+- **BUYER_JOURNEY_MASTER_SUMMARY.md** - Buyer journey implementation
+- **RFQ_QUOTATION_QUICK_START_GUIDE.md** - RFQ/Quotation workflow
 - **DEPLOYMENT_CHECKLIST.md** - Detailed deployment steps
-- **PRODUCT_CATEGORIES_IMPLEMENTATION.md** - Categories system guide
-- **REFACTORING_SUMMARY.md** - Code refactoring history
-- **LANDING_PAGE_DOCUMENTATION.md** - Landing page design documentation
+- **LANDING_PAGE_DOCUMENTATION.md** - Landing page design
+
+### External Documentation
+
+- **Laravel:** https://laravel.com/docs/12.x
+- **Tailwind CSS:** https://tailwindcss.com/docs
+- **Alpine.js:** https://alpinejs.dev/
+- **Spatie Packages:** https://spatie.be/open-source
+
+### Community
+
+- **Laravel:** https://laravel.io/
+- **Stack Overflow:** https://stackoverflow.com/questions/tagged/laravel
 
 ---
 
-## 🎯 Project Status
+## 📊 Project Status
 
 ### ✅ Completed Features
+
 - [x] Laravel 12 framework setup
 - [x] Tailwind CSS migration
 - [x] User authentication with approval workflow
-- [x] Multi-role system (Admin, Supplier, Buyer)
+- [x] Multi-role system (Admin, Staff, Supplier, Buyer)
 - [x] Spatie permission integration
 - [x] Product catalog with hierarchical categories
-- [x] RFQ/Quotation system
+- [x] RFQ/Quotation system with state machines
 - [x] Order management
 - [x] Invoice generation
 - [x] Payment tracking with auto-sync
@@ -1047,87 +1223,76 @@ All detailed documentation is available in the project root:
 - [x] Activity logging & audit trails
 - [x] Responsive landing page
 - [x] Admin panel
-- [x] Reference code service
-- [x] Medical-themed design system
+- [x] Buyer journey improvements (70% complete)
+- [x] Shopping cart with persistence
+- [x] RFQ templates and bulk import
+- [x] Quotation scoring system
+- [x] Abandoned cart recovery
 
 ### 🚧 Roadmap (Optional Enhancements)
 
 **Phase 1: User Experience**
 - [ ] Email verification flow
 - [ ] Social login (Google, Facebook)
-- [ ] Profile completion wizard
 - [ ] Real-time notifications (WebSockets)
-- [ ] Advanced search & filtering
-- [ ] Product reviews & ratings
+- [ ] Advanced search (Elasticsearch)
+- [ ] Product recommendations (AI)
 
 **Phase 2: Business Features**
-- [ ] Wishlist functionality
-- [ ] Product comparison
-- [ ] Bulk ordering
 - [ ] Discount & coupon system
 - [ ] Subscription plans for suppliers
 - [ ] Featured products/suppliers
+- [ ] Negotiation tools
 
 **Phase 3: Analytics & Reporting**
 - [ ] Advanced reporting dashboards
 - [ ] Sales analytics
 - [ ] Supplier performance metrics
 - [ ] Buyer insights
-- [ ] Export reports (PDF, Excel)
 
 **Phase 4: Integration**
 - [ ] RESTful API development
 - [ ] Mobile app (React Native/Flutter)
-- [ ] Payment gateway integration (PayPal, Stripe)
+- [ ] Payment gateway integration
 - [ ] Shipping provider integration
-- [ ] ERP system integration
 
 **Phase 5: Localization**
 - [ ] Full Arabic translation (i18n)
 - [ ] Multi-language support
 - [ ] Multi-currency support
-- [ ] Regional settings
 
 ---
 
-## 💡 Support & Resources
-
-### Documentation
-- **Laravel:** https://laravel.com/docs/12.x
-- **Tailwind CSS:** https://tailwindcss.com/docs
-- **Alpine.js:** https://alpinejs.dev/
-- **Spatie Packages:** https://spatie.be/open-source
-
-### Community
-- **Laravel:** https://laravel.io/
-- **Stack Overflow:** https://stackoverflow.com/questions/tagged/laravel
-
-### License
-This project is licensed under the MIT License.
-
----
-
-## 📞 Contact
+## 📞 Support & Contact
 
 For questions, issues, or contributions:
+
 - **Email:** support@medequip.ly
 - **GitHub:** Create an issue in the repository
+- **Documentation:** See `/docs` directory or project root markdown files
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License**.
 
 ---
 
 ## 🎉 Acknowledgments
 
 Special thanks to:
+
 - **Laravel Team** - For the amazing framework
-- **Spatie** - For their excellent packages
+- **Spatie** - For their excellent packages (Permission, Media Library, Activity Log)
 - **Tailwind Labs** - For Tailwind CSS
-- **All Contributors** - Who made this possible
+- **All Contributors** - Who made this project possible
 
 ---
 
 **Built with ❤️ for the healthcare industry in Libya and the Arab world.**
 
 **Version:** 1.0.0  
-**Last Updated:** 2025-11-26  
+**Last Updated:** January 24, 2026  
 **Status:** ✅ Production Ready  
 **Ready to deploy!** 🚀

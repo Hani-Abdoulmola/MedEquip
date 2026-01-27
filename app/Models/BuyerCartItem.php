@@ -14,10 +14,12 @@ class BuyerCartItem extends Model
         'specifications',
         'unit',
         'supplier_id',
+        'max_price',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
+        'max_price' => 'decimal:2',
     ];
 
     /**

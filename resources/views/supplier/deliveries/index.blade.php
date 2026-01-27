@@ -209,8 +209,8 @@
                                     </a>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <p class="font-medium text-medical-gray-900">{{ $delivery->receiver_name }}</p>
-                                    <p class="text-sm text-medical-gray-500">{{ $delivery->receiver_phone }}</p>
+                                    <p class="font-medium text-medical-gray-900">{{ $delivery->receiver_name ?? 'غير محدد' }}</p>
+                                    <p class="text-sm text-medical-gray-500">{{ $delivery->receiver_phone ?? 'غير محدد' }}</p>
                                 </td>
                                 <td class="px-6 py-4">
                                     <p class="text-medical-gray-900">{{ $delivery->delivery_date?->format('Y-m-d') }}</p>

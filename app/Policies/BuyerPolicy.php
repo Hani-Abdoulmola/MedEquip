@@ -12,6 +12,8 @@ class BuyerPolicy
      */
     public function viewAny(User $user): bool
     {
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('buyers.view');
     }
 
@@ -25,6 +27,8 @@ class BuyerPolicy
             return true;
         }
 
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('buyers.view');
     }
 
@@ -33,6 +37,8 @@ class BuyerPolicy
      */
     public function create(User $user): bool
     {
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('buyers.create');
     }
 
@@ -46,6 +52,8 @@ class BuyerPolicy
             return true;
         }
 
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('buyers.update');
     }
 
@@ -54,6 +62,8 @@ class BuyerPolicy
      */
     public function delete(User $user, Buyer $buyer): bool
     {
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('buyers.delete');
     }
 
@@ -62,6 +72,8 @@ class BuyerPolicy
      */
     public function verify(User $user, Buyer $buyer): bool
     {
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('buyers.verify');
     }
 
@@ -70,6 +82,8 @@ class BuyerPolicy
      */
     public function toggleActive(User $user, Buyer $buyer): bool
     {
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('buyers.toggle_active');
     }
 

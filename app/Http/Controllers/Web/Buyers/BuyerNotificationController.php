@@ -30,6 +30,11 @@ class BuyerNotificationController extends Controller
                 abort(403, 'لا يوجد ملف تعريف للمشتري');
             }
 
+            // Mark all notifications as read when viewing the page (if requested)
+            if ($request->has('mark_read') && $request->mark_read === 'true') {
+                $user->unreadNotifications->markAsRead();
+            }
+
             $query = $user->notifications();
 
             // Filter by read status
@@ -209,6 +214,70 @@ class BuyerNotificationController extends Controller
         } catch (\Throwable $e) {
             Log::error('BuyerNotificationController destroyAll error: '.$e->getMessage());
             return back()->withErrors(['error' => 'حدث خطأ أثناء حذف الإشعارات']);
+        }
+    }
+
+    /**
+     * Reply to a notification
+     */
+    public function reply(Request $request, string $id): RedirectResponse
+    {
+        try {
+            $user = Auth::user();
+            $notification = $user->notifications()->where('id', $id)->first();
+
+            if (!$notification) {
+                return back()->withErrors(['error' => 'الإشعار غير موجود']);
+            }
+
+            $request->validate([
+                'message' => ['required', 'string', 'max:5000'],
+            ]);
+
+            // Get original sender
+            $originalSenderId = $notification->data['sent_by_id'] ?? null;
+            if (!$originalSenderId) {
+                return back()->withErrors(['error' => 'لا يمكن الرد على هذا الإشعار']);
+            }
+
+            $originalSender = \App\Models\User::find($originalSenderId);
+            if (!$originalSender) {
+                return back()->withErrors(['error' => 'المرسل الأصلي غير موجود']);
+            }
+
+            // Create reply title
+            $replyTitle = 'رد على: ' . ($notification->data['title'] ?? 'إشعار');
+
+            // Send reply
+            \App\Services\NotificationService::sendReply(
+                $notification->id,
+                $originalSender,
+                $replyTitle,
+                $request->message,
+                null,
+                'fas fa-reply text-info',
+                'info'
+            );
+
+            // Mark original notification as read
+            if (!$notification->read_at) {
+                $notification->markAsRead();
+            }
+
+            // Log activity
+            activity('buyer_notifications')
+                ->causedBy($user)
+                ->withProperties([
+                    'notification_id' => $id,
+                    'action' => 'reply',
+                ])
+                ->log('قام المشتري بالرد على إشعار');
+
+            return back()->with('success', 'تم إرسال الرد بنجاح');
+
+        } catch (\Throwable $e) {
+            Log::error('BuyerNotificationController reply error: '.$e->getMessage());
+            return back()->withErrors(['error' => 'حدث خطأ أثناء إرسال الرد']);
         }
     }
 }

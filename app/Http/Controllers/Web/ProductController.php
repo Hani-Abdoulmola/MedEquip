@@ -31,11 +31,7 @@ class ProductController extends Controller
      */
     public function index(): View
     {
-        // Check permission
-        if (!auth()->user()->can('products.view')) {
-            abort(403, 'ليس لديك صلاحية عرض المنتجات');
-        }
-        
+        // Permission check is handled by route middleware
         $query = Product::with(['category', 'manufacturer', 'creator', 'updater']);
 
         // Filter by supplier
@@ -68,15 +64,32 @@ class ProductController extends Controller
             $query->where('review_status', request('review_status'));
         }
 
-        // Search: name, model, brand, or manufacturer
+        // Enhanced Search: searches across all product fields and relationships
         if (request()->filled('search')) {
             $search = request('search');
             $query->where(function ($q) use ($search) {
+                // Product fields
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('model', 'like', "%{$search}%")
                   ->orWhere('brand', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  // Manufacturer
                   ->orWhereHas('manufacturer', function ($m) use ($search) {
                       $m->where('name', 'like', "%{$search}%");
+                  })
+                  // Category (name and full path)
+                  ->orWhereHas('category', function ($c) use ($search) {
+                      $c->where('name', 'like', "%{$search}%")
+                        ->orWhere('name_ar', 'like', "%{$search}%");
+                  })
+                  // Suppliers
+                  ->orWhereHas('suppliers', function ($s) use ($search) {
+                      $s->where('company_name', 'like', "%{$search}%")
+                        ->orWhereHas('user', function ($u) use ($search) {
+                            $u->where('name', 'like', "%{$search}%")
+                              ->orWhere('email', 'like', "%{$search}%");
+                        });
                   });
             });
         }
@@ -96,7 +109,9 @@ class ProductController extends Controller
             ->where('is_active', true)
             ->pluck('company_name', 'id');
 
+        // Eager load parent relationship to avoid N+1 queries and ensure full_path works
         $categories = ProductCategory::active()
+            ->with('parent') // Load parent for full_path calculation
             ->ordered()
             ->get()
             ->mapWithKeys(function ($cat) {
@@ -135,11 +150,7 @@ class ProductController extends Controller
      */
     public function edit(Product $product): View
     {
-        // Check permission
-        if (!auth()->user()->can('products.edit')) {
-            abort(403, 'ليس لديك صلاحية تعديل المنتجات');
-        }
-
+        // Permission check is handled by route middleware
         $product->load(['category', 'manufacturer', 'suppliers']);
 
         // Get filter options for dropdowns
@@ -164,10 +175,7 @@ class ProductController extends Controller
      */
     public function update(Request $request, Product $product): RedirectResponse
     {
-        // Check permission
-        if (!auth()->user()->can('products.edit')) {
-            abort(403, 'ليس لديك صلاحية تعديل المنتجات');
-        }
+        // Permission check is handled by route middleware
 
         $validated = $request->validate([
             'name' => 'required|string|max:200',
@@ -190,15 +198,25 @@ class ProductController extends Controller
             'ce_marked' => 'boolean',
             'fda_cleared' => 'boolean',
             'iso_certification' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         try {
             $validated['updated_by'] = Auth::id();
-            $validated['is_active'] = $request->has('is_active');
-            $validated['ce_marked'] = $request->has('ce_marked');
-            $validated['fda_cleared'] = $request->has('fda_cleared');
+            // Convert string "1"/"0" to boolean for is_active
+            $validated['is_active'] = $request->input('is_active') == '1' || $request->input('is_active') === true || $request->input('is_active') === 1;
+            $validated['ce_marked'] = $request->has('ce_marked') || $request->input('ce_marked') == '1';
+            $validated['fda_cleared'] = $request->has('fda_cleared') || $request->input('fda_cleared') == '1';
 
             $product->update($validated);
+
+            // Handle image upload
+            if ($request->hasFile('image')) {
+                // Clear existing images and add new one
+                $product->clearMediaCollection('product_images');
+                $product->addMediaFromRequest('image')
+                    ->toMediaCollection('product_images');
+            }
 
             // Log activity
             activity('products')

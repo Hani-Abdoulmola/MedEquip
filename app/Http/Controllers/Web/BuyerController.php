@@ -28,11 +28,7 @@ class BuyerController extends Controller
      */
     public function index(): View
     {
-        // Check permission
-        if (!auth()->user()->can('buyers.view')) {
-            abort(403, 'ليس لديك صلاحية عرض المشترين');
-        }
-        
+        // Permission check is handled by route middleware
         $query = Buyer::with(['user', 'rfqs', 'orders']);
 
         // 🔍 Filter by search (organization name, contact email, contact phone, user name, user email)

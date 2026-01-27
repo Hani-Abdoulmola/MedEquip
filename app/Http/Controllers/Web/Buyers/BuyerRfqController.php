@@ -118,7 +118,28 @@ class BuyerRfqController extends Controller
             $data = $request->validated();
             $data['buyer_id'] = $buyer->id; // Auto-set buyer_id from authenticated user
             $data['created_by'] = Auth::id();
-            $data['status'] = $data['status'] ?? 'draft'; // Default to draft
+            
+            // IMPORTANT: Fix is_public handling from checkbox
+            // Checkbox sends '1' when checked, hidden input sends '0' when unchecked
+            // Laravel's boolean validation converts '1'/'0' to true/false, but let's be explicit
+            $isPublicInput = $request->input('is_public');
+            if (is_string($isPublicInput)) {
+                $data['is_public'] = ($isPublicInput === '1' || $isPublicInput === 'true' || $isPublicInput === 'on');
+            } else {
+                $data['is_public'] = (bool) $isPublicInput;
+            }
+            
+            // If status is not explicitly set to 'open', determine based on is_public:
+            // - If public, default to 'open' so suppliers can see it immediately
+            // - If private, default to 'draft' (needs manual assignment/publishing)
+            if (!isset($data['status']) || $data['status'] === 'draft') {
+                $data['status'] = $data['is_public'] ? 'open' : 'draft';
+            }
+            
+            // IMPORTANT: If user explicitly sets status to 'open' but is_public is false,
+            // we should still allow it (maybe buyer wants to assign suppliers manually later)
+            // But if is_public is true and status is 'open', it will be visible to all verified suppliers
+            
             $data['reference_code'] = ReferenceCodeService::generateUnique(
                 ReferenceCodeService::PREFIX_RFQ,
                 Rfq::class
@@ -139,6 +160,7 @@ class BuyerRfqController extends Controller
             }
 
             // Notify verified suppliers about new public RFQ using workflow service
+            // Only notify if RFQ is public AND open (visible to suppliers)
             if ($rfq->is_public && $rfq->status === 'open') {
                 \App\Services\RfqWorkflowService::notifyNewRfq($rfq);
             }
@@ -272,6 +294,14 @@ class BuyerRfqController extends Controller
         try {
             $data = $request->validated();
             $data['updated_by'] = Auth::id();
+            
+            // IMPORTANT: Fix is_public handling from checkbox (same as store method)
+            $isPublicInput = $request->input('is_public');
+            if (is_string($isPublicInput)) {
+                $data['is_public'] = ($isPublicInput === '1' || $isPublicInput === 'true' || $isPublicInput === 'on');
+            } else {
+                $data['is_public'] = (bool) $isPublicInput;
+            }
 
             // Update RFQ
             $rfq->update($data);
@@ -426,7 +456,7 @@ class BuyerRfqController extends Controller
             'status' => 'required|in:draft,open,closed,cancelled',
         ]);
 
-        $oldStatus = $rfq->status;
+            $oldStatus = $rfq->status;
 
         DB::beginTransaction();
 
@@ -436,6 +466,11 @@ class BuyerRfqController extends Controller
                 'updated_by' => Auth::id(),
                 'closed_at' => in_array($validated['status'], ['closed', 'cancelled']) ? now() : null,
             ]);
+
+            // Notify suppliers when RFQ status changes to 'open' (becomes visible)
+            if ($oldStatus !== 'open' && $rfq->status === 'open' && $rfq->is_public) {
+                \App\Services\RfqWorkflowService::notifyNewRfq($rfq);
+            }
 
             // Notify assigned suppliers if RFQ is closed
             if ($rfq->status === 'closed') {

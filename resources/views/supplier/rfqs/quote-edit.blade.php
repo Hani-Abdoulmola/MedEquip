@@ -56,6 +56,7 @@
                                 @endphp
                                 <div class="p-6 bg-medical-gray-50 rounded-xl border border-medical-gray-200">
                                     <input type="hidden" name="items[{{ $index }}][rfq_item_id]" value="{{ $item->id }}">
+                                    <input type="hidden" name="items[{{ $index }}][quantity]" value="{{ $item->quantity }}">
                                     
                                     <div class="flex items-start justify-between mb-4">
                                         <div>

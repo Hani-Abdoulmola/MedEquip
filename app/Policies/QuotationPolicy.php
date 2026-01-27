@@ -22,7 +22,8 @@ class QuotationPolicy
             return true;
         }
         
-        // Admin/Staff need permission
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('quotations.view');
     }
 
@@ -41,7 +42,8 @@ class QuotationPolicy
             return $quotation->supplier_id === $user->supplierProfile->id;
         }
 
-        // Admin/Staff need permission
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('quotations.view');
     }
 
@@ -55,54 +57,44 @@ class QuotationPolicy
             return true;
         }
         
-        // Admin/Staff need permission (rare case)
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission (rare case)
         return $user->can('quotations.submit');
     }
 
     /**
      * Determine if the user can update the quotation.
+     * 
+     * REFACTORED: Policy now checks ONLY authorization (ownership).
+     * Business rules (deadline, status, etc.) are checked by QuotationStateMachine.
      */
     public function update(User $user, Quotation $quotation): bool
     {
-        // Supplier can only update their own pending quotations
+        // Supplier can only update their own quotations
         if ($user->hasRole('Supplier') && $user->supplierProfile) {
-            if ($quotation->supplier_id !== $user->supplierProfile->id) {
-                return false;
-            }
-            
-            // Can only update if status is pending and RFQ is still open
-            if ($quotation->status !== 'pending') {
-                return false;
-            }
-            
-            // Check if RFQ deadline has passed
-            if ($quotation->rfq->deadline && $quotation->rfq->deadline->isPast()) {
-                return false;
-            }
-            
-            return $quotation->rfq && $quotation->rfq->status === 'open';
+            return $quotation->supplier_id === $user->supplierProfile->id;
         }
 
-        // Admin should NOT update quotations (violates requirement)
-        // Keep for emergency cases only, but should be restricted
+        // Admin/Staff should NOT update quotations (violates business requirement)
+        // Quotations belong to suppliers only
         return false;
     }
 
     /**
      * Determine if the user can delete the quotation.
+     * 
+     * REFACTORED: Policy checks ownership only.
+     * Status validation handled by QuotationStateMachine.
      */
     public function delete(User $user, Quotation $quotation): bool
     {
-        // Supplier can only delete their own pending quotations
+        // Supplier can only delete their own quotations
         if ($user->hasRole('Supplier') && $user->supplierProfile) {
-            if ($quotation->supplier_id !== $user->supplierProfile->id) {
-                return false;
-            }
-            
-            return $quotation->status === 'pending';
+            return $quotation->supplier_id === $user->supplierProfile->id;
         }
 
-        // Admin/Staff need permission
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('quotations.delete');
     }
 
@@ -116,7 +108,7 @@ class QuotationPolicy
             return $quotation->rfq && $quotation->rfq->buyer_id === $user->buyerProfile->id;
         }
 
-        // Admin/Staff need permission
+        // Gate::before() handles Admin bypass
         return $user->can('quotations.accept');
     }
 
@@ -130,7 +122,7 @@ class QuotationPolicy
             return $quotation->rfq && $quotation->rfq->buyer_id === $user->buyerProfile->id;
         }
 
-        // Admin/Staff need permission
+        // Gate::before() handles Admin bypass
         return $user->can('quotations.reject');
     }
 
@@ -144,7 +136,8 @@ class QuotationPolicy
             return true;
         }
         
-        // Admin/Staff need permission
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('quotations.compare');
     }
 }

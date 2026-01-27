@@ -8,8 +8,11 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Schedule automatic RFQ closing
+// Schedule automatic RFQ closing (also expires pending quotations)
 Schedule::command('rfqs:close-expired')->hourly();
+
+// Schedule quotation expiration (independent of RFQ deadline)
+Schedule::command('quotations:expire')->hourly();
 
 // Schedule deadline reminders (every 6 hours)
 Schedule::command('rfqs:send-reminders --hours=24')->everySixHours();

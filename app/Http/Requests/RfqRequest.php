@@ -42,9 +42,11 @@ class RfqRequest extends FormRequest
             'deadline' => ['nullable', 'date', 'after_or_equal:today'],
 
             // ⚙️ الحالة
+            // Note: 'under_review' exists in DB enum but is not used by RfqStateMachine
+            // State machine only uses: draft, open, closed, awarded, cancelled
             'status' => [
                 'required',
-                Rule::in(['draft', 'open', 'under_review', 'closed', 'awarded', 'cancelled']),
+                Rule::in(['draft', 'open', 'closed', 'awarded', 'cancelled']),
             ],
 
             // 👁️ هل الطلب عام أم خاص
@@ -94,8 +96,24 @@ class RfqRequest extends FormRequest
 
             // 🧩 تأكد أن المستخدم الحالي فعلاً هو المشتري المرتبط
             if (auth()->user()->hasRole('Buyer') && auth()->user()->buyerProfile) {
-                if ($this->buyer_id != auth()->user()->buyerProfile->id) {
-                    $validator->errors()->add('buyer_id', 'لا يمكنك إنشاء أو تعديل RFQ نيابة عن مشتري آخر.');
+                $currentBuyerId = auth()->user()->buyerProfile->id;
+                
+                if ($isUpdate && $rfq) {
+                    // For UPDATE: Check that the RFQ belongs to the current buyer
+                    if ($rfq->buyer_id != $currentBuyerId) {
+                        $validator->errors()->add('buyer_id', 'لا يمكنك تعديل RFQ نيابة عن مشتري آخر.');
+                    }
+                    
+                    // If buyer_id is provided in update, it must match the authenticated user
+                    if ($this->has('buyer_id') && $this->buyer_id !== null && $this->buyer_id != $currentBuyerId) {
+                        $validator->errors()->add('buyer_id', 'لا يمكنك تعديل RFQ نيابة عن مشتري آخر.');
+                    }
+                } else {
+                    // For CREATE: Only validate if buyer_id is explicitly provided
+                    // If null/not provided, controller will auto-set it (which is fine)
+                    if ($this->has('buyer_id') && $this->buyer_id !== null && $this->buyer_id != $currentBuyerId) {
+                        $validator->errors()->add('buyer_id', 'لا يمكنك إنشاء RFQ نيابة عن مشتري آخر.');
+                    }
                 }
             }
 

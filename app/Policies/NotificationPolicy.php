@@ -30,7 +30,7 @@ class NotificationPolicy
      */
     public function create(User $user): bool
     {
-        // Only system (admin) can create notifications
+        // Gate::before() handles Admin bypass
         // This is typically done via NotificationService
         return $user->can('notifications.create');
     }

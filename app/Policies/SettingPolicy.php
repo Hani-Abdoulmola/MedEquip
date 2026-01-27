@@ -12,7 +12,7 @@ class SettingPolicy
      */
     public function viewAny(User $user): bool
     {
-        // Only admin can view settings
+        // Gate::before() handles Admin bypass
         return $user->can('settings.view');
     }
 
@@ -21,7 +21,7 @@ class SettingPolicy
      */
     public function view(User $user, Setting $setting): bool
     {
-        // Only admin can view settings
+        // Gate::before() handles Admin bypass
         return $user->can('settings.view');
     }
 
@@ -30,7 +30,7 @@ class SettingPolicy
      */
     public function create(User $user): bool
     {
-        // Only admin can create settings
+        // Gate::before() handles Admin bypass
         return $user->can('settings.update');
     }
 
@@ -39,7 +39,7 @@ class SettingPolicy
      */
     public function update(User $user, Setting $setting): bool
     {
-        // Only admin can update settings
+        // Gate::before() handles Admin bypass
         return $user->can('settings.update');
     }
 
@@ -48,7 +48,7 @@ class SettingPolicy
      */
     public function delete(User $user, Setting $setting): bool
     {
-        // Only admin can delete settings
+        // Gate::before() handles Admin bypass
         return $user->can('settings.update');
     }
 }

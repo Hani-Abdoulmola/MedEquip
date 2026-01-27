@@ -356,6 +356,65 @@ class Product extends Model implements HasMedia
     }
 
     /**
+     * Get product availability status (Phase 2).
+     * Returns: 'in_stock', 'low_stock', 'out_of_stock', 'available_on_order', or 'unavailable'
+     *
+     * @return array{status: string, badge: string, color: string}
+     */
+    public function getAvailabilityStatus(): array
+    {
+        $suppliersCount = $this->suppliers_count ?? 0;
+        
+        if ($suppliersCount === 0) {
+            return [
+                'status' => 'unavailable',
+                'badge' => 'غير متوفر',
+                'color' => 'bg-gray-100 text-gray-600 border-gray-300',
+            ];
+        }
+
+        // Load suppliers if not already loaded (for stock calculation)
+        $suppliers = $this->relationLoaded('suppliers') 
+            ? $this->suppliers 
+            : $this->suppliers()->where('product_supplier.status', 'available')
+                ->where('suppliers.is_verified', true)
+                ->where('suppliers.is_active', true)
+                ->get();
+
+        $totalStock = $suppliers->sum('pivot.stock_quantity');
+        $hasInStock = $suppliers->where('pivot.stock_quantity', '>', 0)->isNotEmpty();
+        $hasLowStock = $suppliers->where('pivot.stock_quantity', '>', 0)
+            ->where('pivot.stock_quantity', '<=', 10)
+            ->isNotEmpty();
+
+        if ($hasInStock && !$hasLowStock) {
+            return [
+                'status' => 'in_stock',
+                'badge' => 'متوفر',
+                'color' => 'bg-medical-green-100 text-medical-green-800 border-medical-green-300',
+            ];
+        } elseif ($hasLowStock) {
+            return [
+                'status' => 'low_stock',
+                'badge' => 'مخزون محدود',
+                'color' => 'bg-yellow-100 text-yellow-800 border-yellow-300',
+            ];
+        } elseif ($suppliers->isNotEmpty()) {
+            return [
+                'status' => 'available_on_order',
+                'badge' => 'متوفر عند الطلب',
+                'color' => 'bg-blue-100 text-blue-800 border-blue-300',
+            ];
+        } else {
+            return [
+                'status' => 'out_of_stock',
+                'badge' => 'غير متوفر',
+                'color' => 'bg-gray-100 text-gray-600 border-gray-300',
+            ];
+        }
+    }
+
+    /**
      * Get the review status label in Arabic.
      *
      * @return string

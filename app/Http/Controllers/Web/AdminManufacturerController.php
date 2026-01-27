@@ -25,11 +25,7 @@ class AdminManufacturerController extends Controller
      */
     public function index(Request $request): View
     {
-        // Check permission
-        if (!auth()->user()->can('manufacturers.view')) {
-            abort(403, 'ليس لديك صلاحية عرض الشركات المصنعة');
-        }
-        
+        // Permission check is handled by route middleware
         $query = Manufacturer::with(['category', 'products']);
 
         // Search

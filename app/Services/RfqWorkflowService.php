@@ -26,12 +26,15 @@ class RfqWorkflowService
 {
     /**
      * Close RFQs that have passed their deadline
+     * Also expires any pending quotations for those RFQs
      * 
      * @return int Number of RFQs closed
      */
     public static function closeExpiredRfqs(): int
     {
         $closed = 0;
+        $stateMachine = app(RfqStateMachine::class);
+        $quotationStateMachine = app(QuotationStateMachine::class);
         
         $expiredRfqs = Rfq::where('status', 'open')
             ->whereNotNull('deadline')
@@ -42,10 +45,14 @@ class RfqWorkflowService
             try {
                 DB::beginTransaction();
                 
-                $rfq->update([
-                    'status' => 'closed',
-                    'closed_at' => now(),
-                ]);
+                // Use state machine to transition to closed
+                $stateMachine->transition($rfq, 'closed');
+
+                // IMPORTANT: Expire all pending quotations for this RFQ
+                $pendingQuotations = $rfq->quotations()->where('status', 'pending')->get();
+                foreach ($pendingQuotations as $quotation) {
+                    $quotationStateMachine->transition($quotation, 'expired');
+                }
 
                 // Notify buyer
                 if ($rfq->buyer && $rfq->buyer->user) {
@@ -157,27 +164,33 @@ class RfqWorkflowService
 
     /**
      * Validate if RFQ can accept new quotations
+     * Delegates to RfqStateMachine for consistency
      * 
      * @param Rfq $rfq
      * @return array ['valid' => bool, 'message' => string]
      */
     public static function canAcceptQuotations(Rfq $rfq): array
     {
-        if ($rfq->status !== 'open') {
-            return [
-                'valid' => false,
-                'message' => 'لا يمكن تقديم عروض أسعار لطلب مغلق أو ملغى.'
-            ];
+        $stateMachine = app(RfqStateMachine::class);
+        $canAccept = $stateMachine->canAcceptQuotations($rfq);
+        
+        if (!$canAccept) {
+            if ($rfq->status !== 'open') {
+                return [
+                    'valid' => false,
+                    'message' => 'لا يمكن تقديم عروض أسعار لطلب مغلق أو ملغى.'
+                ];
+            }
+            
+            if ($rfq->deadline && $rfq->deadline->isPast()) {
+                return [
+                    'valid' => false,
+                    'message' => 'انتهت صلاحية هذا الطلب.'
+                ];
+            }
         }
 
-        if ($rfq->deadline && $rfq->deadline->isPast()) {
-            return [
-                'valid' => false,
-                'message' => 'انتهت صلاحية هذا الطلب.'
-            ];
-        }
-
-        return ['valid' => true, 'message' => ''];
+        return ['valid' => $canAccept, 'message' => ''];
     }
 
     /**

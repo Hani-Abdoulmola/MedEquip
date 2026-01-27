@@ -19,10 +19,7 @@ class AdminDiagnosticsController extends Controller
      */
     public function factoryData(): View
     {
-        // Check permission
-        if (!auth()->user()->can('products.view')) {
-            abort(403, 'ليس لديك صلاحية عرض هذه الصفحة');
-        }
+        // Permission check is handled by route middleware
 
         // Get all statistics
         $stats = [

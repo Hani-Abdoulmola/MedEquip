@@ -125,7 +125,16 @@
                                 <p class="text-sm text-medical-gray-600 mt-1">{{ $notification->data['message'] ?? '' }}</p>
                                 <p class="text-xs text-medical-gray-400 mt-2">{{ $notification->created_at->diffForHumans() }}</p>
                             </div>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                @if(isset($notification->data['sent_by_id']) && $notification->data['sent_by_id'])
+                                    <button type="button" onclick="openReplyModal('{{ $notification->id }}', '{{ addslashes($notification->data['title'] ?? 'إشعار') }}')"
+                                        class="px-3 py-1.5 bg-medical-purple-50 text-medical-purple-700 rounded-lg hover:bg-medical-purple-100 text-sm font-medium flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                        </svg>
+                                        رد
+                                    </button>
+                                @endif
                                 @if(!$notification->read_at)
                                     <form action="{{ route('buyer.notifications.read', $notification->id) }}" method="POST">
                                         @csrf
@@ -151,6 +160,72 @@
             <div class="px-6 py-4 border-t border-medical-gray-100">{{ $notifications->links() }}</div>
         @endif
     </div>
+
+    {{-- Reply Modal --}}
+    <div id="replyModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center" style="display: none;">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-medical-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-bold text-medical-gray-900">الرد على الإشعار</h3>
+                    <button onclick="closeReplyModal()" class="text-medical-gray-400 hover:text-medical-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <p id="replyNotificationTitle" class="mt-2 text-sm text-medical-gray-600"></p>
+            </div>
+            <form id="replyForm" method="POST" class="p-6">
+                @csrf
+                <div class="mb-6">
+                    <label for="replyMessage" class="block text-sm font-bold text-medical-gray-900 mb-2">
+                        رسالة الرد <span class="text-medical-red-500">*</span>
+                    </label>
+                    <textarea name="message" id="replyMessage" rows="6" required
+                        placeholder="اكتب ردك هنا..."
+                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent transition-all resize-none"
+                        maxlength="5000"></textarea>
+                    <p class="mt-1 text-xs text-medical-gray-500">يجب ألا يتجاوز 5000 حرف</p>
+                </div>
+                <div class="flex items-center justify-end gap-3">
+                    <button type="button" onclick="closeReplyModal()"
+                        class="px-6 py-3 bg-medical-gray-100 text-medical-gray-700 rounded-xl hover:bg-medical-gray-200 transition font-medium">
+                        إلغاء
+                    </button>
+                    <button type="submit"
+                        class="px-6 py-3 bg-gradient-to-r from-medical-purple-600 to-medical-purple-700 text-white rounded-xl hover:from-medical-purple-700 hover:to-medical-purple-800 transition font-medium">
+                        إرسال الرد
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @push('scripts')
+        <script>
+            function openReplyModal(notificationId, notificationTitle) {
+                document.getElementById('replyNotificationTitle').textContent = 'الرد على: ' + notificationTitle;
+                document.getElementById('replyForm').action = '{{ route("buyer.notifications.reply", ":id") }}'.replace(':id', notificationId);
+                document.getElementById('replyModal').classList.remove('hidden');
+                document.getElementById('replyModal').style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeReplyModal() {
+                document.getElementById('replyModal').classList.add('hidden');
+                document.getElementById('replyModal').style.display = 'none';
+                document.body.style.overflow = '';
+                document.getElementById('replyForm').reset();
+            }
+
+            // Close modal on outside click
+            document.getElementById('replyModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeReplyModal();
+                }
+            });
+        </script>
+    @endpush
 
 </x-dashboard.layout>
 

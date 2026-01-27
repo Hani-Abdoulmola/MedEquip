@@ -22,14 +22,21 @@ class Rfq extends Model implements HasMedia
         'title',
         'description',
         'deadline',
+        'published_at',
         'closed_at',
+        'awarded_at',
+        'cancelled_at',
+        'awarded_quotation_id',
         'status',
         'is_public',
     ];
 
     protected $casts = [
         'deadline' => 'datetime:Y-m-d H:i',
+        'published_at' => 'datetime:Y-m-d H:i',
         'closed_at' => 'datetime:Y-m-d H:i',
+        'awarded_at' => 'datetime:Y-m-d H:i',
+        'cancelled_at' => 'datetime:Y-m-d H:i',
         'is_public' => 'boolean',
     ];
 
@@ -55,6 +62,12 @@ class Rfq extends Model implements HasMedia
     public function quotations()
     {
         return $this->hasMany(Quotation::class, 'rfq_id');
+    }
+
+    // 🏆 The awarded quotation (winning bid)
+    public function awardedQuotation()
+    {
+        return $this->belongsTo(Quotation::class, 'awarded_quotation_id');
     }
 
     // 📦 عناصر RFQ (تفاصيل المنتجات المطلوبة)

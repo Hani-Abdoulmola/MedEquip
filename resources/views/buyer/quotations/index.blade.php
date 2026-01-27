@@ -1,5 +1,22 @@
 <x-dashboard.layout title="عروض الأسعار" userRole="buyer" :userName="auth()->user()->name" userType="مشتري">
 <div class="space-y-6">
+    {{-- Success/Error Messages --}}
+    @if(session('success'))
+        <div class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
+            {{ session('success') }}
+        </div>
+    @endif
+    
+    @if($errors->any())
+        <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+            <ul class="list-disc pr-4">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     {{-- Header --}}
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -162,10 +179,10 @@
                                 عرض التفاصيل
                             </a>
                             @if($quotation->status === 'pending')
-                                <form action="{{ route('buyer.quotations.accept', $quotation) }}" method="POST" class="inline">
+                                <form action="{{ route('buyer.quotations.accept', $quotation) }}" method="POST" class="inline" id="accept-form-{{ $quotation->id }}">
                                     @csrf
                                     <button type="submit" 
-                                            onclick="return confirm('هل أنت متأكد من قبول هذا العرض؟')"
+                                            onclick="event.preventDefault(); if(confirm('هل أنت متأكد من قبول هذا العرض؟ سيتم رفض باقي العروض تلقائياً.')) { document.getElementById('accept-form-{{ $quotation->id }}').submit(); }"
                                             class="p-2 bg-green-100 text-green-700 hover:bg-green-200 rounded-lg transition-colors"
                                             title="قبول">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -173,10 +190,10 @@
                                         </svg>
                                     </button>
                                 </form>
-                                <form action="{{ route('buyer.quotations.reject', $quotation) }}" method="POST" class="inline">
+                                <form action="{{ route('buyer.quotations.reject', $quotation) }}" method="POST" class="inline" id="reject-form-{{ $quotation->id }}">
                                     @csrf
                                     <button type="submit" 
-                                            onclick="return confirm('هل أنت متأكد من رفض هذا العرض؟')"
+                                            onclick="event.preventDefault(); if(confirm('هل أنت متأكد من رفض هذا العرض؟')) { document.getElementById('reject-form-{{ $quotation->id }}').submit(); }"
                                             class="p-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors"
                                             title="رفض">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

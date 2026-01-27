@@ -40,7 +40,8 @@ class OrderPolicy
             return $order->supplier_id === $user->supplierProfile->id;
         }
 
-        // Admin/Staff with permission can view all
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('orders.view');
     }
 
@@ -52,6 +53,8 @@ class OrderPolicy
      */
     public function create(User $user): bool
     {
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('orders.create');
     }
 
@@ -73,6 +76,8 @@ class OrderPolicy
             return $order->supplier_id === $user->supplierProfile->id;
         }
 
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('orders.update');
     }
 
@@ -86,6 +91,7 @@ class OrderPolicy
             return false;
         }
 
+        // Gate::before() handles Admin bypass
         return $user->can('orders.delete');
     }
 
@@ -94,6 +100,8 @@ class OrderPolicy
      */
     public function confirm(User $user, Order $order): bool
     {
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('orders.confirm');
     }
 
@@ -112,7 +120,7 @@ class OrderPolicy
             return $order->supplier_id === $user->supplierProfile->id;
         }
 
-        // Admin/Staff with permission can update any order status
+        // Gate::before() handles Admin bypass
         return $user->can('orders.update_status');
     }
 

@@ -12,6 +12,10 @@ class BuyerCart extends Model
     protected $fillable = [
         'buyer_id',
         'name',
+        'template_name',
+        'is_template',
+        'source',
+        'original_order_id',
         'is_active',
         'is_saved',
         'expires_at',
@@ -20,6 +24,7 @@ class BuyerCart extends Model
     protected $casts = [
         'is_active' => 'boolean',
         'is_saved' => 'boolean',
+        'is_template' => 'boolean',
         'expires_at' => 'datetime',
     ];
 

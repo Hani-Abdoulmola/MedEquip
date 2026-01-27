@@ -33,10 +33,7 @@ class AdminRfqController extends Controller
      */
     public function index(Request $request): View
     {
-        // Check permission
-        if (!auth()->user()->can('rfqs.view')) {
-            abort(403, 'ليس لديك صلاحية عرض طلبات عروض الأسعار');
-        }
+        // Permission check is handled by route middleware
         
         $query = Rfq::with(['buyer', 'items', 'quotations', 'assignedSuppliers'])
             ->latest('created_at');

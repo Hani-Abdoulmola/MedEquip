@@ -31,11 +31,7 @@ class AdminQuotationController extends Controller
      */
     public function index(Request $request): View
     {
-        // Check permission
-        if (!auth()->user()->can('quotations.view')) {
-            abort(403, 'ليس لديك صلاحية عرض عروض الأسعار');
-        }
-        
+        // Permission check is handled by route middleware
         $query = Quotation::with(['rfq.buyer', 'supplier', 'items'])
             ->latest('created_at');
 
@@ -84,24 +80,81 @@ class AdminQuotationController extends Controller
 
     /**
      * Show the form for creating a new quotation.
-     * 
-     * CRITICAL FIX: Admin must NOT create quotations directly.
-     * Quotations must be submitted by suppliers to maintain business logic integrity.
      */
     public function create(): View
     {
-        abort(403, 'لا يمكن للمسؤولين إنشاء عروض أسعار مباشرة. يتم تقديم عروض الأسعار من قبل الموردين.');
+        // Permission check is handled by route middleware
+
+        // Get RFQs for dropdown
+        $rfqs = Rfq::orderBy('title')->pluck('title', 'id');
+        
+        // Get Suppliers for dropdown
+        $suppliers = Supplier::where('is_verified', true)
+            ->where('is_active', true)
+            ->orderBy('company_name')
+            ->pluck('company_name', 'id');
+
+        return view('admin.quotations.create', compact('rfqs', 'suppliers'));
     }
 
     /**
      * Store a newly created quotation.
-     * 
-     * CRITICAL FIX: Admin must NOT create quotations directly.
-     * Quotations must be submitted by suppliers to maintain business logic integrity.
      */
     public function store(QuotationRequest $request): RedirectResponse
     {
-        abort(403, 'لا يمكن للمسؤولين إنشاء عروض أسعار مباشرة. يتم تقديم عروض الأسعار من قبل الموردين.');
+        // Permission check is handled by route middleware
+
+        DB::beginTransaction();
+        
+        try {
+            // Get RFQ to validate
+            $rfq = Rfq::findOrFail($request->rfq_id);
+            
+            // Get Supplier to validate
+            $supplier = Supplier::findOrFail($request->supplier_id);
+            
+            // Generate reference code
+            $referenceCode = ReferenceCodeService::generate('QUO');
+            
+            // Create quotation
+            $quotation = Quotation::create([
+                'rfq_id' => $rfq->id,
+                'supplier_id' => $supplier->id,
+                'created_by' => Auth::id(),
+                'reference_code' => $referenceCode,
+                'total_price' => $request->total_price,
+                'status' => $request->status ?? 'pending',
+                'valid_until' => $request->valid_until ? now()->parse($request->valid_until) : null,
+                'terms' => $request->terms,
+                'created_by' => Auth::id(),
+            ]);
+
+            // Log activity
+            activity()
+                ->performedOn($quotation)
+                ->causedBy(Auth::user())
+                ->withProperties([
+                    'rfq_id' => $rfq->id,
+                    'supplier_id' => $supplier->id,
+                    'total_price' => $quotation->total_price,
+                    'status' => $quotation->status,
+                ])
+                ->log('تم إنشاء عرض سعر جديد من قبل المسؤول');
+
+            DB::commit();
+
+            return redirect()
+                ->route('admin.quotations.show', $quotation)
+                ->with('success', 'تم إنشاء عرض السعر بنجاح.');
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Admin quotation creation error: ' . $e->getMessage());
+            
+            return back()
+                ->withInput()
+                ->withErrors(['error' => 'حدث خطأ أثناء إنشاء عرض السعر: ' . $e->getMessage()]);
+        }
     }
 
     /**

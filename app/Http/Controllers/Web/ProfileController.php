@@ -13,19 +13,32 @@ use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
-    // public function __construct()
-    // {
-    //     $this->middleware('auth'); // فقط المستخدمين المسجلين
-    // }
-
     /**
      * 👁️ عرض صفحة تعديل البروفايل
      */
     public function edit(Request $request): View
     {
         $user = $request->user()->load(['roles', 'buyerProfile', 'supplierProfile']);
+        
+        // Determine user role and type for dashboard layout
+        $userRole = 'admin';
+        $userType = 'مستخدم';
+        
+        if ($user->hasRole('Admin')) {
+            $userRole = 'admin';
+            $userType = 'مدير النظام';
+        } elseif ($user->hasRole('Staff')) {
+            $userRole = 'admin';
+            $userType = 'موظف إداري';
+        } elseif ($user->hasRole('Supplier')) {
+            $userRole = 'supplier';
+            $userType = 'مورد';
+        } elseif ($user->hasRole('Buyer')) {
+            $userRole = 'buyer';
+            $userType = 'مشتري';
+        }
 
-        return view('profile.edit', compact('user'));
+        return view('profile.edit', compact('user', 'userRole', 'userType'));
     }
 
     /**
@@ -44,7 +57,7 @@ class ProfileController extends Controller
             }
 
             // 🔐 إذا تم إدخال كلمة مرور جديدة
-            if (! empty($data['password'])) {
+            if (!empty($data['password'])) {
                 $data['password'] = Hash::make($data['password']);
             } else {
                 unset($data['password']);
@@ -79,7 +92,7 @@ class ProfileController extends Controller
         } catch (\Throwable $e) {
             Log::error('Profile update error: '.$e->getMessage());
 
-            return back()->withErrors(['error' => 'حدث خطأ أثناء حفظ البيانات: '.$e->getMessage()]);
+            return back()->withInput()->withErrors(['error' => 'حدث خطأ أثناء حفظ البيانات: '.$e->getMessage()]);
         }
     }
 

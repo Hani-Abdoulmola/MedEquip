@@ -2,39 +2,87 @@
 @props(['userRole' => 'admin', 'userName' => '', 'userType' => 'مستخدم'])
 
 @php
+    // Cache user and Admin check at the top level to prevent repeated queries
+    $user = auth()->user();
+    $isAdmin = $user && $user->hasRole('Admin');
+    
     /**
      * Helper function to check if user can access a menu item
-     * Uses permission-based authorization (RBAC best practice)
+     * Uses Spatie permission-based authorization (RBAC best practice)
+     * Gate::before() in AppServiceProvider ensures Admin role bypasses all checks
+     * Staff users must have explicit permissions
+     * 
+     * OPTIMIZED: Uses cached $isAdmin variable to prevent repeated role checks
      */
-    function canAccessMenuItem($item) {
-        $user = auth()->user();
-        
+    $canAccessMenuItem = function($item, $isAdmin = false) use ($user) {
+        // Safety check: if no user, deny access
         if (!$user) {
             return false;
         }
         
+        // Admin sees all items (no restrictions) - use cached check
+        if ($isAdmin) {
+            return true;
+        }
+        
+        // Check permission if specified
+        // Gate::before() ensures Admin passes all permission checks
         if (isset($item['permission'])) {
             try {
-                return $user->can($item['permission']);
+                // Use Spatie's can() method with proper error handling
+                $hasPermission = $user->can($item['permission']);
+                return $hasPermission;
             } catch (\Exception $e) {
-                // If permission doesn't exist or check fails, default to false
-                // This prevents errors when permissions haven't been seeded yet
+                // Log error for debugging but don't break the page
+                \Log::warning('Permission check failed in sidebar', [
+                    'permission' => $item['permission'] ?? null,
+                    'user_id' => $user->id ?? null,
+                    'error' => $e->getMessage()
+                ]);
+                // If permission doesn't exist or check fails, deny access
                 return false;
             }
         }
+        
+        // Check role if specified
         if (isset($item['role'])) {
             try {
                 return $user->hasRole($item['role']);
             } catch (\Exception $e) {
+                \Log::warning('Role check failed in sidebar', [
+                    'role' => $item['role'] ?? null,
+                    'user_id' => $user->id ?? null,
+                    'error' => $e->getMessage()
+                ]);
                 return false;
             }
         }
-        return false; // Default: hidden if no explicit permission/role (security-first)
-    }
+        
+        // For Staff users: If no permission/role is specified, deny access (security-first)
+        // This ensures Staff only sees items they have explicit permissions for
+        // Admin already bypasses this via Gate::before()
+        // Exception: Dashboard and supplier/buyer routes are accessible to authenticated users
+        if (isset($item['route'])) {
+            // Dashboard accessible to all authenticated users
+            if ($item['route'] === 'dashboard' || $item['route'] === 'supplier.dashboard' || $item['route'] === 'buyer.dashboard') {
+                return true;
+            }
+            // Supplier and Buyer routes are role-based, not permission-based
+            // If user has the Supplier or Buyer role, they can access their routes
+            if (str_starts_with($item['route'], 'supplier.') && $user->hasRole('Supplier')) {
+                return true;
+            }
+            if (str_starts_with($item['route'], 'buyer.') && $user->hasRole('Buyer')) {
+                return true;
+            }
+        }
+        
+        return false;
+    };
 
     // حساب عدد طلبات التسجيل المعلقة للشارة
     $pendingCount = 0;
-    if ($userRole === 'admin') {
+    if ($isAdmin) {
         $pendingSuppliers = \App\Models\Supplier::where('is_verified', false)->whereNull('rejection_reason')->count();
         $pendingBuyers = \App\Models\Buyer::where('is_verified', false)->whereNull('rejection_reason')->count();
         $pendingCount = $pendingSuppliers + $pendingBuyers;
@@ -53,6 +101,7 @@
                         'icon' =>
                             'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
                         'label' => 'لوحة التحكم',
+                        // Dashboard accessible to all authenticated users (no permission required)
                     ],
                 ],
             ],
@@ -67,12 +116,14 @@
                         'icon' =>
                             'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
                         'label' => 'الموردين',
+                        'permission' => 'suppliers.view',
                     ],
                     [
                         'route' => 'admin.buyers',
                         'icon' =>
                             'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z',
                         'label' => 'المشترين',
+                        'permission' => 'buyers.view',
                     ],
                     [
                         'route' => 'admin.registrations.pending',
@@ -80,6 +131,7 @@
                             'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4',
                         'label' => 'طلبات التسجيل',
                         'badge' => true,
+                        'permission' => 'suppliers.verify', // Or buyers.verify - both can see registrations
                     ],
                     [
                         'route' => 'admin.users',
@@ -119,12 +171,14 @@
                         'icon' =>
                             'M7 7h.01M7 3h5c1.1046 0 2 .8954 2 2v0c0 1.1046-.8954 2-2 2H9m-2 4h.01M7 11h5c1.1046 0 2 .8954 2 2v0c0 1.1046-.8954 2-2 2H9m-2 4h.01M7 19h5c1.1046 0 2 .8954 2 2v0',
                         'label' => 'فئات المنتجات',
+                        'permission' => 'products.view', // Categories are part of products
                     ],
                     [
                         'route' => 'admin.manufacturers.index',
                         'icon' =>
                             'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
                         'label' => 'الشركات المصنعة',
+                        'permission' => 'manufacturers.view',
                     ],
                 ],
             ],
@@ -139,18 +193,50 @@
                         'icon' =>
                             'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
                         'label' => 'الطلبات',
+                        'permission' => 'orders.view',
                     ],
                     [
                         'route' => 'admin.rfqs.index',
                         'icon' =>
                             'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
                         'label' => 'طلبات عروض الأسعار',
+                        'permission' => 'rfqs.view',
                     ],
                     [
                         'route' => 'admin.quotations.index',
                         'icon' =>
                             'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
                         'label' => 'عروض الأسعار',
+                        'permission' => 'quotations.view',
+                    ],
+                ],
+            ],
+            [
+                'dropdown' => true,
+                'label' => 'المالية والتسليم',
+                'icon' =>
+                    'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+                'items' => [
+                    [
+                        'route' => 'admin.invoices.index',
+                        'icon' =>
+                            'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+                        'label' => 'الفواتير',
+                        'permission' => 'invoices.view',
+                    ],
+                    [
+                        'route' => 'admin.payments.index',
+                        'icon' =>
+                            'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+                        'label' => 'المدفوعات',
+                        'permission' => 'payments.view',
+                    ],
+                    [
+                        'route' => 'admin.deliveries.index',
+                        'icon' =>
+                            'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2',
+                        'label' => 'عمليات التسليم',
+                        'permission' => 'deliveries.view',
                     ],
                 ],
             ],
@@ -165,24 +251,28 @@
                         'icon' =>
                             'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
                         'label' => 'الإعدادات',
+                        'permission' => 'settings.view',
                     ],
                     [
                         'route' => 'admin.reports',
                         'icon' =>
                             'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
                         'label' => 'التقارير',
+                        'permission' => 'reports.view',
                     ],
                     [
                         'route' => 'admin.activity',
                         'icon' =>
                             'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
                         'label' => 'سجل النشاط',
+                        'permission' => 'activity_logs.view',
                     ],
                     [
                         'route' => 'admin.notifications.index',
                         'icon' =>
                             'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9',
                         'label' => 'الإشعارات',
+                        'permission' => 'notifications.view',
                     ],
                 ],
             ],
@@ -200,29 +290,41 @@
                         'icon' =>
                             'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
                         'label' => 'لوحة التحكم',
+                        // Dashboard accessible to all authenticated users
                     ],
                     [
                         'route' => 'supplier.products.index',
                         'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
                         'label' => 'منتجاتي',
+                        // Supplier-specific, no permission needed
                     ],
                     [
                         'route' => 'supplier.orders.index',
                         'icon' =>
                             'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
                         'label' => 'الطلبات',
+                        // Supplier-specific, no permission needed
                     ],
                     [
                         'route' => 'supplier.deliveries.index',
                         'icon' =>
                             'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2',
                         'label' => 'التوصيل',
+                        // Supplier-specific, no permission needed
                     ],
                     [
                         'route' => 'supplier.invoices.index',
                         'icon' =>
                             'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
                         'label' => 'الفواتير',
+                        // Supplier-specific, no permission needed
+                    ],
+                    [
+                        'route' => 'supplier.payments.index',
+                        'icon' =>
+                            'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+                        'label' => 'المدفوعات',
+                        // Supplier-specific, no permission needed
                     ],
                 ],
             ],
@@ -288,7 +390,7 @@
                         'route' => 'buyer.cart.index',
                         'icon' =>
                             'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z',
-                        'label' => 'سلة الطلبات',
+                        'label' => 'السلة',
                     ],
                     [
                         'route' => 'buyer.products.favorites',
@@ -386,11 +488,18 @@
 
     $currentRoute = request()->route()?->getName() ?? '';
     $items = $menuItems[$userRole] ?? $menuItems['admin'];
+    
+    // Safety check: ensure items is always an array
+    if (!is_array($items) || empty($items)) {
+        $items = [];
+    }
 @endphp
 
 {{-- Desktop Sidebar --}}
 <aside class="hidden lg:flex lg:flex-col lg:w-72 bg-white border-l border-medical-gray-200 shadow-medical"
-    x-show="sidebarOpen" x-transition:enter="transition ease-out duration-300"
+    x-show="sidebarOpen" 
+    x-cloak
+    x-transition:enter="transition ease-out duration-300"
     x-transition:enter-start="opacity-0 transform -translate-x-full"
     x-transition:enter-end="opacity-100 transform translate-x-0" x-transition:leave="transition ease-in duration-200"
     x-transition:leave-start="opacity-100 transform translate-x-0"
@@ -407,25 +516,39 @@
 
     {{-- Navigation --}}
     <nav class="flex-1 overflow-y-auto px-6 space-y-1">
+        @if(empty($items))
+            {{-- Fallback: Show message if no items available --}}
+            <div class="p-4 text-center text-medical-gray-500 text-sm">
+                <p>لا توجد عناصر قائمة متاحة</p>
+            </div>
+        @else
         @foreach ($items as $item)
             @php
-                $canAccess = canAccessMenuItem($item);
+                try {
+                    $canAccess = $canAccessMenuItem($item, $isAdmin);
+                } catch (\Exception $e) {
+                    \Log::error('Error checking menu item access', [
+                        'item' => $item['label'] ?? 'unknown',
+                        'error' => $e->getMessage()
+                    ]);
+                    $canAccess = false;
+                }
             @endphp
 
             @if (!empty($item['dropdown']) && $item['dropdown'])
-                @php
-                    $activeDropdown = false;
-                    $hasAccessibleItems = false;
-                    foreach ($item['items'] as $sub) {
-                        if ($currentRoute === ($sub['route'] ?? '')) {
-                            $activeDropdown = true;
+                    @php
+                        $activeDropdown = false;
+                        $hasAccessibleItems = false;
+                        foreach ($item['items'] as $sub) {
+                            if ($currentRoute === ($sub['route'] ?? '')) {
+                                $activeDropdown = true;
+                            }
+                            // Check if at least one item is accessible - use cached Admin check
+                            if ($canAccessMenuItem($sub, $isAdmin)) {
+                                $hasAccessibleItems = true;
+                            }
                         }
-                        // Check if at least one item is accessible
-                        if (canAccessMenuItem($sub)) {
-                            $hasAccessibleItems = true;
-                        }
-                    }
-                @endphp
+                    @endphp
                 @if ($hasAccessibleItems)
                 <div x-data="{ open: {{ $activeDropdown ? 'true' : 'false' }} }" class="relative">
                     {{-- Dropdown Button --}}
@@ -471,7 +594,7 @@
                         class="overflow-hidden mt-1 space-y-1 pr-2">
                         @foreach ($item['items'] as $sub)
                             @php
-                                $subCanAccess = canAccessMenuItem($sub);
+                                $subCanAccess = $canAccessMenuItem($sub, $isAdmin);
                                 $isActive = $currentRoute === ($sub['route'] ?? '');
                             @endphp
                             @if ($subCanAccess)
@@ -537,6 +660,7 @@
                 </a>
             @endif
         @endforeach
+        @endif
     </nav>
 
     {{-- User Info --}}
@@ -601,7 +725,7 @@
         <nav class="flex-1 overflow-y-auto px-6 space-y-1">
             @foreach ($items as $item)
                 @php
-                    $canAccess = canAccessMenuItem($item);
+                    $canAccess = $canAccessMenuItem($item, $isAdmin);
                 @endphp
 
                 @if (!empty($item['dropdown']) && $item['dropdown'])
@@ -612,8 +736,8 @@
                             if ($currentRoute === ($sub['route'] ?? '')) {
                                 $activeDropdown = true;
                             }
-                            // Check if at least one item is accessible
-                            $subCanAccess = canAccessMenuItem($sub);
+                            // Check if at least one item is accessible - use cached Admin check
+                            $subCanAccess = $canAccessMenuItem($sub, $isAdmin);
                             if ($subCanAccess) {
                                 $hasAccessibleItems = true;
                             }
@@ -665,7 +789,7 @@
                             class="overflow-hidden mt-1 space-y-1 pr-2">
                             @foreach ($item['items'] as $sub)
                                 @php
-                                    $subCanAccess = canAccessMenuItem($sub);
+                                    $subCanAccess = $canAccessMenuItem($sub, $isAdmin);
                                     $isActive = $currentRoute === ($sub['route'] ?? '');
                                 @endphp
                                 @if ($subCanAccess)

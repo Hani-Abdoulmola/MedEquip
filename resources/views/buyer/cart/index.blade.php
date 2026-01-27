@@ -1,5 +1,5 @@
 {{-- Buyer RFQ Cart / Request Builder --}}
-<x-dashboard.layout title="سلة طلب العروض" userRole="buyer" :userName="auth()->user()->name" userType="مشتري">
+<x-dashboard.layout title="منشئ طلبات العروض" userRole="buyer" :userName="auth()->user()->name" userType="مشتري">
     <div class="space-y-6" x-data="{
         showClearModal: false,
         submitting: false,
@@ -24,7 +24,7 @@
                             d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z">
                         </path>
                     </svg>
-                    سلة طلب العروض
+                    منشئ طلبات العروض
                 </h1>
                 <p class="mt-1 text-sm text-gray-500">أضف المنتجات التي تحتاجها وأرسلها كطلب عرض سعر واحد</p>
             </div>
@@ -38,16 +38,38 @@
             </a>
         </div>
 
+        {{-- Skipped Items Alert (Phase 2) --}}
+        @if(session('skipped_items') && count(session('skipped_items')) > 0)
+            <div class="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                    <div class="flex-1">
+                        <h3 class="font-bold text-yellow-800 mb-2">تم تخطي بعض المنتجات</h3>
+                        <ul class="text-sm text-yellow-700 space-y-1">
+                            @foreach(session('skipped_items') as $skipped)
+                                <li class="flex items-start gap-2">
+                                    <span class="text-yellow-600">•</span>
+                                    <span><strong>{{ $skipped['name'] }}</strong>: {{ $skipped['reason'] }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         @if (count($products) > 0)
             {{-- Cart Items --}}
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="p-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
                     <h2 class="font-semibold text-gray-900">
-                        المنتجات في السلة
+                        المنتجات في منشئ الطلبات
                         <span class="text-sm text-gray-500 font-normal">({{ count($products) }} منتج)</span>
                     </h2>
                     <button @click="showClearModal = true" class="text-sm text-red-600 hover:text-red-700 font-medium">
-                        إفراغ السلة
+                        إفراغ منشئ الطلبات
                     </button>
                 </div>
 
@@ -57,7 +79,28 @@
                             $product = $item['product'];
                             $cartItem = $item['item'] ?? null;
                         @endphp
-                        <div class="p-4 hover:bg-gray-50 transition-colors">
+                        @php
+                            $isValid = $cartItem ? ($cartItem->is_valid ?? true) : true;
+                            $warnings = $cartItem ? ($cartItem->warnings ?? []) : [];
+                        @endphp
+                        <div class="p-4 hover:bg-gray-50 transition-colors {{ !$isValid ? 'bg-red-50 border-r-4 border-red-500' : '' }}">
+                            {{-- Validation Warning (Phase 2) --}}
+                            @if(!$isValid && !empty($warnings))
+                                <div class="mb-3 p-3 bg-red-100 border border-red-300 rounded-lg">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                        </svg>
+                                        <span class="text-sm font-bold text-red-800">تحذير: هذا المنتج غير صالح</span>
+                                    </div>
+                                    <ul class="text-xs text-red-700 list-disc list-inside space-y-1">
+                                        @foreach($warnings as $warning)
+                                            <li>{{ $warning }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
+
                             <div class="flex flex-col lg:flex-row gap-4">
                                 {{-- Product Image --}}
                                 <div class="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
@@ -194,23 +237,94 @@
                 </div>
             </div>
 
-            {{-- Summary & Actions --}}
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div>
-                        <h3 class="font-semibold text-gray-900">ملخص السلة</h3>
-                        <p class="text-sm text-gray-500">{{ count($products) }} منتج - {{ $totalItems }} وحدة
-                            إجمالية</p>
+            {{-- Summary & Actions (Phase 2) --}}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6" x-data="{ showSaveTemplate: false, templateName: '' }">
+                @php
+                    $summary = $summary ?? ['items_count' => count($products), 'valid_items' => count($products), 'invalid_items' => 0, 'can_submit' => true];
+                @endphp
+                <div class="space-y-4">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="font-semibold text-gray-900">ملخص منشئ الطلبات</h3>
+                            <p class="text-sm text-gray-500 mt-1">
+                                {{ $summary['items_count'] }} منتج - {{ $totalItems }} وحدة إجمالية
+                                @if($summary['invalid_items'] > 0)
+                                    <span class="text-red-600 font-semibold">({{ $summary['invalid_items'] }} غير صالح)</span>
+                                @endif
+                            </p>
+                            @if($summary['invalid_items'] > 0)
+                                <div class="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
+                                    <p class="text-xs text-red-700">
+                                        ⚠️ يوجد {{ $summary['invalid_items'] }} منتج غير صالح. يرجى مراجعتها أو إزالتها قبل الإرسال.
+                                    </p>
+                                </div>
+                            @endif
+                        </div>
+                        <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                            @if($templates->count() > 0)
+                                <div class="relative" x-data="{ showTemplates: false }">
+                                    <button @click="showTemplates = !showTemplates" 
+                                        class="px-4 py-2.5 bg-medical-green-100 text-medical-green-700 rounded-lg hover:bg-medical-green-200 transition-colors text-sm font-medium">
+                                        📋 تحميل قالب
+                                    </button>
+                                    <div x-show="showTemplates" @click.away="showTemplates = false" x-cloak
+                                        class="absolute bottom-full mb-2 right-0 bg-white rounded-lg shadow-lg border border-gray-200 min-w-[200px] z-10">
+                                        @foreach($templates as $template)
+                                            <form action="{{ route('buyer.cart.template.load', $template) }}" method="POST" class="block">
+                                                @csrf
+                                                <button type="submit" class="w-full text-right px-4 py-2 hover:bg-gray-50 text-sm">
+                                                    {{ $template->template_name }}
+                                                </button>
+                                            </form>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+                            <button @click="showSaveTemplate = true" 
+                                class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
+                                💾 حفظ كقالب
+                            </button>
+                            <a href="{{ route('buyer.products.index') }}"
+                                class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
+                                متابعة التصفح
+                            </a>
+                            <a href="{{ route('buyer.cart.checkout') }}"
+                                class="px-6 py-2.5 bg-medical-blue-600 text-white rounded-lg hover:bg-medical-blue-700 transition-colors text-sm font-medium {{ !$summary['can_submit'] ? 'opacity-50 cursor-not-allowed' : '' }}"
+                                @if(!$summary['can_submit']) onclick="event.preventDefault(); alert('يوجد منتجات غير صالحة. يرجى مراجعتها أولاً.');" @endif>
+                                إرسال كطلب عرض سعر
+                            </a>
+                        </div>
                     </div>
-                    <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                        <a href="{{ route('buyer.products.index') }}"
-                            class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-center font-medium">
-                            متابعة التصفح
-                        </a>
-                        <a href="{{ route('buyer.cart.checkout') }}"
-                            class="px-6 py-2.5 bg-medical-blue-600 text-white rounded-lg hover:bg-medical-blue-700 transition-colors text-center font-medium">
-                            إرسال كطلب عرض سعر
-                        </a>
+                </div>
+
+                {{-- Save Template Modal (Phase 2) --}}
+                <div x-show="showSaveTemplate" x-cloak @click.away="showSaveTemplate = false"
+                    class="fixed inset-0 z-50 overflow-y-auto mt-8">
+                    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20">
+                        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showSaveTemplate = false"></div>
+                        <div class="relative bg-white rounded-lg px-4 pt-5 pb-4 shadow-xl max-w-md w-full">
+                            <h3 class="text-lg font-bold text-gray-900 mb-4">حفظ كقالب</h3>
+                            <form action="{{ route('buyer.cart.checkout') }}" method="POST" class="space-y-4">
+                                @csrf
+                                <input type="hidden" name="save_template" value="1">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">اسم القالب</label>
+                                    <input type="text" x-model="templateName" name="template_name" required
+                                        placeholder="مثال: طلب شهري للمستشفى"
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-blue-500">
+                                </div>
+                                <div class="flex gap-3">
+                                    <button type="button" @click="showSaveTemplate = false"
+                                        class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                                        إلغاء
+                                    </button>
+                                    <button type="submit" :disabled="!templateName"
+                                        class="flex-1 px-4 py-2 bg-medical-blue-600 text-white rounded-lg hover:bg-medical-blue-700 disabled:opacity-50">
+                                        حفظ
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -224,7 +338,7 @@
                         </path>
                     </svg>
                 </div>
-                <h3 class="text-xl font-bold text-gray-900 mb-2">السلة فارغة</h3>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">منشئ الطلبات فارغ</h3>
                 <p class="text-gray-500 mb-6 max-w-md mx-auto">
                     لم تقم بإضافة أي منتجات بعد. تصفح كتالوج المنتجات وأضف ما تحتاجه لإنشاء طلب عرض سعر.
                 </p>
@@ -270,11 +384,11 @@
                         </div>
                         <div class="mt-3 text-center sm:mt-0 sm:mr-4 sm:text-right">
                             <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                                إفراغ السلة
+                                إفراغ منشئ الطلبات
                             </h3>
                             <div class="mt-2">
                                 <p class="text-sm text-gray-500">
-                                    هل أنت متأكد من إفراغ السلة؟ سيتم حذف جميع المنتجات المضافة.
+                                    هل أنت متأكد من إفراغ منشئ الطلبات؟ سيتم حذف جميع المنتجات المضافة.
                                 </p>
                             </div>
                         </div>
@@ -285,7 +399,7 @@
                             @method('DELETE')
                             <button type="submit"
                                 class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:w-auto sm:text-sm">
-                                نعم، إفراغ السلة
+                                نعم، إفراغ منشئ الطلبات
                             </button>
                         </form>
                         <button @click="showClearModal = false" type="button"

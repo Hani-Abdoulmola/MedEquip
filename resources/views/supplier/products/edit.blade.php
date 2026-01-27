@@ -33,9 +33,252 @@
         {{-- Main Form --}}
         <div class="lg:col-span-2">
             <div class="bg-white rounded-2xl shadow-medical p-8">
-                <form method="POST" action="{{ route('supplier.products.update', $product->id) }}">
+                <form method="POST" action="{{ route('supplier.products.update', $product->id) }}" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
+
+                    @if($product->review_status === \App\Models\Product::REVIEW_NEEDS_UPDATE)
+                        {{-- Needs Update Alert --}}
+                        <div class="mb-8 p-6 rounded-xl bg-yellow-50 border-2 border-yellow-300">
+                            <div class="flex items-start gap-4">
+                                <svg class="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                </svg>
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-bold text-yellow-900 mb-2">طلب تعديل من الإدارة</h3>
+                                    @if($product->review_notes)
+                                        <div class="mb-3 p-3 bg-white rounded-lg border border-yellow-200">
+                                            <p class="text-sm font-semibold text-yellow-800 mb-1">الملاحظات:</p>
+                                            <p class="text-sm text-yellow-700 whitespace-pre-line">{{ $product->review_notes }}</p>
+                                        </div>
+                                    @endif
+                                    <p class="text-sm text-yellow-800">
+                                        يرجى تعديل معلومات المنتج حسب الملاحظات أعلاه، ثم إعادة الإرسال للمراجعة.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Product Information Section (Editable when needs_update) --}}
+                        <div class="mb-8">
+                            <h2 class="text-xl font-bold text-medical-gray-900 mb-6 pb-3 border-b border-medical-gray-200 font-display">
+                                معلومات المنتج (يجب التعديل)
+                            </h2>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {{-- Product Name --}}
+                                <div class="md:col-span-2">
+                                    <label for="name" class="block text-sm font-semibold text-medical-gray-700 mb-2">
+                                        اسم المنتج <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="text" id="name" name="name"
+                                        value="{{ old('name', $product->name) }}" required
+                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('name') border-red-500 @enderror">
+                                    @error('name')
+                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                {{-- Model --}}
+                                <div>
+                                    <label for="model" class="block text-sm font-semibold text-medical-gray-700 mb-2">
+                                        الموديل
+                                    </label>
+                                    <input type="text" id="model" name="model"
+                                        value="{{ old('model', $product->model) }}"
+                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('model') border-red-500 @enderror">
+                                    @error('model')
+                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                {{-- Brand --}}
+                                <div>
+                                    <label for="brand" class="block text-sm font-semibold text-medical-gray-700 mb-2">
+                                        العلامة التجارية
+                                    </label>
+                                    <input type="text" id="brand" name="brand"
+                                        value="{{ old('brand', $product->brand) }}"
+                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('brand') border-red-500 @enderror">
+                                    @error('brand')
+                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                {{-- Category --}}
+                                <div>
+                                    <label for="category_id" class="block text-sm font-semibold text-medical-gray-700 mb-2">
+                                        الفئة <span class="text-red-500">*</span>
+                                    </label>
+                                    <select id="category_id" name="category_id" required
+                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('category_id') border-red-500 @enderror">
+                                        <option value="">-- اختر الفئة --</option>
+                                        @foreach ($categories as $id => $name)
+                                            <option value="{{ $id }}" {{ old('category_id', $product->category_id) == $id ? 'selected' : '' }}>
+                                                {{ $name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('category_id')
+                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                {{-- Manufacturer --}}
+                                <div>
+                                    <label for="manufacturer_id" class="block text-sm font-semibold text-medical-gray-700 mb-2">
+                                        الشركة المصنعة
+                                    </label>
+                                    <select id="manufacturer_id" name="manufacturer_id"
+                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('manufacturer_id') border-red-500 @enderror">
+                                        <option value="">-- اختر الشركة المصنعة --</option>
+                                        @foreach ($manufacturers as $manufacturer)
+                                            <option value="{{ $manufacturer->id }}" {{ old('manufacturer_id', $product->manufacturer_id) == $manufacturer->id ? 'selected' : '' }}>
+                                                {{ $manufacturer->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('manufacturer_id')
+                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                {{-- Description --}}
+                                <div class="md:col-span-2">
+                                    <label for="description" class="block text-sm font-semibold text-medical-gray-700 mb-2">
+                                        الوصف
+                                    </label>
+                                    <textarea id="description" name="description" rows="4"
+                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('description') border-red-500 @enderror">{{ old('description', $product->description) }}</textarea>
+                                    @error('description')
+                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                {{-- Specifications --}}
+                                <div class="md:col-span-2">
+                                    <label for="specifications" class="block text-sm font-semibold text-medical-gray-700 mb-2">
+                                        المواصفات
+                                    </label>
+                                    <textarea id="specifications" name="specifications" rows="4"
+                                        placeholder="أدخل كل مواصفة في سطر منفصل"
+                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('specifications') border-red-500 @enderror">{{ old('specifications', $product->specifications ? implode("\n", $product->specifications) : '')) }}</textarea>
+                                    <p class="mt-1 text-xs text-medical-gray-500">أدخل كل مواصفة في سطر منفصل</p>
+                                    @error('specifications')
+                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                {{-- Features --}}
+                                <div class="md:col-span-2">
+                                    <label for="features" class="block text-sm font-semibold text-medical-gray-700 mb-2">
+                                        المميزات
+                                    </label>
+                                    <textarea id="features" name="features" rows="4"
+                                        placeholder="أدخل كل ميزة في سطر منفصل"
+                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('features') border-red-500 @enderror">{{ old('features', $product->features ? implode("\n", $product->features) : '')) }}</textarea>
+                                    <p class="mt-1 text-xs text-medical-gray-500">أدخل كل ميزة في سطر منفصل</p>
+                                    @error('features')
+                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                {{-- Technical Data --}}
+                                <div class="md:col-span-2">
+                                    <label for="technical_data" class="block text-sm font-semibold text-medical-gray-700 mb-2">
+                                        البيانات التقنية
+                                    </label>
+                                    <textarea id="technical_data" name="technical_data" rows="4"
+                                        placeholder="أدخل كل معلومة تقنية في سطر منفصل"
+                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('technical_data') border-red-500 @enderror">{{ old('technical_data', $product->technical_data ? implode("\n", $product->technical_data) : '')) }}</textarea>
+                                    <p class="mt-1 text-xs text-medical-gray-500">أدخل كل معلومة تقنية في سطر منفصل</p>
+                                    @error('technical_data')
+                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                {{-- Certifications --}}
+                                <div class="md:col-span-2">
+                                    <label for="certifications" class="block text-sm font-semibold text-medical-gray-700 mb-2">
+                                        الشهادات
+                                    </label>
+                                    <textarea id="certifications" name="certifications" rows="4"
+                                        placeholder="أدخل كل شهادة في سطر منفصل"
+                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('certifications') border-red-500 @enderror">{{ old('certifications', $product->certifications ? implode("\n", $product->certifications) : '')) }}</textarea>
+                                    <p class="mt-1 text-xs text-medical-gray-500">أدخل كل شهادة في سطر منفصل</p>
+                                    @error('certifications')
+                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                {{-- Installation Requirements --}}
+                                <div class="md:col-span-2">
+                                    <label for="installation_requirements" class="block text-sm font-semibold text-medical-gray-700 mb-2">
+                                        متطلبات التركيب
+                                    </label>
+                                    <textarea id="installation_requirements" name="installation_requirements" rows="3"
+                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('installation_requirements') border-red-500 @enderror">{{ old('installation_requirements', $product->installation_requirements) }}</textarea>
+                                    @error('installation_requirements')
+                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                {{-- Product Images --}}
+                                <div class="md:col-span-2">
+                                    <label for="images" class="block text-sm font-semibold text-medical-gray-700 mb-2">
+                                        صور المنتج (يمكن إضافة صور جديدة)
+                                    </label>
+                                    <input type="file" id="images" name="images[]" multiple
+                                        accept="image/jpeg,image/png,image/webp"
+                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('images') border-red-500 @enderror">
+                                    <p class="mt-1 text-xs text-medical-gray-500">يمكن رفع عدة صور (JPG, PNG, WEBP - حد أقصى 5MB لكل صورة)</p>
+                                    @error('images')
+                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                    @error('images.*')
+                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        {{-- Product Info (Read Only) when not needs_update --}}
+                        <div class="mb-8 p-6 rounded-xl bg-medical-gray-50 border border-medical-gray-200">
+                            <h2 class="text-xl font-bold text-medical-gray-900 mb-4 pb-3 border-b border-medical-gray-200 font-display">
+                                معلومات المنتج (للقراءة فقط)
+                            </h2>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <span class="font-semibold text-medical-gray-700">الاسم:</span>
+                                    <span class="text-medical-gray-600">{{ $product->name }}</span>
+                                </div>
+                                @if($product->model)
+                                    <div>
+                                        <span class="font-semibold text-medical-gray-700">الموديل:</span>
+                                        <span class="text-medical-gray-600">{{ $product->model }}</span>
+                                    </div>
+                                @endif
+                                @if($product->brand)
+                                    <div>
+                                        <span class="font-semibold text-medical-gray-700">العلامة التجارية:</span>
+                                        <span class="text-medical-gray-600">{{ $product->brand }}</span>
+                                    </div>
+                                @endif
+                                @if($product->category)
+                                    <div>
+                                        <span class="font-semibold text-medical-gray-700">الفئة:</span>
+                                        <span class="text-medical-gray-600">{{ $product->category->name }}</span>
+                                    </div>
+                                @endif
+                                @if($product->manufacturer)
+                                    <div>
+                                        <span class="font-semibold text-medical-gray-700">الشركة المصنعة:</span>
+                                        <span class="text-medical-gray-600">{{ $product->manufacturer->name }}</span>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
 
                     {{-- Offer Information Section --}}
                     <div class="mb-8">

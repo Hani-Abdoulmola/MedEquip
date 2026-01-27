@@ -8,20 +8,22 @@
             {{-- Title & Subtitle --}}
             <div>
                 <h1 class="text-3xl font-bold text-medical-gray-900 font-display">إدارة المستخدمين</h1>
-                <p class="mt-2 text-medical-gray-600">عرض وإدارة جميع مستخدمي النظام</p>
+                <p class="mt-2 text-medical-gray-600">عرض وإدارة الموظفين الإداريين فقط (الموردين والمشترين يتم إدارتهم من أقسام منفصلة)</p>
             </div>
 
             {{-- Actions --}}
             <div class="flex items-center gap-3">
-                {{-- Export Button --}}
-                <a href="{{ route('admin.users.export', request()->all()) }}"
-                    class="inline-flex items-center gap-2 px-6 py-3 bg-medical-green-600 text-white rounded-xl hover:bg-medical-green-700 transition-all duration-200 font-semibold shadow-lg">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    <span>تصدير Excel</span>
-                </a>
+                @can('users.view')
+                    {{-- Export Button --}}
+                    <a href="{{ route('admin.users.export', request()->all()) }}"
+                        class="inline-flex items-center gap-2 px-6 py-3 bg-medical-green-600 text-white rounded-xl hover:bg-medical-green-700 transition-all duration-200 font-semibold shadow-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span>تصدير Excel</span>
+                    </a>
+                @endcan
 
                 {{-- Filters Toggle Button (Outline Primary) --}}
                 <button @click="showFilters = !showFilters"
@@ -38,18 +40,20 @@
                     <span>الفلاتر والبحث</span>
                 </button>
 
-                {{-- Add New User Button --}}
-                <a href="{{ route('admin.users.create') }}"
-                    class="inline-flex items-center space-x-2 space-x-reverse
-                        px-6 py-3 rounded-xl font-medium shadow-medical transition-all duration-200
-                        bg-medical-blue-600 text-white hover:bg-medical-blue-700">
+                @can('users.create')
+                    {{-- Add New User Button --}}
+                    <a href="{{ route('admin.users.create') }}"
+                        class="inline-flex items-center space-x-2 space-x-reverse
+                            px-6 py-3 rounded-xl font-medium shadow-medical transition-all duration-200
+                            bg-medical-blue-600 text-white hover:bg-medical-blue-700">
 
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
 
-                    <span>إضافة مستخدم جديد</span>
-                </a>
+                        <span>إضافة مستخدم جديد</span>
+                    </a>
+                @endcan
             </div>
         </div>
     </div>
@@ -67,7 +71,7 @@
                         {{ number_format($stats['total_users']) }}
                     </p>
                     <p class="text-xs text-medical-gray-500 mt-1">
-                        مجموع الحسابات المسجلة في النظام
+                        الموظفون الإداريون فقط
                     </p>
                 </div>
 
@@ -110,17 +114,17 @@
             </div>
         </div>
 
-        {{-- Suppliers Count --}}
+        {{-- Admin Count --}}
         <div class="bg-white rounded-2xl p-6 shadow-medical">
             <div class="flex items-center justify-between">
 
                 <div>
-                    <p class="text-sm text-medical-gray-600">الموردون</p>
+                    <p class="text-sm text-medical-gray-600">المدراء</p>
                     <p class="text-3xl font-bold text-purple-600 mt-2">
-                        {{ number_format($stats['suppliers_count']) }}
+                        {{ number_format($stats['admin_count'] ?? 0) }}
                     </p>
                     <p class="text-xs text-medical-gray-500 mt-1">
-                        عدد الشركات المزودة
+                        مستخدمين بدور مدير النظام
                     </p>
                 </div>
 
@@ -129,24 +133,24 @@
                         rounded-xl flex items-center justify-center">
                     <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5" />
+                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
                 </div>
 
             </div>
         </div>
 
-        {{-- Buyers Count --}}
+        {{-- Staff Count --}}
         <div class="bg-white rounded-2xl p-6 shadow-medical">
             <div class="flex items-center justify-between">
 
                 <div>
-                    <p class="text-sm text-medical-gray-600">المشترون</p>
+                    <p class="text-sm text-medical-gray-600">الموظفون</p>
                     <p class="text-3xl font-bold text-medical-blue-600 mt-2">
-                        {{ number_format($stats['buyers_count']) }}
+                        {{ number_format($stats['staff_count'] ?? 0) }}
                     </p>
                     <p class="text-xs text-medical-gray-500 mt-1">
-                        المؤسسات الصحية المسجلة
+                        مستخدمين بدور موظف
                     </p>
                 </div>
 
@@ -155,7 +159,7 @@
                         rounded-xl flex items-center justify-center">
                     <svg class="w-6 h-6 text-medical-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M3 3h2l.4 2M7 13h10l4-8H5.4" />
+                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                 </div>
 
@@ -192,16 +196,15 @@
 
             <form method="GET" action="{{ route('admin.users') }}" class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-                {{-- User Type --}}
+                {{-- Role Filter --}}
                 <div>
-                    <label class="text-sm font-medium text-medical-gray-700 mb-2 block">نوع المستخدم</label>
-                    <select name="user_type"
+                    <label class="text-sm font-medium text-medical-gray-700 mb-2 block">الدور</label>
+                    <select name="role"
                         class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl
                            focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500">
                         <option value="">الكل</option>
-                        <option value="1" @selected(request('user_type') == 1)>مدير النظام</option>
-                        <option value="2" @selected(request('user_type') == 2)>مورد</option>
-                        <option value="3" @selected(request('user_type') == 3)>مشتري</option>
+                        <option value="Admin" @selected(request('role') == 'Admin')>مدير النظام</option>
+                        <option value="Staff" @selected(request('role') == 'Staff')>موظف</option>
                     </select>
                 </div>
 
@@ -281,7 +284,7 @@
                         <th class="px-6 py-4 text-right text-sm font-medium text-medical-gray-700">الاسم</th>
                         <th class="px-6 py-4 text-right text-sm font-medium text-medical-gray-700">البريد الإلكتروني
                         </th>
-                        <th class="px-6 py-4 text-right text-sm font-medium text-medical-gray-700">نوع المستخدم</th>
+                        <th class="px-6 py-4 text-right text-sm font-medium text-medical-gray-700">الدور</th>
                         <th class="px-6 py-4 text-right text-sm font-medium text-medical-gray-700">الحالة</th>
                         <th class="px-6 py-4 text-right text-sm font-medium text-medical-gray-700">تاريخ الإنشاء</th>
                         <th class="px-6 py-4 text-center text-sm font-medium text-medical-gray-700">الإجراءات</th>
@@ -303,15 +306,8 @@
                                     {{-- Avatar --}}
                                     @php
                                         $initials = mb_substr($user->name, 0, 2);
-                                        $avatarColor = match ($user->user_type) {
-                                            1
-                                                => 'from-medical-blue-100 to-medical-blue-200 text-medical-blue-600', // Admin
-                                            2 => 'from-purple-100 to-purple-200 text-purple-700', // Supplier
-                                            3
-                                                => 'from-medical-green-100 to-medical-green-200 text-medical-green-700', // Buyer
-                                            default
-                                                => 'from-medical-gray-100 to-medical-gray-200 text-medical-gray-600',
-                                        };
+                                        // فقط الموظفين الإداريين (Admin/Staff)
+                                        $avatarColor = 'from-medical-blue-100 to-medical-blue-200 text-medical-blue-600';
                                     @endphp
 
                                     <div
@@ -332,21 +328,18 @@
                                 <p class="text-sm text-medical-gray-900">{{ $user->email }}</p>
                             </td>
 
-                            {{-- Type Badge --}}
+                            {{-- Role Badge --}}
                             <td class="px-6 py-4">
                                 @php
-                                    $typeLabel = match ($user->user_type) {
-                                        1 => [
+                                    $userRole = $user->roles->first();
+                                    $roleLabel = match ($userRole?->name) {
+                                        'Admin' => [
                                             'مدير النظام',
                                             'bg-white border border-medical-blue-600 text-medical-blue-600 hover:bg-medical-blue-50',
                                         ],
-                                        2 => [
-                                            'مورد',
+                                        'Staff' => [
+                                            'موظف',
                                             'bg-white border border-purple-600 text-purple-700 hover:bg-purple-100',
-                                        ],
-                                        3 => [
-                                            'مشتري',
-                                            'bg-white border border-medical-green-600 text-medical-green-700 hover:bg-medical-green-50',
                                         ],
                                         default => [
                                             'غير محدد',
@@ -356,8 +349,8 @@
                                 @endphp
 
                                 <span
-                                    class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium {{ $typeLabel[1] }}">
-                                    {{ $typeLabel[0] }}
+                                    class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium {{ $roleLabel[1] }}">
+                                    {{ $roleLabel[0] }}
                                 </span>
                             </td>
 
@@ -392,47 +385,67 @@
                             <td class="px-6 py-4">
                                 <div class="flex items-center justify-center gap-2">
 
-                                    {{-- View --}}
-                                    <a href="{{ route('admin.users.show', $user->id) }}"
-                                        class="p-2 text-medical-green-600 hover:bg-medical-green-50 rounded-lg transition"
-                                        title="عرض التفاصيل">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                        </svg>
-                                    </a>
-
-                                    {{-- Edit --}}
-                                    <a href="{{ route('admin.users.edit', $user->id) }}"
-                                        class="p-2 text-medical-blue-600 hover:bg-medical-blue-50 rounded-lg transition"
-                                        title="تعديل">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                        </svg>
-                                    </a>
-
-                                    {{-- Delete --}}
-                                    <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST"
-                                        onsubmit="return confirm('هل أنت متأكد من حذف هذا المستخدم؟');">
-                                        @csrf
-                                        @method('DELETE')
-
-                                        <button type="submit"
-                                            class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                                            title="حذف">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor">
+                                    @can('users.view')
+                                        {{-- View --}}
+                                        <a href="{{ route('admin.users.show', $user->id) }}"
+                                            class="p-2 text-medical-green-600 hover:bg-medical-green-50 rounded-lg transition"
+                                            title="عرض التفاصيل">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862
+                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </a>
+                                    @endcan
+
+                                    @can('users.update')
+                                        {{-- Edit --}}
+                                        <a href="{{ route('admin.users.edit', $user->id) }}"
+                                            class="p-2 text-medical-blue-600 hover:bg-medical-blue-50 rounded-lg transition"
+                                            title="تعديل">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </a>
+                                    @endcan
+
+                                    @can('users.manage_permissions')
+                                        {{-- Permissions (for Staff users only) --}}
+                                        @if($user->hasRole('Staff'))
+                                            <a href="{{ route('admin.role-permissions.index', ['user_id' => $user->id, 'tab' => 'users']) }}"
+                                                class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition"
+                                                title="تعيين الصلاحيات">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                                </svg>
+                                            </a>
+                                        @endif
+                                    @endcan
+
+                                    @can('users.delete')
+                                        {{-- Delete --}}
+                                        <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST"
+                                            onsubmit="return confirm('هل أنت متأكد من حذف هذا المستخدم؟');">
+                                            @csrf
+                                            @method('DELETE')
+
+                                            <button type="submit"
+                                                class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                title="حذف">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862
                                      a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6
                                      m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3
                                      M4 7h16" />
-                                            </svg>
-                                        </button>
+                                                </svg>
+                                            </button>
 
-                                    </form>
+                                        </form>
+                                    @endcan
 
                                 </div>
                             </td>

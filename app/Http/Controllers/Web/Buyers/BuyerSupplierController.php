@@ -39,6 +39,9 @@ class BuyerSupplierController extends Controller
             ->withCount(['quotations' => function ($q) {
                 $q->where('status', 'accepted');
             }])
+            ->withCount(['reviews' => function ($q) {
+                $q->where('status', 'approved');
+            }])
             ->withCount('orders');
 
         // Search by company name or location
@@ -69,7 +72,7 @@ class BuyerSupplierController extends Controller
             });
         }
 
-        // Sorting
+        // Sorting (Phase 3: Add rating sort)
         $sortBy = $request->get('sort', 'products_count');
         switch ($sortBy) {
             case 'name':
@@ -77,6 +80,16 @@ class BuyerSupplierController extends Controller
                 break;
             case 'orders':
                 $query->orderBy('orders_count', 'desc');
+                break;
+            case 'rating':
+                // Sort by average rating (requires subquery or denormalized column)
+                $query->leftJoin('supplier_reviews', function($join) {
+                    $join->on('suppliers.id', '=', 'supplier_reviews.supplier_id')
+                         ->where('supplier_reviews.status', 'approved');
+                })
+                ->selectRaw('suppliers.*, AVG(supplier_reviews.overall_rating) as avg_rating')
+                ->groupBy('suppliers.id')
+                ->orderBy('avg_rating', 'desc');
                 break;
             case 'newest':
                 $query->latest();

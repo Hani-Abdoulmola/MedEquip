@@ -160,18 +160,18 @@
                 {{-- Actions --}}
                 @if($quotation->status === 'pending')
                 <div class="mt-6 pt-6 border-t border-gray-100 space-y-3">
-                    <form action="{{ route('buyer.quotations.accept', $quotation) }}" method="POST">
+                    <form action="{{ route('buyer.quotations.accept', $quotation) }}" method="POST" id="accept-form-show">
                         @csrf
                         <button type="submit" 
-                                onclick="return confirm('هل أنت متأكد من قبول هذا العرض؟ سيتم رفض باقي العروض تلقائياً.')"
+                                onclick="event.preventDefault(); if(confirm('هل أنت متأكد من قبول هذا العرض؟ سيتم رفض باقي العروض تلقائياً.')) { document.getElementById('accept-form-show').submit(); }"
                                 class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
                             قبول العرض
                         </button>
                     </form>
-                    <form action="{{ route('buyer.quotations.reject', $quotation) }}" method="POST">
+                    <form action="{{ route('buyer.quotations.reject', $quotation) }}" method="POST" id="reject-form-show">
                         @csrf
                         <button type="submit" 
-                                onclick="return confirm('هل أنت متأكد من رفض هذا العرض؟')"
+                                onclick="event.preventDefault(); if(confirm('هل أنت متأكد من رفض هذا العرض؟')) { document.getElementById('reject-form-show').submit(); }"
                                 class="w-full px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium">
                             رفض العرض
                         </button>

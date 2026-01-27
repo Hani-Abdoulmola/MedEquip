@@ -7,7 +7,7 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
             </svg>
-            <a href="{{ route('buyer.cart.index') }}" class="hover:text-medical-blue-600">السلة</a>
+            <a href="{{ route('buyer.cart.index') }}" class="hover:text-medical-blue-600">منشئ الطلبات</a>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
             </svg>
@@ -263,7 +263,7 @@
                         {{-- Back to Cart --}}
                         <a href="{{ route('buyer.cart.index') }}" 
                            class="block text-center text-medical-blue-600 hover:text-medical-blue-700 font-medium">
-                            ← العودة للسلة
+                            ← العودة إلى منشئ الطلبات
                         </a>
 
                         {{-- Info Box --}}

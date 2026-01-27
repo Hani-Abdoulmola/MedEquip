@@ -16,11 +16,6 @@ use Illuminate\View\View;
  */
 class SupplierPaymentController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('ensure_supplier_profile');
-    }
-
     /**
      * Display list of payments for the supplier.
      */

@@ -21,7 +21,7 @@ class DeliveryRequest extends FormRequest
             'delivery_location' => 'required|string|max:255',
             'receiver_name' => 'required|string|max:255',
             'receiver_phone' => 'nullable|string|max:20',
-            'status' => 'required|in:pending,shipped,delivered,cancelled',
+            'status' => 'required|in:pending,in_transit,delivered,failed',
             'is_verified' => 'boolean',
             'verified_by' => 'nullable|exists:users,id',
             'verified_at' => 'nullable|date',

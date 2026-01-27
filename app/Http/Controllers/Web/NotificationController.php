@@ -3,13 +3,15 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\NotificationRequest;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class NotificationController extends Controller
 {
     /**
-     * Display all notifications
+     * Display all notifications (merged with sent notifications)
      */
     public function index(Request $request)
     {
@@ -20,9 +22,11 @@ class NotificationController extends Controller
             return redirect()->route('login');
         }
         
-        // Check permission
-        if (!$authUser->can('notifications.view')) {
-            abort(403, 'ليس لديك صلاحية عرض الإشعارات');
+        // Permission check is handled by route middleware
+
+        // Mark all notifications as read when viewing the page (if requested)
+        if ($request->has('mark_read') && $request->mark_read === 'true') {
+            $authUser->unreadNotifications->markAsRead();
         }
 
         // Get filter parameters
@@ -38,9 +42,9 @@ class NotificationController extends Controller
         }
 
         // Get notifications with pagination
-        $notifications = $query->latest()->paginate(20);
+        $notifications = $query->latest()->paginate(20)->withQueryString();
 
-        // Get statistics
+        // Get statistics (refresh after potential mark as read)
         $stats = [
             'total' => $authUser->notifications()->count(),
             'unread' => $authUser->unreadNotifications()->count(),
@@ -50,7 +54,102 @@ class NotificationController extends Controller
                 ->count(),
         ];
 
-        return view('admin.notifications.index', compact('notifications', 'stats', 'filter'));
+        return view('admin.notifications.index', compact(
+            'notifications', 
+            'stats', 
+            'filter'
+        ));
+    }
+
+    /**
+     * Show the form for creating a new notification
+     */
+    public function create()
+    {
+        /** @var \App\Models\User|null $authUser */
+        $authUser = Auth::user();
+
+        if (!$authUser) {
+            return redirect()->route('login');
+        }
+
+        // Permission check is handled by route middleware
+
+        // Get counts for display
+        $supplierCount = \App\Models\User::role('Supplier')->count();
+        $buyerCount = \App\Models\User::role('Buyer')->count();
+
+        // Get lists for specific selection
+        $suppliers = \App\Models\User::role('Supplier')
+            ->with('supplierProfile')
+            ->get()
+            ->mapWithKeys(function ($user) {
+                $name = $user->supplierProfile ? $user->supplierProfile->company_name : $user->name;
+                return [$user->id => $name . ' (' . $user->email . ')'];
+            });
+
+        $buyers = \App\Models\User::role('Buyer')
+            ->with('buyerProfile')
+            ->get()
+            ->mapWithKeys(function ($user) {
+                $name = $user->buyerProfile ? $user->buyerProfile->organization_name : $user->name;
+                return [$user->id => $name . ' (' . $user->email . ')'];
+            });
+
+        return view('admin.notifications.create', compact('supplierCount', 'buyerCount', 'suppliers', 'buyers'));
+    }
+
+    /**
+     * Store a newly created notification
+     */
+    public function store(NotificationRequest $request)
+    {
+        /** @var \App\Models\User|null $authUser */
+        $authUser = Auth::user();
+
+        if (!$authUser) {
+            return redirect()->route('login');
+        }
+
+        // Permission check is handled by route middleware
+
+        $validated = $request->validated();
+        $recipients = $validated['recipients'];
+        $title = $validated['title'];
+        $message = $validated['message'];
+        $url = $validated['url'] ?? null;
+        $type = $validated['type'] ?? 'info';
+        $icon = $validated['icon'] ?? null;
+        $recipientIds = $validated['recipient_ids'] ?? null;
+
+        // Determine icon based on type if not provided
+        if (!$icon) {
+            $icon = match ($type) {
+                'success' => 'fas fa-check-circle text-success',
+                'warning' => 'fas fa-exclamation-triangle text-warning',
+                'error' => 'fas fa-times-circle text-danger',
+                'primary' => 'fas fa-info-circle text-primary',
+                default => 'fas fa-bell text-info',
+            };
+        }
+
+        // Send notifications - all notifications are saved in the notifications table
+        $result = NotificationService::sendWithTracking(
+            $recipients,
+            $title,
+            $message,
+            $url,
+            $icon,
+            $type,
+            $recipientIds
+        );
+
+        $recipientText = $result['recipient_type_label'];
+        $totalSent = $result['total_sent'];
+
+        return redirect()
+            ->route('admin.notifications.index')
+            ->with('success', "تم إرسال الإشعار بنجاح إلى {$totalSent} من {$recipientText}");
     }
 
     /**
@@ -62,13 +161,13 @@ class NotificationController extends Controller
         $authUser = Auth::user();
 
         if (!$authUser) {
-            return response()->json(['success' => false], 401);
+            return redirect()->route('login');
         }
 
         $notification = $authUser->notifications()->findOrFail($id);
         $notification->markAsRead();
 
-        return response()->json(['success' => true]);
+        return redirect()->back()->with('success', 'تم تحديد الإشعار كمقروء');
     }
 
     /**
@@ -97,13 +196,13 @@ class NotificationController extends Controller
         $authUser = Auth::user();
 
         if (!$authUser) {
-            return response()->json(['success' => false], 401);
+            return redirect()->route('login');
         }
 
         $notification = $authUser->notifications()->findOrFail($id);
         $notification->delete();
 
-        return response()->json(['success' => true]);
+        return redirect()->back()->with('success', 'تم حذف الإشعار بنجاح');
     }
 
     /**
@@ -122,4 +221,5 @@ class NotificationController extends Controller
 
         return redirect()->back()->with('success', 'تم حذف جميع الإشعارات');
     }
+
 }

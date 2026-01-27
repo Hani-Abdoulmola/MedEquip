@@ -44,7 +44,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-medical-gray-600">إجمالي المبلغ</p>
-                    <p class="text-2xl font-bold text-medical-green-600 mt-1">{{ number_format($stats['total_amount'], 2) }} د.ل</p>
+                    <p class="text-2xl font-bold text-medical-green-600 mt-1">{{ number_format($stats['total_amount'], 2) }} {{ \App\Models\Payment::getCurrencySymbol(\App\Models\Payment::CURRENCY_LYD) }}</p>
                 </div>
                 <div class="w-12 h-12 bg-medical-green-100 rounded-xl flex items-center justify-center">
                     <svg class="w-6 h-6 text-medical-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,7 +60,7 @@
                 <div>
                     <p class="text-sm text-medical-gray-600">مكتملة</p>
                     <p class="text-3xl font-bold text-medical-green-600 mt-1">{{ $stats['completed'] }}</p>
-                    <p class="text-xs text-medical-gray-500 mt-1">{{ number_format($stats['completed_amount'], 2) }} د.ل</p>
+                    <p class="text-xs text-medical-gray-500 mt-1">{{ number_format($stats['completed_amount'], 2) }} {{ \App\Models\Payment::getCurrencySymbol(\App\Models\Payment::CURRENCY_LYD) }}</p>
                 </div>
                 <div class="w-12 h-12 bg-medical-green-100 rounded-xl flex items-center justify-center">
                     <svg class="w-6 h-6 text-medical-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -141,10 +141,9 @@
                 <select name="status" id="status"
                     class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500">
                     <option value="">الكل</option>
-                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>قيد الانتظار</option>
-                    <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>مكتملة</option>
-                    <option value="failed" {{ request('status') == 'failed' ? 'selected' : '' }}>فاشلة</option>
-                    <option value="refunded" {{ request('status') == 'refunded' ? 'selected' : '' }}>مستردة</option>
+                    @foreach(\App\Models\Payment::getStatusOptions() as $value => $label)
+                        <option value="{{ $value }}" {{ request('status') == $value ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
                 </select>
             </div>
 
@@ -153,11 +152,9 @@
                 <select name="method" id="method"
                     class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500">
                     <option value="">الكل</option>
-                    <option value="cash" {{ request('method') == 'cash' ? 'selected' : '' }}>نقدي</option>
-                    <option value="bank_transfer" {{ request('method') == 'bank_transfer' ? 'selected' : '' }}>تحويل بنكي</option>
-                    <option value="credit_card" {{ request('method') == 'credit_card' ? 'selected' : '' }}>بطاقة ائتمانية</option>
-                    <option value="paypal" {{ request('method') == 'paypal' ? 'selected' : '' }}>PayPal</option>
-                    <option value="other" {{ request('method') == 'other' ? 'selected' : '' }}>أخرى</option>
+                    @foreach(\App\Models\Payment::getMethodOptions() as $value => $label)
+                        <option value="{{ $value }}" {{ request('method') == $value ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
                 </select>
             </div>
 
@@ -166,9 +163,9 @@
                 <select name="currency" id="currency"
                     class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500">
                     <option value="">الكل</option>
-                    <option value="LYD" {{ request('currency') == 'LYD' ? 'selected' : '' }}>دينار ليبي</option>
-                    <option value="USD" {{ request('currency') == 'USD' ? 'selected' : '' }}>دولار أمريكي</option>
-                    <option value="EUR" {{ request('currency') == 'EUR' ? 'selected' : '' }}>يورو</option>
+                    @foreach(\App\Models\Payment::getCurrencyOptions() as $value => $label)
+                        <option value="{{ $value }}" {{ request('currency') == $value ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
                 </select>
             </div>
 
@@ -255,36 +252,13 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    @php
-                                        $methodLabels = [
-                                            'cash' => 'نقدي',
-                                            'bank_transfer' => 'تحويل بنكي',
-                                            'credit_card' => 'بطاقة ائتمانية',
-                                            'paypal' => 'PayPal',
-                                            'other' => 'أخرى',
-                                        ];
-                                    @endphp
                                     <span class="text-sm text-medical-gray-700">
-                                        {{ $methodLabels[$payment->method] ?? $payment->method }}
+                                        {{ \App\Models\Payment::getMethodLabel($payment->method) }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    @php
-                                        $statusClasses = [
-                                            'pending' => 'bg-medical-yellow-100 text-medical-yellow-700',
-                                            'completed' => 'bg-medical-green-100 text-medical-green-700',
-                                            'failed' => 'bg-medical-red-100 text-medical-red-700',
-                                            'refunded' => 'bg-medical-blue-100 text-medical-blue-700',
-                                        ];
-                                        $statusLabels = [
-                                            'pending' => 'قيد الانتظار',
-                                            'completed' => 'مكتملة',
-                                            'failed' => 'فاشلة',
-                                            'refunded' => 'مستردة',
-                                        ];
-                                    @endphp
-                                    <span class="px-3 py-1 rounded-full text-xs font-semibold {{ $statusClasses[$payment->status] ?? 'bg-medical-gray-100 text-medical-gray-700' }}">
-                                        {{ $statusLabels[$payment->status] ?? $payment->status }}
+                                    <span class="px-3 py-1 rounded-full text-xs font-semibold {{ \App\Models\Payment::getStatusClasses($payment->status) }}">
+                                        {{ \App\Models\Payment::getStatusLabel($payment->status) }}
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-medical-gray-600">

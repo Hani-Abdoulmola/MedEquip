@@ -183,10 +183,59 @@
                 @endif
             </div>
 
-            {{-- Quick Actions --}}
+            {{-- Quick Actions (Phase 2) --}}
             <div class="bg-white rounded-2xl shadow-medical p-6">
                 <h2 class="text-lg font-semibold text-medical-gray-900 mb-4">إجراءات سريعة</h2>
                 <div class="space-y-3">
+                    @if($order->status === 'pending')
+                        <div x-data="{ showCancelModal: false }">
+                            <button @click="showCancelModal = true" 
+                                class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors font-medium">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                                إلغاء الطلب
+                            </button>
+                            <div x-show="showCancelModal" x-cloak @click.away="showCancelModal = false"
+                                class="fixed inset-0 z-50 overflow-y-auto mt-8">
+                                <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20">
+                                    <div class="fixed inset-0 bg-gray-500 bg-opacity-75" @click="showCancelModal = false"></div>
+                                    <div class="relative bg-white rounded-lg px-4 pt-5 pb-4 shadow-xl max-w-md w-full">
+                                        <h3 class="text-lg font-bold text-gray-900 mb-4">إلغاء الطلب</h3>
+                                        <form action="{{ route('buyer.orders.cancel', $order) }}" method="POST">
+                                            @csrf
+                                            <div class="mb-4">
+                                                <label class="block text-sm font-medium text-gray-700 mb-1">سبب الإلغاء (اختياري)</label>
+                                                <textarea name="cancellation_reason" rows="3"
+                                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                                                    placeholder="أدخل سبب الإلغاء..."></textarea>
+                                            </div>
+                                            <div class="flex gap-3">
+                                                <button type="button" @click="showCancelModal = false"
+                                                    class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                                                    إلغاء
+                                                </button>
+                                                <button type="submit"
+                                                    class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                                                    تأكيد الإلغاء
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                    <form action="{{ route('buyer.orders.add-to-cart', $order) }}" method="POST">
+                        @csrf
+                        <button type="submit" 
+                            class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-medical-green-50 text-medical-green-600 rounded-xl hover:bg-medical-green-100 transition-colors font-medium">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            إعادة الطلب
+                        </button>
+                    </form>
                     @if($order->invoices->isNotEmpty())
                         <a href="{{ route('buyer.invoices.show', $order->invoices->first()) }}" 
                            class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-medical-blue-50 text-medical-blue-600 rounded-xl hover:bg-medical-blue-100 transition-colors font-medium">
@@ -215,7 +264,7 @@
                 </div>
             </div>
 
-            {{-- Order Progress Timeline --}}
+            {{-- Order Progress Timeline (Phase 2 Enhanced) --}}
             <div class="bg-white rounded-2xl shadow-medical p-6">
                 <h2 class="text-lg font-semibold text-medical-gray-900 mb-4">تتبع الطلب</h2>
                 @php
@@ -225,11 +274,24 @@
                         $currentIndex = -1; // Cancelled
                     }
                     
+                    // Calculate expected delivery date (Phase 2)
+                    $orderDate = $order->order_date ?? $order->created_at;
+                    $expectedDelivery = null;
+                    if ($order->quotation && $order->quotation->items->isNotEmpty()) {
+                        $maxLeadTime = $order->quotation->items->max(function($item) {
+                            $lt = $item->lead_time ?? '7';
+                            return (int) preg_replace('/\D/', '', $lt);
+                        });
+                        if ($maxLeadTime) {
+                            $expectedDelivery = $orderDate->copy()->addDays($maxLeadTime);
+                        }
+                    }
+                    
                     $timelineSteps = [
-                        ['key' => 'pending', 'label' => 'قيد الانتظار', 'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', 'color' => 'yellow'],
-                        ['key' => 'processing', 'label' => 'قيد المعالجة', 'icon' => 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z', 'color' => 'blue'],
-                        ['key' => 'shipped', 'label' => 'تم الشحن', 'icon' => 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4', 'color' => 'indigo'],
-                        ['key' => 'delivered', 'label' => 'تم التسليم', 'icon' => 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', 'color' => 'green'],
+                        ['key' => 'pending', 'label' => 'قيد الانتظار', 'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', 'color' => 'yellow', 'date' => $orderDate],
+                        ['key' => 'processing', 'label' => 'قيد المعالجة', 'icon' => 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z', 'color' => 'blue', 'date' => null],
+                        ['key' => 'shipped', 'label' => 'تم الشحن', 'icon' => 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4', 'color' => 'indigo', 'date' => null],
+                        ['key' => 'delivered', 'label' => 'تم التسليم', 'icon' => 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', 'color' => 'green', 'date' => $expectedDelivery],
                     ];
                 @endphp
                 
@@ -278,11 +340,19 @@
                                     @endif
                                 </div>
                                 
-                                {{-- Content --}}
+                                {{-- Content (Phase 2) --}}
                                 <div class="flex-1">
                                     <p class="font-medium {{ $isCompleted ? 'text-gray-900' : 'text-gray-400' }}">{{ $step['label'] }}</p>
                                     @if($isCurrent)
                                         <p class="text-xs text-{{ $step['color'] }}-600 mt-0.5">الحالة الحالية</p>
+                                    @endif
+                                    @if($step['date'] && ($isCompleted || $isCurrent))
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            {{ $step['date']->format('Y/m/d') }}
+                                            @if($step['key'] === 'delivered' && !$isCompleted)
+                                                <span class="text-gray-400">(متوقع)</span>
+                                            @endif
+                                        </p>
                                     @endif
                                 </div>
                             </div>

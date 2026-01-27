@@ -28,8 +28,28 @@ class UserRequest extends FormRequest
         $isUpdate = in_array($this->method(), ['PUT', 'PATCH'], true);
 
         return [
-            // 🧩 نوع المستخدم (مشتري / مورد / إداري)
-            'user_type_id' => ['required', 'exists:user_types,id'],
+            // 🧩 نوع المستخدم والدور (مدمج: "user_type_id:role_name" أو فقط "role_name")
+            'user_type_role' => [
+                $isUpdate ? 'nullable' : 'required',
+                'string',
+                function ($attribute, $value, $fail) {
+                    if ($value) {
+                        // Accept format: "user_type_id:role_name" (e.g., "1:Admin")
+                        $formatWithColon = preg_match('/^\d+:[A-Za-z]+$/', $value);
+                        // Accept format: just "role_name" (e.g., "Admin" or "Staff")
+                        $formatRoleOnly = preg_match('/^[A-Za-z]+$/', $value);
+                        
+                        if (!$formatWithColon && !$formatRoleOnly) {
+                            $fail('صيغة نوع المستخدم والدور غير صحيحة. استخدم التنسيق: "1:Admin" أو "Admin" فقط.');
+                        }
+                    }
+                },
+            ],
+            // Fallback: separate fields for backward compatibility
+            'user_type_id' => [
+                $isUpdate ? 'nullable' : 'required_without:user_type_role',
+                'exists:user_types,id'
+            ],
 
             // 👤 الاسم الكامل
             'name' => ['required', 'string', 'max:255'],
@@ -62,7 +82,7 @@ class UserRequest extends FormRequest
             // ⚙️ الحالة التشغيلية
             'status' => ['required', Rule::in(['active', 'inactive', 'suspended'])],
 
-            // 🧠 الدور (Spatie Role)
+            // 🧠 الدور (Spatie Role) - fallback for backward compatibility
             'role' => ['nullable', 'exists:roles,name'],
 
             // 📍 معلومات إضافية (اختيارية)
@@ -76,6 +96,7 @@ class UserRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'user_type_role.required' => 'يجب تحديد نوع المستخدم والدور.',
             'user_type_id.required' => 'يجب تحديد نوع المستخدم.',
             'user_type_id.exists' => 'نوع المستخدم المحدد غير موجود في النظام.',
 

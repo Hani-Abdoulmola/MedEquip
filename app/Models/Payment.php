@@ -44,6 +44,12 @@ class Payment extends Model implements HasMedia
     public const CURRENCY_USD = 'USD';  // US Dollar
     public const CURRENCY_EUR = 'EUR';  // Euro
 
+    // 🔖 Payment Status Constants
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_COMPLETED = 'completed';
+    public const STATUS_FAILED = 'failed';
+    public const STATUS_REFUNDED = 'refunded';
+
     /**
      * Auto-sync buyer_id and supplier_id from order when payment is created
      * This maintains denormalized data integrity for reporting performance
@@ -112,5 +118,117 @@ class Payment extends Model implements HasMedia
         $this->addMediaConversion('preview')
             ->width(600)
             ->height(400);
+    }
+
+    // ======================
+    // 🏷️ Helper Methods for Labels
+    // ======================
+
+    /**
+     * Get payment status label in Arabic
+     */
+    public static function getStatusLabel(string $status): string
+    {
+        return match($status) {
+            self::STATUS_PENDING => 'قيد الانتظار',
+            self::STATUS_COMPLETED => 'مكتملة',
+            self::STATUS_FAILED => 'فاشلة',
+            self::STATUS_REFUNDED => 'مستردة',
+            default => $status,
+        };
+    }
+
+    /**
+     * Get payment status CSS classes
+     */
+    public static function getStatusClasses(string $status): string
+    {
+        return match($status) {
+            self::STATUS_PENDING => 'bg-medical-yellow-100 text-medical-yellow-700',
+            self::STATUS_COMPLETED => 'bg-medical-green-100 text-medical-green-700',
+            self::STATUS_FAILED => 'bg-medical-red-100 text-medical-red-700',
+            self::STATUS_REFUNDED => 'bg-medical-blue-100 text-medical-blue-700',
+            default => 'bg-medical-gray-100 text-medical-gray-700',
+        };
+    }
+
+    /**
+     * Get all status options for select dropdown
+     */
+    public static function getStatusOptions(): array
+    {
+        return [
+            self::STATUS_PENDING => self::getStatusLabel(self::STATUS_PENDING),
+            self::STATUS_COMPLETED => self::getStatusLabel(self::STATUS_COMPLETED),
+            self::STATUS_FAILED => self::getStatusLabel(self::STATUS_FAILED),
+            self::STATUS_REFUNDED => self::getStatusLabel(self::STATUS_REFUNDED),
+        ];
+    }
+
+    /**
+     * Get payment method label in Arabic
+     */
+    public static function getMethodLabel(string $method): string
+    {
+        return match($method) {
+            'cash' => 'نقدي',
+            'bank_transfer' => 'تحويل بنكي',
+            'credit_card' => 'بطاقة ائتمانية',
+            'paypal' => 'PayPal',
+            'other' => 'أخرى',
+            default => $method,
+        };
+    }
+
+    /**
+     * Get all method options for select dropdown
+     */
+    public static function getMethodOptions(): array
+    {
+        return [
+            'cash' => self::getMethodLabel('cash'),
+            'bank_transfer' => self::getMethodLabel('bank_transfer'),
+            'credit_card' => self::getMethodLabel('credit_card'),
+            'paypal' => self::getMethodLabel('paypal'),
+            'other' => self::getMethodLabel('other'),
+        ];
+    }
+
+    /**
+     * Get currency label in Arabic
+     */
+    public static function getCurrencyLabel(string $currency): string
+    {
+        return match($currency) {
+            self::CURRENCY_LYD => 'دينار ليبي',
+            self::CURRENCY_USD => 'دولار أمريكي',
+            self::CURRENCY_EUR => 'يورو',
+            default => $currency,
+        };
+    }
+
+    /**
+     * Get all currency options for select dropdown
+     */
+    public static function getCurrencyOptions(): array
+    {
+        return [
+            self::CURRENCY_LYD => self::getCurrencyLabel(self::CURRENCY_LYD),
+            self::CURRENCY_USD => self::getCurrencyLabel(self::CURRENCY_USD),
+            self::CURRENCY_EUR => self::getCurrencyLabel(self::CURRENCY_EUR),
+        ];
+    }
+
+    /**
+     * Get currency symbol
+     */
+    public static function getCurrencySymbol(string $currency): string
+    {
+        return match($currency) {
+            self::CURRENCY_LYD => 'د.ل',
+            self::CURRENCY_USD => '$',
+            self::CURRENCY_EUR => '€',
+            default => $currency,
+        };
     }
 }

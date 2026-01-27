@@ -10,6 +10,7 @@ use App\Services\ReferenceCodeService;
 use App\Exports\AdminInvoicesExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -25,11 +26,7 @@ class InvoiceController extends BaseController
      */
     public function index(): View
     {
-        // Check permission
-        if (!auth()->user()->can('invoices.view')) {
-            abort(403, 'ليس لديك صلاحية عرض الفواتير');
-        }
-        
+        // Permission check is handled by route middleware
         $query = Invoice::with(['order.buyer', 'order.supplier']);
 
         // Apply filters
@@ -104,7 +101,17 @@ class InvoiceController extends BaseController
      */
     public function create(): View
     {
-        $orders = Order::orderBy('order_number')->pluck('order_number', 'id');
+        // Filter orders - only show delivered orders that don't have invoices
+        $orders = Order::where('status', Order::STATUS_DELIVERED)
+            ->whereDoesntHave('invoices', function ($q) {
+                $q->where('status', '!=', Invoice::STATUS_CANCELLED);
+            })
+            ->orderBy('order_number')
+            ->pluck('order_number', 'id');
+
+        // If order_id is provided, pre-select it
+        $selectedOrderId = request()->get('order_id');
+        $selectedOrder = $selectedOrderId ? Order::with('items.product')->find($selectedOrderId) : null;
 
         // Check if admin or supplier view
         $view = $this->getView('admin.invoices.create', 'invoices.form', 'invoices.create');
@@ -112,6 +119,8 @@ class InvoiceController extends BaseController
         return view($view, [
             'invoice' => new Invoice,
             'orders' => $orders,
+            'selectedOrderId' => $selectedOrderId,
+            'selectedOrder' => $selectedOrder,
         ]);
     }
 
@@ -130,6 +139,14 @@ class InvoiceController extends BaseController
                 'invoice_number'
             );
             $data['created_by'] = Auth::id();
+
+            // Auto-calculate total_amount if not provided
+            if (!isset($data['total_amount']) || $data['total_amount'] === null) {
+                $data['total_amount'] = ($data['subtotal'] ?? 0)
+                    + ($data['tax'] ?? 0)
+                    - ($data['discount'] ?? 0);
+                $data['total_amount'] = max(0, $data['total_amount']);
+            }
 
             $invoice = Invoice::create($data);
 
@@ -202,11 +219,38 @@ class InvoiceController extends BaseController
      */
     public function update(InvoiceRequest $request, Invoice $invoice): RedirectResponse
     {
+        $this->authorize('update', $invoice);
+
         DB::beginTransaction();
 
         try {
             $data = $request->validated();
-            $data['updated_by'] = Auth::id();
+
+            // Auto-calculate total_amount if not explicitly set
+            if (!isset($data['total_amount']) || $data['total_amount'] === null) {
+                $data['total_amount'] = ($data['subtotal'] ?? $invoice->subtotal)
+                    + ($data['tax'] ?? $invoice->tax ?? 0)
+                    - ($data['discount'] ?? $invoice->discount ?? 0);
+                $data['total_amount'] = max(0, $data['total_amount']);
+            }
+
+            // Validate status transition
+            if (isset($data['status']) && $data['status'] !== $invoice->status) {
+                if (!$invoice->canTransitionTo($data['status'])) {
+                    DB::rollBack();
+                    return back()->withErrors([
+                        'status' => 'لا يمكن تغيير حالة الفاتورة من ' . $invoice->status . ' إلى ' . $data['status']
+                    ]);
+                }
+            }
+
+            // Track approver if status changes to approved
+            if (isset($data['status']) && $data['status'] === Invoice::STATUS_APPROVED
+                && $invoice->status !== Invoice::STATUS_APPROVED) {
+                $data['approved_by'] = Auth::id();
+            }
+
+            // Note: updated_by is handled by Auditable trait if present
 
             $invoice->update($data);
 
@@ -284,6 +328,156 @@ class InvoiceController extends BaseController
         $view = $this->getView('admin.invoices.show', 'invoices.show', 'invoices.view');
         
         return view($view, compact('invoice'));
+    }
+
+    /**
+     * ✅ اعتماد فاتورة
+     */
+    public function approve(Invoice $invoice): RedirectResponse
+    {
+        $this->authorize('approve', $invoice);
+
+        if ($invoice->status !== Invoice::STATUS_ISSUED) {
+            return back()->withErrors(['error' => 'يمكن اعتماد الفواتير الصادرة فقط']);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $invoice->update([
+                'status' => Invoice::STATUS_APPROVED,
+                'approved_by' => Auth::id(),
+            ]);
+
+            // Log activity
+            activity('invoices')
+                ->performedOn($invoice)
+                ->causedBy(Auth::user())
+                ->withProperties([
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'old_status' => Invoice::STATUS_ISSUED,
+                    'new_status' => Invoice::STATUS_APPROVED,
+                ])
+                ->log('تم اعتماد الفاتورة');
+
+            // Notify buyer
+            if ($invoice->order && $invoice->order->buyer && $invoice->order->buyer->user) {
+                NotificationService::send(
+                    $invoice->order->buyer->user,
+                    '✅ تم اعتماد الفاتورة',
+                    "تم اعتماد الفاتورة رقم {$invoice->invoice_number} للطلب رقم {$invoice->order->order_number}.",
+                    route('invoices.show', $invoice->id)
+                );
+            }
+
+            // Notify supplier
+            if ($invoice->order && $invoice->order->supplier && $invoice->order->supplier->user) {
+                NotificationService::send(
+                    $invoice->order->supplier->user,
+                    '✅ تم اعتماد الفاتورة',
+                    "تم اعتماد الفاتورة رقم {$invoice->invoice_number} للطلب رقم {$invoice->order->order_number}.",
+                    route('invoices.show', $invoice->id)
+                );
+            }
+
+            NotificationService::notifyAdmins(
+                '✅ تم اعتماد فاتورة',
+                "تم اعتماد الفاتورة رقم {$invoice->invoice_number} بقيمة {$invoice->total_amount}.",
+                route('invoices.show', $invoice->id)
+            );
+
+            DB::commit();
+
+            return back()->with('success', 'تم اعتماد الفاتورة بنجاح');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Invoice approve error', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['error' => 'فشل اعتماد الفاتورة: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * ❌ إلغاء فاتورة
+     */
+    public function cancel(Request $request, Invoice $invoice): RedirectResponse
+    {
+        $this->authorize('update', $invoice);
+
+        if ($invoice->status === Invoice::STATUS_CANCELLED) {
+            return back()->withErrors(['error' => 'الفاتورة ملغاة بالفعل']);
+        }
+
+        $validated = $request->validate([
+            'cancellation_reason' => 'nullable|string|max:500',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $oldStatus = $invoice->status;
+
+            $invoice->update([
+                'status' => Invoice::STATUS_CANCELLED,
+                'notes' => ($invoice->notes ? $invoice->notes . "\n\n" : '')
+                    . 'تم الإلغاء: ' . ($validated['cancellation_reason'] ?? 'بدون سبب'),
+            ]);
+
+            // Log activity
+            activity('invoices')
+                ->performedOn($invoice)
+                ->causedBy(Auth::user())
+                ->withProperties([
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'old_status' => $oldStatus,
+                    'new_status' => Invoice::STATUS_CANCELLED,
+                    'cancellation_reason' => $validated['cancellation_reason'] ?? null,
+                ])
+                ->log('تم إلغاء الفاتورة');
+
+            // Notify buyer
+            if ($invoice->order && $invoice->order->buyer && $invoice->order->buyer->user) {
+                NotificationService::send(
+                    $invoice->order->buyer->user,
+                    '❌ تم إلغاء الفاتورة',
+                    "تم إلغاء الفاتورة رقم {$invoice->invoice_number} للطلب رقم {$invoice->order->order_number}.",
+                    route('invoices.show', $invoice->id)
+                );
+            }
+
+            // Notify supplier
+            if ($invoice->order && $invoice->order->supplier && $invoice->order->supplier->user) {
+                NotificationService::send(
+                    $invoice->order->supplier->user,
+                    '❌ تم إلغاء الفاتورة',
+                    "تم إلغاء الفاتورة رقم {$invoice->invoice_number} للطلب رقم {$invoice->order->order_number}.",
+                    route('invoices.show', $invoice->id)
+                );
+            }
+
+            NotificationService::notifyAdmins(
+                '❌ تم إلغاء فاتورة',
+                "تم إلغاء الفاتورة رقم {$invoice->invoice_number} بقيمة {$invoice->total_amount}.",
+                route('invoices.show', $invoice->id)
+            );
+
+            DB::commit();
+
+            return back()->with('success', 'تم إلغاء الفاتورة بنجاح');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Invoice cancel error', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['error' => 'فشل إلغاء الفاتورة: ' . $e->getMessage()]);
+        }
     }
 
     /**

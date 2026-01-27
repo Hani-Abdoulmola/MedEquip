@@ -212,18 +212,9 @@ class UnifiedRolePermissionSeeder extends Seeder
             'Staff' => [
                 'ar_name' => 'موظف',
                 'permissions' => [
-                    // Baseline permissions for Staff (read-only access)
-                    // Admin can grant additional permissions via UI
-                    'users.view',
-                    'suppliers.view',
-                    'buyers.view',
-                    'products.view',
-                    'orders.view',
-                    'rfqs.view',
-                    'quotations.view',
-                    'invoices.view',
-                    'activity_logs.view',
-                    'notifications.view',
+                    // Staff role has NO default permissions
+                    // Admin must explicitly grant permissions to each Staff user via UI
+                    // Permissions are assigned directly to users, not to the role
                 ],
             ],
         ];

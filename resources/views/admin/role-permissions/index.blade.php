@@ -9,6 +9,21 @@
                 <p class="text-medical-gray-600">إدارة الأدوار والصلاحيات للمستخدمين الداخليين</p>
             </div>
         </div>
+        
+        {{-- Security Notice --}}
+        <div class="mt-4 bg-gradient-to-r from-medical-green-50 to-medical-blue-50 border-2 border-medical-green-200 rounded-xl p-4">
+            <div class="flex items-start gap-3">
+                <svg class="w-6 h-6 text-medical-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <div>
+                    <p class="text-sm font-semibold text-medical-green-900 mb-1">🔒 نظام الحماية محدث</p>
+                    <p class="text-sm text-medical-green-700">
+                        جميع المسارات الإدارية محمية الآن بصلاحيات على مستوى المسار. المستخدمون (Staff) يمكنهم الوصول فقط إلى الصفحات التي لديهم صلاحيات لها. المسؤولون (Admin) لديهم وصول كامل تلقائياً.
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
 
     {{-- Flash Messages --}}
@@ -74,6 +89,103 @@
             </nav>
         </div>
     </div>
+
+    {{-- Bulk Mode Toggle (Users Tab Only) --}}
+    @if ($activeTab === 'users')
+        <div class="mb-4 bg-yellow-50 border-2 border-yellow-300 rounded-xl p-4" x-data="{ bulkMode: false }">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" x-model="bulkMode"
+                            class="w-5 h-5 text-yellow-600 border-yellow-300 rounded focus:ring-2 focus:ring-yellow-500">
+                        <span class="mr-2 text-sm font-bold text-yellow-900">
+                            وضع التعيين الجماعي (Bulk Mode)
+                        </span>
+                    </label>
+                    <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                </div>
+                <span class="text-xs text-yellow-700" x-show="!bulkMode">
+                    قم بالتفعيل لتطبيق الصلاحيات على عدة مستخدمين دفعة واحدة
+                </span>
+                <span class="text-xs text-yellow-800 font-semibold" x-show="bulkMode" x-cloak>
+                    ✓ الوضع الجماعي نشط - اختر المستخدمين أدناه
+                </span>
+            </div>
+
+            {{-- Bulk Assignment Form (shown when bulk mode is active) --}}
+            <div x-show="bulkMode" x-cloak x-transition class="mt-6 pt-6 border-t border-yellow-200">
+                <form action="{{ route('admin.role-permissions.bulk-assign') }}" method="POST" id="bulk-form">
+                    @csrf
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {{-- User Selection --}}
+                        <div>
+                            <label class="block text-sm font-bold text-medical-gray-900 mb-3">اختر المستخدمين</label>
+                            <div class="max-h-60 overflow-y-auto border-2 border-yellow-300 rounded-xl p-4 bg-white space-y-2">
+                                <label class="flex items-center gap-2 p-2 hover:bg-yellow-50 rounded-lg cursor-pointer border-b border-yellow-100">
+                                    <input type="checkbox" id="select-all-users" onclick="toggleAllUsers(this)"
+                                        class="w-5 h-5 text-yellow-600 border-yellow-300 rounded">
+                                    <span class="text-sm font-bold text-yellow-900">تحديد الكل</span>
+                                </label>
+                                @foreach($users as $user)
+                                    <label class="flex items-center gap-2 p-2 hover:bg-yellow-50 rounded-lg cursor-pointer">
+                                        <input type="checkbox" name="user_ids[]" value="{{ $user->id }}" class="bulk-user-checkbox w-4 h-4 text-yellow-600 border-yellow-300 rounded">
+                                        <span class="text-sm text-medical-gray-900">{{ $user->name }}</span>
+                                        <span class="text-xs text-medical-gray-500">({{ $user->roles->first()->ar_name ?? 'بدون دور' }})</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                            <p class="text-xs text-yellow-700 mt-2">
+                                <span id="selected-users-count">0</span> مستخدم محدد
+                            </p>
+                        </div>
+
+                        {{-- Action & Permissions --}}
+                        <div>
+                            <label class="block text-sm font-bold text-medical-gray-900 mb-3">الإجراء</label>
+                            <select name="action" required
+                                class="w-full px-4 py-2 border-2 border-yellow-300 rounded-xl focus:ring-2 focus:ring-yellow-500 mb-4">
+                                <option value="replace">استبدال (مسح القديم + تطبيق الجديد)</option>
+                                <option value="merge">دمج (إضافة للموجود)</option>
+                                <option value="remove">حذف (إزالة الصلاحيات المحددة)</option>
+                            </select>
+
+                            <label class="block text-sm font-bold text-medical-gray-900 mb-3">الصلاحيات</label>
+                            <div class="max-h-48 overflow-y-auto border-2 border-yellow-300 rounded-xl p-3 bg-white">
+                                @foreach ($permissions as $module => $modulePermissions)
+                                    <div class="mb-3">
+                                        <strong class="text-xs text-medical-gray-600 block mb-1">{{ $moduleLabels[$module] ?? ucfirst($module) }}</strong>
+                                        <div class="space-y-1">
+                                            @foreach ($modulePermissions as $permission)
+                                                <label class="flex items-center gap-2 text-xs cursor-pointer hover:bg-yellow-50 p-1 rounded">
+                                                    <input type="checkbox" name="permissions[]" value="{{ $permission->id }}"
+                                                        class="w-3 h-3 text-yellow-600 border-yellow-300 rounded">
+                                                    <span class="text-medical-gray-700">{{ $permission->ar_name ?? $permission->name }}</span>
+                                                </label>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <button type="submit"
+                                class="w-full mt-4 px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl hover:shadow-lg transition font-bold">
+                                <span class="flex items-center justify-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                    تطبيق على المستخدمين المحددين
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
 
     {{-- Main Content Card --}}
     <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -202,10 +314,11 @@
                         </div>
                     </div>
 
+
                     {{-- Section Title --}}
                     <div class="mb-6">
-                        <h4 class="text-xl font-bold text-medical-gray-900 mb-2">اذونات الصلاحية</h4>
-                        <p class="text-sm text-medical-gray-600">اختر الصلاحيات المطلوبة لهذا المستخدم</p>
+                        <h4 class="text-xl font-bold text-medical-gray-900 mb-2">اذونات الصلاحية المخصصة</h4>
+                        <p class="text-sm text-medical-gray-600">أو اختر الصلاحيات يدوياً حسب الحاجة</p>
                     </div>
 
                     {{-- Permissions Grid by Module (DocuTechHub Style) --}}
@@ -462,6 +575,22 @@
 
     {{-- JavaScript --}}
     <script>
+        // Bulk Mode: Toggle all users
+        function toggleAllUsers(checkbox) {
+            const userCheckboxes = document.querySelectorAll('.bulk-user-checkbox');
+            userCheckboxes.forEach(cb => cb.checked = checkbox.checked);
+            updateSelectedUsersCount();
+        }
+
+        // Bulk Mode: Update selected users count
+        function updateSelectedUsersCount() {
+            const count = document.querySelectorAll('.bulk-user-checkbox:checked').length;
+            const countElement = document.getElementById('selected-users-count');
+            if (countElement) {
+                countElement.textContent = count;
+            }
+        }
+
         // Select all permissions
         function selectAllPermissions() {
             document.querySelectorAll('.permission-checkbox').forEach(checkbox => {
@@ -540,6 +669,14 @@
                     selectAll.checked = allChecked;
                 }
             });
+
+            // Bulk Mode: Listen to user checkbox changes
+            document.querySelectorAll('.bulk-user-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', updateSelectedUsersCount);
+            });
+
+            // Initialize bulk users count
+            updateSelectedUsersCount();
         });
     </script>
 

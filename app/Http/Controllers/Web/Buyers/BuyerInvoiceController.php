@@ -4,10 +4,14 @@ namespace App\Http\Controllers\Web\Buyers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
+use App\Services\NotificationService;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 /**
@@ -192,6 +196,203 @@ class BuyerInvoiceController extends Controller
             Invoice::PAYMENT_PARTIAL => 'yellow',
             default => 'gray',
         };
+    }
+
+    /**
+     * Acknowledge invoice receipt.
+     */
+    public function acknowledge(Invoice $invoice): RedirectResponse
+    {
+        $this->authorize('view', $invoice);
+
+        $buyer = Auth::user()->buyerProfile;
+
+        if (!$buyer) {
+            abort(403, 'لا يوجد ملف تعريف للمشتري');
+        }
+
+        // Verify invoice belongs to buyer
+        if (!$invoice->order || $invoice->order->buyer_id !== $buyer->id) {
+            abort(403, 'ليس لديك صلاحية للاعتراف بهذه الفاتورة');
+        }
+
+        // Check if already acknowledged
+        if ($invoice->acknowledged_at) {
+            return back()->with('info', 'تم الاعتراف بهذه الفاتورة مسبقاً');
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $invoice->update([
+                'acknowledged_at' => now(),
+                'acknowledged_by' => Auth::id(),
+            ]);
+
+            // Log activity
+            activity('buyer_invoices')
+                ->performedOn($invoice)
+                ->causedBy(Auth::user())
+                ->withProperties([
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'action' => 'acknowledge',
+                ])
+                ->log('قام المشتري بالاعتراف بالفاتورة');
+
+            // Notify supplier
+            if ($invoice->order->supplier && $invoice->order->supplier->user) {
+                NotificationService::send(
+                    $invoice->order->supplier->user,
+                    '✅ تم الاعتراف بالفاتورة',
+                    "قام المشتري {$buyer->organization_name} بالاعتراف بالفاتورة رقم {$invoice->invoice_number}.",
+                    route('supplier.invoices.show', $invoice->id)
+                );
+            }
+
+            // Notify admins
+            NotificationService::notifyAdmins(
+                '✅ تم الاعتراف بفاتورة',
+                "قام المشتري {$buyer->organization_name} بالاعتراف بالفاتورة رقم {$invoice->invoice_number}.",
+                route('admin.invoices.show', $invoice->id)
+            );
+
+            DB::commit();
+
+            return back()->with('success', 'تم الاعتراف بالفاتورة بنجاح');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Buyer invoice acknowledge error', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['error' => 'فشل الاعتراف بالفاتورة: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Dispute invoice (request correction).
+     */
+    public function dispute(Request $request, Invoice $invoice): RedirectResponse
+    {
+        $this->authorize('view', $invoice);
+
+        $buyer = Auth::user()->buyerProfile;
+
+        if (!$buyer) {
+            abort(403, 'لا يوجد ملف تعريف للمشتري');
+        }
+
+        // Verify invoice belongs to buyer
+        if (!$invoice->order || $invoice->order->buyer_id !== $buyer->id) {
+            abort(403, 'ليس لديك صلاحية للاعتراض على هذه الفاتورة');
+        }
+
+        // Cannot dispute if already paid
+        if ($invoice->payment_status === Invoice::PAYMENT_PAID) {
+            return back()->withErrors(['error' => 'لا يمكن الاعتراض على فاتورة مدفوعة']);
+        }
+
+        $validated = $request->validate([
+            'dispute_reason' => 'required|string|max:1000',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $invoice->update([
+                'disputed_at' => now(),
+                'dispute_reason' => $validated['dispute_reason'],
+            ]);
+
+            // Log activity
+            activity('buyer_invoices')
+                ->performedOn($invoice)
+                ->causedBy(Auth::user())
+                ->withProperties([
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'action' => 'dispute',
+                    'dispute_reason' => $validated['dispute_reason'],
+                ])
+                ->log('قام المشتري بالاعتراض على الفاتورة');
+
+            // Notify supplier
+            if ($invoice->order->supplier && $invoice->order->supplier->user) {
+                NotificationService::send(
+                    $invoice->order->supplier->user,
+                    '⚠️ اعتراض على الفاتورة',
+                    "قام المشتري {$buyer->organization_name} بالاعتراض على الفاتورة رقم {$invoice->invoice_number}. السبب: {$validated['dispute_reason']}",
+                    route('supplier.invoices.show', $invoice->id)
+                );
+            }
+
+            // Notify admins
+            NotificationService::notifyAdmins(
+                '⚠️ اعتراض على فاتورة',
+                "قام المشتري {$buyer->organization_name} بالاعتراض على الفاتورة رقم {$invoice->invoice_number}.",
+                route('admin.invoices.show', $invoice->id)
+            );
+
+            DB::commit();
+
+            return back()->with('success', 'تم إرسال الاعتراض بنجاح. سيتم مراجعته من قبل المورد أو الإدارة');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Buyer invoice dispute error', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['error' => 'فشل إرسال الاعتراض: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Request invoice copy.
+     */
+    public function requestCopy(Invoice $invoice): RedirectResponse
+    {
+        $this->authorize('view', $invoice);
+
+        $buyer = Auth::user()->buyerProfile;
+
+        if (!$buyer) {
+            abort(403, 'لا يوجد ملف تعريف للمشتري');
+        }
+
+        try {
+            // Notify supplier
+            if ($invoice->order->supplier && $invoice->order->supplier->user) {
+                NotificationService::send(
+                    $invoice->order->supplier->user,
+                    '📄 طلب نسخة من الفاتورة',
+                    "طلب المشتري {$buyer->organization_name} نسخة من الفاتورة رقم {$invoice->invoice_number}.",
+                    route('supplier.invoices.show', $invoice->id)
+                );
+            }
+
+            // Log activity
+            activity('buyer_invoices')
+                ->performedOn($invoice)
+                ->causedBy(Auth::user())
+                ->withProperties([
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'action' => 'request_copy',
+                ])
+                ->log('طلب المشتري نسخة من الفاتورة');
+
+            return back()->with('success', 'تم إرسال طلب نسخة من الفاتورة للمورد');
+        } catch (\Throwable $e) {
+            Log::error('Buyer invoice request copy error', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors(['error' => 'فشل إرسال الطلب: ' . $e->getMessage()]);
+        }
     }
 }
 

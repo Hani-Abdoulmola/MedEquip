@@ -61,8 +61,6 @@
             {{ session('info') }}
         </div>
     @endif
-        </div>
-    </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {{-- Main Content --}}
@@ -324,6 +322,78 @@
                         <span>{{ number_format($invoice->total_amount, 2) }} د.ل</span>
                     </div>
                 </div>
+            </div>
+
+            {{-- Invoice Actions --}}
+            <div class="bg-white rounded-2xl shadow-medical p-6 space-y-3">
+                <h3 class="text-lg font-semibold text-medical-gray-900 mb-4">إجراءات الفاتورة</h3>
+                
+                @if(in_array($invoice->status, ['draft', 'issued']) && $invoice->payment_status === 'unpaid')
+                    <form action="{{ route('supplier.invoices.cancel', $invoice) }}" method="POST" class="w-full"
+                          x-data="{ showCancelModal: false }">
+                        @csrf
+                        <button type="button" @click="showCancelModal = true"
+                            class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            إلغاء الفاتورة
+                        </button>
+                        
+                        {{-- Cancel Modal --}}
+                        <div x-show="showCancelModal" 
+                             x-cloak
+                             @click.away="showCancelModal = false"
+                             class="fixed inset-0 z-50 overflow-y-auto mt-8">
+                            <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20">
+                                <div class="fixed inset-0 bg-gray-500 bg-opacity-75" @click="showCancelModal = false"></div>
+                                <div class="relative bg-white rounded-lg px-4 pt-5 pb-4 shadow-xl max-w-md w-full">
+                                    <h3 class="text-lg font-bold text-gray-900 mb-4">إلغاء الفاتورة</h3>
+                                    <form action="{{ route('supplier.invoices.cancel', $invoice) }}" method="POST">
+                                        @csrf
+                                        <div class="mb-4">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">سبب الإلغاء (اختياري)</label>
+                                            <textarea name="cancellation_reason" rows="3"
+                                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                                                placeholder="أدخل سبب الإلغاء..."></textarea>
+                                        </div>
+                                        <div class="flex gap-3">
+                                            <button type="button" @click="showCancelModal = false"
+                                                class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                                                إلغاء
+                                            </button>
+                                            <button type="submit"
+                                                class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                                                تأكيد الإلغاء
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                @endif
+
+                @if($invoice->status === 'draft')
+                    <form action="{{ route('supplier.invoices.send', $invoice) }}" method="POST" class="w-full">
+                        @csrf
+                        <button type="submit" 
+                            class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-medical-blue-600 text-white rounded-xl hover:bg-medical-blue-700 transition-colors font-medium">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                            إرسال الفاتورة للمشتري
+                        </button>
+                    </form>
+                @endif
+
+                @if($invoice->status === 'cancelled')
+                    <div class="p-3 bg-red-50 rounded-xl border border-red-200">
+                        <p class="text-sm text-red-700">
+                            <strong>تم الإلغاء:</strong> {{ $invoice->updated_at->format('Y/m/d H:i') }}
+                        </p>
+                    </div>
+                @endif
             </div>
         </div>
     </div>

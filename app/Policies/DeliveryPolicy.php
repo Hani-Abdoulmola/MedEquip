@@ -12,7 +12,14 @@ class DeliveryPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyRole(['Admin', 'Buyer', 'Supplier']);
+        // Gate::before() handles Admin bypass
+        // Buyers and Suppliers can view their own deliveries
+        if ($user->hasAnyRole(['Buyer', 'Supplier'])) {
+            return true;
+        }
+        
+        // Staff users need explicit permission
+        return $user->can('deliveries.view');
     }
 
     /**
@@ -20,7 +27,8 @@ class DeliveryPolicy
      */
     public function view(User $user, Delivery $delivery): bool
     {
-        // Admin can view all deliveries
+        // Gate::before() handles Admin bypass
+        // Staff users with permission can view all
         if ($user->can('deliveries.view')) {
             return true;
         }
@@ -53,7 +61,14 @@ class DeliveryPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasAnyRole(['Admin', 'Supplier']);
+        // Gate::before() handles Admin bypass
+        // Suppliers can create deliveries
+        if ($user->hasRole('Supplier')) {
+            return true;
+        }
+        
+        // Staff users need explicit permission
+        return $user->can('deliveries.create');
     }
 
     /**
@@ -61,7 +76,8 @@ class DeliveryPolicy
      */
     public function update(User $user, Delivery $delivery): bool
     {
-        // Admin can update any delivery
+        // Gate::before() handles Admin bypass
+        // Staff users with permission can update any delivery
         if ($user->can('deliveries.update')) {
             return true;
         }
@@ -79,7 +95,7 @@ class DeliveryPolicy
      */
     public function delete(User $user, Delivery $delivery): bool
     {
-        // Only admin can delete deliveries
+        // Gate::before() handles Admin bypass
         return $user->can('deliveries.delete');
     }
 
@@ -88,7 +104,8 @@ class DeliveryPolicy
      */
     public function updateStatus(User $user, Delivery $delivery): bool
     {
-        // Admin can update any delivery status
+        // Gate::before() handles Admin bypass
+        // Staff users with permission can update any delivery status
         if ($user->can('deliveries.update_status')) {
             return true;
         }
@@ -106,7 +123,7 @@ class DeliveryPolicy
      */
     public function verify(User $user, Delivery $delivery): bool
     {
-        // Only admin can verify deliveries
+        // Gate::before() handles Admin bypass
         return $user->can('deliveries.verify');
     }
 

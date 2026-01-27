@@ -4,8 +4,12 @@ namespace App\Http\Controllers\Web\Suppliers;
 
 use App\Exports\SupplierOrdersExport;
 use App\Http\Controllers\Controller;
+use App\Models\Delivery;
+use App\Models\Invoice;
 use App\Models\Order;
 use App\Services\NotificationService;
+use App\Services\OrderDeliveryService;
+use App\Services\ReferenceCodeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -94,7 +98,7 @@ class SupplierOrderController extends Controller
         $orders = $query->latest('order_date')->paginate(15)->withQueryString();
 
         // Optimized stats calculation using single query
-        $stats = Order::where('supplier_id', $supplier->id)
+        $statsResult = Order::where('supplier_id', $supplier->id)
             ->selectRaw('
                 COUNT(*) as total,
                 SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as pending,
@@ -113,14 +117,15 @@ class SupplierOrderController extends Controller
             ])
             ->first();
 
+        // Ensure stats array is always properly initialized, even if query returns null
         $stats = [
-            'total' => $stats->total ?? 0,
-            'pending' => $stats->pending ?? 0,
-            'processing' => $stats->processing ?? 0,
-            'shipped' => $stats->shipped ?? 0,
-            'delivered' => $stats->delivered ?? 0,
-            'cancelled' => $stats->cancelled ?? 0,
-            'total_revenue' => $stats->total_revenue ?? 0,
+            'total' => $statsResult ? (int)($statsResult->total ?? 0) : 0,
+            'pending' => $statsResult ? (int)($statsResult->pending ?? 0) : 0,
+            'processing' => $statsResult ? (int)($statsResult->processing ?? 0) : 0,
+            'shipped' => $statsResult ? (int)($statsResult->shipped ?? 0) : 0,
+            'delivered' => $statsResult ? (int)($statsResult->delivered ?? 0) : 0,
+            'cancelled' => $statsResult ? (int)($statsResult->cancelled ?? 0) : 0,
+            'total_revenue' => $statsResult ? (float)($statsResult->total_revenue ?? 0) : 0,
         ];
 
         // Log activity
@@ -216,10 +221,17 @@ class SupplierOrderController extends Controller
         try {
             $oldStatus = $order->status;
 
+            // Update order status
             $order->update([
                 'status' => $newStatus,
                 'notes' => $request->notes ?? $order->notes,
             ]);
+
+            // 🚚 Create Delivery and Invoice automatically when order status changes to 'delivered'
+            if ($newStatus === Order::STATUS_DELIVERED) {
+                $orderDeliveryService = app(OrderDeliveryService::class);
+                $orderDeliveryService->handleOrderDelivered($order, Auth::user());
+            }
 
             // Notify buyer of status change
             if ($order->buyer && $order->buyer->user) {
@@ -274,6 +286,44 @@ class SupplierOrderController extends Controller
 
             return back()->withErrors(['error' => 'حدث خطأ أثناء تحديث حالة الطلب']);
         }
+    }
+
+    /**
+     * Create invoice from order (quick action).
+     */
+    public function createInvoice(Order $order): RedirectResponse
+    {
+        $supplier = Auth::user()->supplierProfile;
+
+        if (!$supplier) {
+            abort(403, 'لا يوجد ملف تعريف للمورد');
+        }
+
+        // Verify ownership
+        if ($order->supplier_id !== $supplier->id) {
+            abort(403, 'ليس لديك صلاحية لإنشاء فاتورة لهذا الطلب');
+        }
+
+        // Check if order is delivered
+        if ($order->status !== Order::STATUS_DELIVERED) {
+            return back()->withErrors(['error' => 'يمكن إنشاء فاتورة فقط للطلبات المسلمة']);
+        }
+
+        // Check if invoice already exists
+        $existingInvoice = Invoice::where('order_id', $order->id)
+            ->where('status', '!=', Invoice::STATUS_CANCELLED)
+            ->first();
+
+        if ($existingInvoice) {
+            return redirect()
+                ->route('supplier.invoices.show', $existingInvoice)
+                ->with('info', 'يوجد فاتورة موجودة بالفعل لهذا الطلب');
+        }
+
+        // Redirect to invoice creation form with pre-filled order
+        return redirect()
+            ->route('supplier.invoices.create', ['order_id' => $order->id])
+            ->with('info', 'تم تحضير نموذج الفاتورة من بيانات الطلب');
     }
 
     /**

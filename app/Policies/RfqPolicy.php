@@ -22,7 +22,8 @@ class RfqPolicy
             return true;
         }
         
-        // Admin/Staff need permission
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('rfqs.view');
     }
 
@@ -58,7 +59,8 @@ class RfqPolicy
             return false;
         }
 
-        // Admin/Staff need permission
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('rfqs.view');
     }
 
@@ -72,26 +74,26 @@ class RfqPolicy
             return true;
         }
         
-        // Admin/Staff need permission
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('rfqs.create');
     }
 
     /**
      * Determine if the user can update the RFQ.
+     * 
+     * REFACTORED: Policy checks ownership only.
+     * Status/state validation handled by RfqStateMachine.
      */
     public function update(User $user, Rfq $rfq): bool
     {
-        // Buyer can update their own RFQs (if status allows)
+        // Buyer can update their own RFQs
         if ($user->hasRole('Buyer') && $user->buyerProfile) {
-            if ($rfq->buyer_id !== $user->buyerProfile->id) {
-                return false;
-            }
-            
-            // Buyers can only update draft or open RFQs
-            return in_array($rfq->status, ['draft', 'open']);
+            return $rfq->buyer_id === $user->buyerProfile->id;
         }
 
-        // Admin/Staff need permission
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('rfqs.update');
     }
 
@@ -110,7 +112,7 @@ class RfqPolicy
             return $rfq->quotations()->count() === 0;
         }
 
-        // Admin/Staff need permission
+        // Gate::before() handles Admin bypass
         return $user->can('rfqs.delete');
     }
 
@@ -119,6 +121,8 @@ class RfqPolicy
      */
     public function assignSuppliers(User $user, Rfq $rfq): bool
     {
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('rfqs.assign_suppliers');
     }
 
@@ -127,6 +131,8 @@ class RfqPolicy
      */
     public function updateStatus(User $user, Rfq $rfq): bool
     {
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('rfqs.update_status');
     }
 
@@ -135,11 +141,16 @@ class RfqPolicy
      */
     public function toggleVisibility(User $user, Rfq $rfq): bool
     {
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('rfqs.toggle_visibility');
     }
 
     /**
      * Determine if the user can create a quotation for the RFQ.
+     * 
+     * REFACTORED: Policy checks authorization (role, verification, access).
+     * Business rules (RFQ open status, deadline) checked by RfqStateMachine.
      */
     public function createQuotation(User $user, Rfq $rfq): bool
     {
@@ -149,11 +160,6 @@ class RfqPolicy
         }
 
         $supplier = $user->supplierProfile;
-
-        // RFQ must be open
-        if ($rfq->status !== 'open') {
-            return false;
-        }
 
         // Supplier must be verified
         if (!$supplier->is_verified) {

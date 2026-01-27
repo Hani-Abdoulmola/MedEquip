@@ -158,9 +158,11 @@
                         <div
                             class="p-4 bg-gradient-to-r from-medical-blue-50 to-medical-green-50 rounded-xl border-2 border-medical-blue-200">
                             <label class="flex items-center gap-3 cursor-pointer">
+                                {{-- Hidden input to ensure value is sent even when unchecked --}}
                                 <input type="hidden" name="is_public" value="0">
+                                {{-- Checkbox: when checked, sends '1', when unchecked, hidden input sends '0' --}}
                                 <input type="checkbox" name="is_public" value="1"
-                                    {{ old('is_public', true) ? 'checked' : '' }}
+                                    {{ old('is_public', '1') == '1' || old('is_public', true) === true ? 'checked' : '' }}
                                     class="w-5 h-5 text-medical-blue-600 border-gray-300 rounded focus:ring-medical-blue-500 cursor-pointer">
                                 <div>
                                     <span class="text-sm font-bold text-gray-900">طلب عام</span>

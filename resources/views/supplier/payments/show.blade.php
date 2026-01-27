@@ -57,16 +57,7 @@
                             <div>
                                 <p class="text-xs text-medical-gray-500">طريقة الدفع</p>
                                 <p class="font-semibold text-medical-gray-900">
-                                    @php
-                                        $methodLabels = [
-                                            'cash' => 'نقدي',
-                                            'bank_transfer' => 'تحويل بنكي',
-                                            'credit_card' => 'بطاقة ائتمانية',
-                                            'paypal' => 'PayPal',
-                                            'other' => 'أخرى',
-                                        ];
-                                    @endphp
-                                    {{ $methodLabels[$payment->method] ?? $payment->method }}
+                                    {{ \App\Models\Payment::getMethodLabel($payment->method) }}
                                 </p>
                             </div>
                             @if($payment->transaction_id)
@@ -175,22 +166,8 @@
                     {{-- Payment Status --}}
                     <div>
                         <p class="text-sm text-medical-gray-600 mb-2">الحالة</p>
-                        @php
-                            $statusClasses = [
-                                'pending' => 'bg-medical-yellow-100 text-medical-yellow-700',
-                                'completed' => 'bg-medical-green-100 text-medical-green-700',
-                                'failed' => 'bg-medical-red-100 text-medical-red-700',
-                                'refunded' => 'bg-medical-blue-100 text-medical-blue-700',
-                            ];
-                            $statusLabels = [
-                                'pending' => 'قيد الانتظار',
-                                'completed' => 'مكتملة',
-                                'failed' => 'فاشلة',
-                                'refunded' => 'مستردة',
-                            ];
-                        @endphp
-                        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium {{ $statusClasses[$payment->status] ?? 'bg-medical-gray-100 text-medical-gray-700' }}">
-                            {{ $statusLabels[$payment->status] ?? $payment->status }}
+                        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium {{ \App\Models\Payment::getStatusClasses($payment->status) }}">
+                            {{ \App\Models\Payment::getStatusLabel($payment->status) }}
                         </span>
                     </div>
 
@@ -198,7 +175,7 @@
                     <div>
                         <p class="text-sm text-medical-gray-600 mb-2">طريقة الدفع</p>
                         <p class="font-semibold text-medical-gray-900">
-                            {{ $methodLabels[$payment->method] ?? $payment->method }}
+                            {{ \App\Models\Payment::getMethodLabel($payment->method) }}
                         </p>
                     </div>
 
@@ -233,7 +210,7 @@
 
                         <div>
                             <p class="text-sm text-medical-gray-600">إجمالي الطلب</p>
-                            <p class="font-semibold text-medical-gray-900 mt-1">{{ number_format($payment->order->total_amount, 2) }} د.ل</p>
+                            <p class="font-semibold text-medical-gray-900 mt-1">{{ number_format($payment->order->total_amount, 2) }} {{ \App\Models\Payment::getCurrencySymbol($payment->order->currency ?? \App\Models\Payment::CURRENCY_LYD) }}</p>
                         </div>
                     </div>
                 </div>
@@ -262,7 +239,7 @@
 
                         <div>
                             <p class="text-sm text-medical-gray-600">إجمالي الفاتورة</p>
-                            <p class="font-semibold text-medical-gray-900 mt-1">{{ number_format($payment->invoice->total_amount, 2) }} د.ل</p>
+                            <p class="font-semibold text-medical-gray-900 mt-1">{{ number_format($payment->invoice->total_amount, 2) }} {{ \App\Models\Payment::getCurrencySymbol($payment->currency ?? \App\Models\Payment::CURRENCY_LYD) }}</p>
                         </div>
                     </div>
                 </div>

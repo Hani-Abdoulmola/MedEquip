@@ -54,7 +54,7 @@
 
                     <div>
                         <p class="text-sm text-medical-gray-600">موقع التسليم</p>
-                        <p class="text-medical-gray-900 mt-1">{{ $delivery->delivery_location }}</p>
+                        <p class="text-medical-gray-900 mt-1">{{ $delivery->delivery_location ?? 'غير محدد' }}</p>
                     </div>
 
                     <div>
@@ -98,12 +98,12 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <p class="text-sm text-medical-gray-600">اسم المستلم</p>
-                        <p class="font-semibold text-medical-gray-900 mt-1">{{ $delivery->receiver_name }}</p>
+                        <p class="font-semibold text-medical-gray-900 mt-1">{{ $delivery->receiver_name ?? 'غير محدد' }}</p>
                     </div>
 
                     <div>
                         <p class="text-sm text-medical-gray-600">هاتف المستلم</p>
-                        <p class="text-medical-gray-900 mt-1 dir-ltr">{{ $delivery->receiver_phone }}</p>
+                        <p class="text-medical-gray-900 mt-1 dir-ltr">{{ $delivery->receiver_phone ?? 'غير محدد' }}</p>
                     </div>
                 </div>
             </div>

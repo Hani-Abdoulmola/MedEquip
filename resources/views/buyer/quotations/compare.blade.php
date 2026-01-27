@@ -192,10 +192,10 @@
                                         عرض التفاصيل
                                     </a>
                                     @if($quotation->status === 'pending')
-                                        <form action="{{ route('buyer.quotations.accept', $quotation) }}" method="POST">
+                                        <form action="{{ route('buyer.quotations.accept', $quotation) }}" method="POST" id="accept-form-compare-{{ $quotation->id }}">
                                             @csrf
                                             <button type="submit" 
-                                                    onclick="return confirm('هل أنت متأكد من قبول هذا العرض؟')"
+                                                    onclick="event.preventDefault(); if(confirm('هل أنت متأكد من قبول هذا العرض؟ سيتم رفض باقي العروض تلقائياً.')) { document.getElementById('accept-form-compare-{{ $quotation->id }}').submit(); }"
                                                     class="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium">
                                                 قبول العرض
                                             </button>

@@ -8,6 +8,7 @@ use App\Models\OrderItem;
 use App\Models\Quotation;
 use App\Models\Rfq;
 use App\Services\NotificationService;
+use App\Services\QuotationWorkflowService;
 use App\Services\ReferenceCodeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -85,10 +86,10 @@ class BuyerQuotationController extends Controller
                 ->where('status', 'rejected')->count(),
         ];
 
-        // For filters
+        // For filters - get full Rfq objects (view needs id, reference_code, and title)
         $rfqs = Rfq::where('buyer_id', $buyer->id)
             ->orderBy('title')
-            ->pluck('title', 'id');
+            ->get(['id', 'reference_code', 'title']);
 
         return view('buyer.quotations.index', compact('quotations', 'stats', 'rfqs'));
     }
@@ -216,8 +217,11 @@ class BuyerQuotationController extends Controller
 
     /**
      * Accept a quotation.
+     * 
+     * Refactored to use QuotationWorkflowService for business logic.
+     * Controller is now thin - just authorization, delegation, and response.
      */
-    public function accept(Request $request, Quotation $quotation): RedirectResponse
+    public function accept(Request $request, Quotation $quotation, QuotationWorkflowService $workflowService): RedirectResponse
     {
         $this->authorize('accept', $quotation);
 
@@ -228,55 +232,17 @@ class BuyerQuotationController extends Controller
             abort(403, 'ليس لديك صلاحية لقبول هذا العرض');
         }
 
-        if ($quotation->status !== 'pending') {
-            return back()->withErrors(['error' => 'لا يمكن قبول هذا العرض - الحالة غير مناسبة']);
-        }
-
-        DB::beginTransaction();
-
         try {
-            $quotation->update([
-                'status' => 'accepted',
-                'updated_by' => Auth::id(),
-            ]);
+            DB::beginTransaction();
 
-            // ALWAYS reject other quotations for this RFQ
-            Quotation::where('rfq_id', $quotation->rfq_id)
-                ->where('id', '!=', $quotation->id)
-                ->where('status', 'pending')
-                ->update([
-                    'status' => 'rejected',
-                    'rejection_reason' => 'تم ترسية الطلب لمورد آخر',
-                    'updated_by' => Auth::id(),
-                ]);
+            // Load quotation with necessary relationships before processing
+            $quotation->load(['rfq', 'supplier', 'items.rfqItem']);
 
-            // Update RFQ status to awarded
-            $quotation->rfq->update([
-                'status' => 'awarded',
-                'closed_at' => now(),
-                'updated_by' => Auth::id(),
-            ]);
+            // Delegate to workflow service (handles locking, state transitions, notifications)
+            $quotation = $workflowService->acceptQuotation($quotation, Auth::user());
 
-            // Create Order automatically from accepted quotation
+            // Create Order from accepted quotation
             $order = $this->createOrderFromQuotation($quotation, $buyer);
-
-            // Notify supplier using workflow service
-            \App\Services\RfqWorkflowService::notifyQuotationDecision($quotation, 'accepted');
-
-            // Notify rejected suppliers using workflow service
-            $rejectedQuotations = Quotation::where('rfq_id', $quotation->rfq_id)
-                ->where('id', '!=', $quotation->id)
-                ->where('status', 'rejected')
-                ->with('supplier.user')
-                ->get();
-
-            foreach ($rejectedQuotations as $rejected) {
-                \App\Services\RfqWorkflowService::notifyQuotationDecision(
-                    $rejected, 
-                    'rejected', 
-                    $rejected->rejection_reason
-                );
-            }
 
             // Log activity
             activity('buyer_quotations')
@@ -297,22 +263,31 @@ class BuyerQuotationController extends Controller
                 ->route('buyer.orders.show', $order)
                 ->with('success', "تم قبول عرض السعر وإنشاء الطلب رقم {$order->order_number} بنجاح");
 
+        } catch (\InvalidArgumentException $e) {
+            DB::rollBack();
+            // Business rule violation (e.g., RFQ already awarded)
+            return back()->withErrors(['error' => $e->getMessage()]);
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Buyer accept quotation error', [
                 'quotation_id' => $quotation->id,
                 'buyer_id' => $buyer->id,
                 'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
             ]);
 
-            return back()->withErrors(['error' => 'حدث خطأ أثناء قبول العرض']);
+            return back()->withErrors(['error' => 'حدث خطأ أثناء قبول العرض: ' . $e->getMessage()]);
         }
     }
 
     /**
      * Reject a quotation.
+     * 
+     * Refactored to use QuotationWorkflowService for business logic.
      */
-    public function reject(Request $request, Quotation $quotation): RedirectResponse
+    public function reject(Request $request, Quotation $quotation, QuotationWorkflowService $workflowService): RedirectResponse
     {
         $this->authorize('reject', $quotation);
 
@@ -323,52 +298,29 @@ class BuyerQuotationController extends Controller
             abort(403, 'ليس لديك صلاحية لرفض هذا العرض');
         }
 
-        if ($quotation->status !== 'pending') {
-            return back()->withErrors(['error' => 'لا يمكن رفض هذا العرض - الحالة غير مناسبة']);
-        }
-
         $validated = $request->validate([
             'rejection_reason' => 'nullable|string|max:500',
         ]);
 
-        DB::beginTransaction();
-
         try {
-            $quotation->update([
-                'status' => 'rejected',
-                'rejection_reason' => $validated['rejection_reason'] ?? 'لم يستوف المعايير المطلوبة',
-                'updated_by' => Auth::id(),
-            ]);
-
-            // Notify supplier using workflow service
-            \App\Services\RfqWorkflowService::notifyQuotationDecision(
+            // Delegate to workflow service
+            $quotation = $workflowService->rejectQuotation(
                 $quotation, 
-                'rejected', 
+                Auth::user(), 
                 $validated['rejection_reason'] ?? null
             );
 
-            // Log activity
-            activity('buyer_quotations')
-                ->performedOn($quotation)
-                ->causedBy(Auth::user())
-                ->withProperties([
-                    'action' => 'reject',
-                    'reason' => $validated['rejection_reason'] ?? null,
-                ])
-                ->log('قام المشتري برفض عرض السعر');
-
-            DB::commit();
-
             return back()->with('success', 'تم رفض عرض السعر');
 
+        } catch (\InvalidArgumentException $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
         } catch (\Throwable $e) {
-            DB::rollBack();
             Log::error('Buyer reject quotation error', [
                 'quotation_id' => $quotation->id,
                 'message' => $e->getMessage(),
             ]);
 
-            return back()->withErrors(['error' => 'حدث خطأ أثناء رفض العرض']);
+            return back()->withErrors(['error' => 'حدث خطأ أثناء رفض العرض: ' . $e->getMessage()]);
         }
     }
 
@@ -377,8 +329,13 @@ class BuyerQuotationController extends Controller
      */
     private function createOrderFromQuotation(Quotation $quotation, $buyer): Order
     {
-        // Load quotation items if not loaded
-        $quotation->load('items');
+        // Load quotation items with rfqItem relationship for fallback values
+        $quotation->load('items.rfqItem');
+
+        // Validate quotation has items
+        if ($quotation->items->isEmpty()) {
+            throw new \InvalidArgumentException('عرض السعر لا يحتوي على أي بنود. لا يمكن إنشاء طلب.');
+        }
 
         // Create the order
         $order = Order::create([
@@ -404,15 +361,15 @@ class BuyerQuotationController extends Controller
                 'order_id' => $order->id,
                 'quotation_item_id' => $quotationItem->id,
                 'product_id' => $quotationItem->product_id,
-                'item_name' => $quotationItem->item_name,
-                'specifications' => $quotationItem->specifications,
-                'quantity' => $quotationItem->quantity,
-                'unit' => $quotationItem->unit,
+                'item_name' => $quotationItem->item_name ?? $quotationItem->rfqItem?->item_name ?? 'بند',
+                'specifications' => $quotationItem->specifications ?? $quotationItem->rfqItem?->specifications,
+                'quantity' => $quotationItem->quantity ?? $quotationItem->rfqItem?->quantity ?? 1,
+                'unit' => $quotationItem->unit ?? $quotationItem->rfqItem?->unit ?? 'وحدة',
                 'unit_price' => $quotationItem->unit_price,
-                'subtotal' => $quotationItem->total_price,
+                'subtotal' => $quotationItem->total_price ?? ($quotationItem->unit_price * ($quotationItem->quantity ?? $quotationItem->rfqItem?->quantity ?? 1)),
                 'tax_amount' => 0,
                 'discount_amount' => 0,
-                'total_price' => $quotationItem->total_price,
+                'total_price' => $quotationItem->total_price ?? ($quotationItem->unit_price * ($quotationItem->quantity ?? $quotationItem->rfqItem?->quantity ?? 1)),
                 'lead_time' => $quotationItem->lead_time,
                 'warranty' => $quotationItem->warranty,
                 'status' => 'pending',

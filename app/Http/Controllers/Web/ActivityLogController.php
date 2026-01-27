@@ -16,10 +16,7 @@ class ActivityLogController extends Controller
      */
     public function index(Request $request)
     {
-        // Check permission
-        if (!auth()->user()->can('activity_logs.view')) {
-            abort(403, 'ليس لديك صلاحية عرض سجل النشاط');
-        }
+        // Permission check is handled by route middleware
         
         try {
             // Query أساسي مع الـ Relations المهمة

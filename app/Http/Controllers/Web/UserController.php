@@ -25,18 +25,17 @@ class UserController extends Controller
     // Middleware is now defined in routes/web.php for Laravel 12 compatibility
 
     /**
-     * 🧾 عرض كل المستخدمين
+     * 🧾 عرض المستخدمين الإداريين فقط (Admin/Staff)
+     * الموردين والمشترين يتم إدارتهم من أقسام منفصلة
      */
     public function index(): View
     {
         $this->authorize('viewAny', User::class);
 
-        $query = User::with(['type', 'creator', 'updater', 'roles']);
-
-        // 🔍 Filter by user type
-        if (request()->filled('user_type')) {
-            $query->where('user_type_id', request('user_type'));
-        }
+        // تصفية فقط المستخدمين الإداريين (Admin user_type_id=1 و Staff user_type_id=4)
+        // Admin (user_type_id = 1) and Staff (user_type_id = 4)
+        $query = User::with(['type', 'creator', 'updater', 'roles'])
+            ->whereIn('user_type_id', [1, 4]); // Admin (1) and Staff (4) user types
 
         // 🔍 Search by name or email
         if (request()->filled('search')) {
@@ -47,6 +46,13 @@ class UserController extends Controller
             });
         }
 
+        // 🔍 Filter by role
+        if (request()->filled('role')) {
+            $query->whereHas('roles', function ($q) {
+                $q->where('name', request('role'));
+            });
+        }
+
         // 🔍 Filter by status
         if (request()->filled('status')) {
             $query->where('status', request('status'));
@@ -54,12 +60,22 @@ class UserController extends Controller
 
         $users = $query->latest('id')->paginate(15);
 
-        // 📊 Calculate stats
+        // 📊 Calculate stats (فقط للمستخدمين الإداريين)
+        // Admin (user_type_id = 1) and Staff (user_type_id = 4)
         $stats = [
-            'total_users' => User::count(),
-            'active_users' => User::where('status', 'active')->count(),
-            'suppliers_count' => User::where('user_type_id', 2)->count(), // Supplier type
-            'buyers_count' => User::where('user_type_id', 3)->count(), // Buyer type
+            'total_users' => User::whereIn('user_type_id', [1, 4])
+                ->whereHas('roles', fn($q) => $q->whereIn('name', ['Admin', 'Staff']))
+                ->count(),
+            'active_users' => User::whereIn('user_type_id', [1, 4])
+                ->where('status', 'active')
+                ->whereHas('roles', fn($q) => $q->whereIn('name', ['Admin', 'Staff']))
+                ->count(),
+            'admin_count' => User::where('user_type_id', 1)
+                ->whereHas('roles', fn($q) => $q->where('name', 'Admin'))
+                ->count(),
+            'staff_count' => User::where('user_type_id', 4)
+                ->whereHas('roles', fn($q) => $q->where('name', 'Staff'))
+                ->count(),
         ];
 
         return view('admin.users.index', compact('users', 'stats'));
@@ -72,15 +88,56 @@ class UserController extends Controller
     {
         $this->authorize('create', User::class);
 
-        $types = UserType::pluck('name', 'id');
-        // Only show internal/system roles for staff (exclude Supplier/Buyer identity roles)
-        $roles = Role::whereNotIn('name', ['Supplier', 'Buyer'])->get()->mapWithKeys(function ($role) {
-            return [$role->name => $role->ar_name ?? $role->name];
-        });
+        // إدارة المستخدمين مقتصرة فقط على الموظفين الإداريين (Admin/Staff)
+        // الموردين والمشترين يتم إدارتهم من أقسام منفصلة
+
+        // Get Admin (user_type_id = 1) and Staff (user_type_id = 4) user types
+        $adminType = UserType::find(1); // Admin user_type_id = 1
+        $staffType = UserType::find(4); // Staff user_type_id = 4
+
+        if (!$adminType) {
+            abort(500, 'نوع المستخدم الإداري غير موجود');
+        }
+
+        // Get only Admin and Staff roles
+        $allRoles = Role::where('guard_name', 'web')
+            ->whereIn('name', ['Admin', 'Staff'])
+            ->get()
+            ->keyBy('name');
+
+        // Create combined options: user_type_id:role_name => "User Type - Role"
+        $combinedOptions = [];
+
+        // Admin type can have Admin role
+        $adminRole = $allRoles->get('Admin');
+        if ($adminRole && $adminType) {
+            $roleArName = $adminRole->ar_name ?? $adminRole->name;
+            $key = "{$adminType->id}:Admin";
+            $adminDescription = $adminType->description ?? 'مدير النظام';
+            $combinedOptions[$key] = "{$adminDescription} - {$roleArName}";
+        }
+
+        // Staff type can have Staff role (if Staff type exists)
+        // Otherwise, use Admin type with Staff role (backward compatibility)
+        $staffRole = $allRoles->get('Staff');
+        if ($staffRole) {
+            $roleArName = $staffRole->ar_name ?? $staffRole->name;
+
+            if ($staffType) {
+                // Use Staff user type if it exists
+                $key = "{$staffType->id}:Staff";
+                $staffDescription = $staffType->description ?? 'موظف إداري';
+                $combinedOptions[$key] = "{$staffDescription} - {$roleArName}";
+            } else {
+                // Fallback: Use Admin type with Staff role (backward compatibility)
+                $key = "{$adminType->id}:Staff";
+                $adminDescription = $adminType->description ?? 'مدير النظام';
+                $combinedOptions[$key] = "{$adminDescription} - {$roleArName}";
+            }
+        }
 
         return view('admin.users.create', [
-            'types' => $types,
-            'roles' => $roles,
+            'combinedOptions' => $combinedOptions,
             'user' => new User,
         ]);
     }
@@ -99,13 +156,73 @@ class UserController extends Controller
             $data['password'] = Hash::make($data['password']);
             $data['created_by'] = Auth::id();
 
+            // Extract user_type_id and role from combined field
+            $userTypeId = null;
+            $roleName = null;
+
+            if ($request->filled('user_type_role')) {
+                $userTypeRoleValue = trim($request->user_type_role);
+                
+                // Check if format is "user_type_id:role_name" (e.g., "1:Admin")
+                if (strpos($userTypeRoleValue, ':') !== false) {
+                    $parts = explode(':', $userTypeRoleValue);
+                    if (count($parts) === 2) {
+                        $userTypeId = (int) $parts[0];
+                        $roleName = trim($parts[1]);
+                        $data['user_type_id'] = $userTypeId;
+                    }
+                } else {
+                    // Format is just "role_name" (e.g., "Admin" or "Staff")
+                    $roleName = $userTypeRoleValue;
+                    
+                    // Infer user_type_id based on role name
+                    if (strtolower($roleName) === 'admin') {
+                        $userTypeId = 1; // Admin user_type_id
+                        $data['user_type_id'] = $userTypeId;
+                    } elseif (strtolower($roleName) === 'staff') {
+                        $staffType = UserType::find(4); // Staff user_type_id = 4
+                        $userTypeId = $staffType ? 4 : 1; // Fallback to Admin if Staff type doesn't exist
+                        $data['user_type_id'] = $userTypeId;
+                    } else {
+                        // Unknown role, default to Admin type
+                        $userTypeId = 1;
+                        $data['user_type_id'] = $userTypeId;
+                    }
+                }
+            } elseif ($request->filled('user_type_id')) {
+                // Fallback: if separate fields exist
+                $userTypeId = $request->user_type_id;
+                $data['user_type_id'] = $userTypeId;
+                $roleName = $request->role;
+            }
+
             $user = User::create($data);
 
             // 🧩 تعيين الدور (Role grants permissions automatically via Spatie)
-            if ($request->filled('role')) {
-                $user->assignRole($request->role);
+            if ($roleName) {
+                $user->assignRole($roleName);
                 // User now inherits all permissions from assigned role
                 // Additional permissions can be granted via "الأدوار و الصلاحيات" page
+            }
+
+            // ✅ Email verification
+            if ($request->filled('email_verified') && $request->email_verified) {
+                $user->email_verified_at = now();
+                $user->save();
+            }
+
+            // 📧 Send welcome email if requested
+            if ($request->filled('send_welcome_email') && $request->send_welcome_email) {
+                try {
+                    NotificationService::send(
+                        $user,
+                        '🎉 مرحباً بك في MediEquip',
+                        "مرحباً {$user->name}! تم إنشاء حسابك بنجاح. يمكنك تسجيل الدخول الآن باستخدام البريد الإلكتروني وكلمة المرور الخاصة بك.",
+                        route('login')
+                    );
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to send welcome email: '.$e->getMessage());
+                }
             }
 
             // 🧾 سجل النشاط
@@ -114,7 +231,8 @@ class UserController extends Controller
                 ->causedBy(Auth::user())
                 ->withProperties([
                     'email' => $user->email,
-                    'role' => $request->role ?? 'غير محدد',
+                    'user_type_id' => $userTypeId,
+                    'role' => $roleName ?? 'غير محدد',
                 ])
                 ->log('👤 تم إنشاء مستخدم جديد');
 
@@ -153,18 +271,61 @@ class UserController extends Controller
     {
         $this->authorize('update', $user);
 
-        $types = UserType::pluck('name', 'id');
-        // Only show internal/system roles for staff (exclude Supplier/Buyer identity roles)
-        $roles = Role::whereNotIn('name', ['Supplier', 'Buyer'])->get()->mapWithKeys(function ($role) {
-            return [$role->name => $role->ar_name ?? $role->name];
-        });
-        
+        // إدارة المستخدمين مقتصرة فقط على الموظفين الإداريين
+        // التأكد من أن المستخدم المراد تعديله هو موظف إداري
+        // Admin (user_type_id = 1) and Staff (user_type_id = 4)
+        if (!in_array($user->user_type_id, [1, 4])) {
+            abort(403, 'يمكن تعديل الموظفين الإداريين فقط من هذه الصفحة');
+        }
+
+        // Get Admin (user_type_id = 1) and Staff (user_type_id = 4) user types
+        $adminType = UserType::find(1); // Admin user_type_id = 1
+        $staffType = UserType::find(4); // Staff user_type_id = 4
+
+        if (!$adminType) {
+            abort(500, 'نوع المستخدم الإداري غير موجود');
+        }
+
+        // Get only Admin and Staff roles
+        $allRoles = Role::where('guard_name', 'web')
+            ->whereIn('name', ['Admin', 'Staff'])
+            ->get()
+            ->keyBy('name');
+
+        // Create combined options for current user
+        $combinedOptions = [];
+
+        // Admin type (user_type_id = 1) can have Admin role
+        $adminRole = $allRoles->get('Admin');
+        if ($adminRole && $adminType) {
+            $roleArName = $adminRole->ar_name ?? $adminRole->name;
+            $key = "1:Admin"; // Admin user_type_id = 1
+            $adminDescription = $adminType->description ?? 'مدير النظام';
+            $combinedOptions[$key] = "{$adminDescription} - {$roleArName}";
+        }
+
+        // Staff type (user_type_id = 4) can have Staff role
+        $staffRole = $allRoles->get('Staff');
+        if ($staffRole && $staffType) {
+            $roleArName = $staffRole->ar_name ?? $staffRole->name;
+            $key = "4:Staff"; // Staff user_type_id = 4
+            $staffDescription = $staffType->description ?? 'موظف إداري';
+            $combinedOptions[$key] = "{$staffDescription} - {$roleArName}";
+        }
+
+        // Get current user's role for pre-selection
+        $currentRole = $user->roles->first();
+        $currentUserTypeRole = $currentRole
+            ? "{$user->user_type_id}:{$currentRole->name}"
+            : null;
+
         // Get all permissions grouped by module (only if user can manage permissions)
         $permissions = [];
         $userPermissions = [];
         $moduleLabels = [];
-        
-        if (auth()->user()->can('users.manage_permissions')) {
+
+        $currentUser = Auth::user();
+        if ($currentUser && $currentUser->can('users.manage_permissions')) {
             $permissions = Permission::orderBy('name')
                 ->get()
                 ->groupBy(function ($permission) {
@@ -197,7 +358,7 @@ class UserController extends Controller
             ];
         }
 
-        return view('admin.users.edit', compact('user', 'types', 'roles', 'permissions', 'userPermissions', 'moduleLabels'));
+        return view('admin.users.edit', compact('user', 'combinedOptions', 'currentUserTypeRole', 'permissions', 'userPermissions', 'moduleLabels'));
     }
 
     /**
@@ -221,9 +382,26 @@ class UserController extends Controller
             $data['updated_by'] = Auth::id();
             $user->update($data);
 
+            // Extract user_type_id and role from combined field (if provided)
+            $userTypeId = null;
+            $roleName = null;
+
+            if ($request->filled('user_type_role')) {
+                // Format: "user_type_id:role_name"
+                $parts = explode(':', $request->user_type_role);
+                if (count($parts) === 2) {
+                    $userTypeId = (int) $parts[0];
+                    $roleName = $parts[1];
+                    $data['user_type_id'] = $userTypeId;
+                }
+            } elseif ($request->filled('role')) {
+                // Fallback: if separate role field exists
+                $roleName = $request->role;
+            }
+
             // 🔄 تحديث الدور
-            if ($request->filled('role')) {
-                $user->syncRoles([$request->role]);
+            if ($roleName) {
+                $user->syncRoles([$roleName]);
             }
 
             // 🧾 النشاط
@@ -231,7 +409,8 @@ class UserController extends Controller
                 ->performedOn($user)
                 ->causedBy(Auth::user())
                 ->withProperties([
-                    'role' => $request->role ?? 'غير محدد',
+                    'user_type_id' => $userTypeId ?? $user->user_type_id,
+                    'role' => $roleName ?? 'غير محدد',
                     'email' => $user->email,
                 ])
                 ->log('✏️ تم تحديث بيانات المستخدم');
@@ -264,6 +443,12 @@ class UserController extends Controller
     {
         $this->authorize('delete', $user);
 
+        // التأكد من أن المستخدم المراد حذفه هو موظف إداري فقط
+        // Admin (user_type_id = 1) and Staff (user_type_id = 4) only
+        if (!in_array($user->user_type_id, [1, 4])) {
+            abort(403, 'يمكن حذف الموظفين الإداريين فقط من هذه الصفحة. الموردين والمشترين يتم إدارتهم من أقسام منفصلة.');
+        }
+
         try {
             $user->delete();
 
@@ -289,6 +474,12 @@ class UserController extends Controller
     {
         $this->authorize('view', $user);
 
+        // التأكد من أن المستخدم المراد عرضه هو موظف إداري فقط
+        // Admin (user_type_id = 1) and Staff (user_type_id = 4) only
+        if (!in_array($user->user_type_id, [1, 4])) {
+            abort(403, 'يمكن عرض الموظفين الإداريين فقط من هذه الصفحة. الموردين والمشترين يتم إدارتهم من أقسام منفصلة.');
+        }
+
         $user->load(['type', 'creator', 'updater', 'roles', 'permissions']);
 
         return view('admin.users.show', compact('user'));
@@ -302,7 +493,7 @@ class UserController extends Controller
         $this->authorize('viewAny', User::class);
 
         $filters = request()->only(['search', 'role', 'status']);
-        
+
         return Excel::download(
             new AdminUsersExport($filters),
             'users_' . date('Y-m-d_His') . '.xlsx'
@@ -315,6 +506,11 @@ class UserController extends Controller
     public function updatePermissions(Request $request, User $user): RedirectResponse
     {
         $this->authorize('managePermissions', $user);
+
+        // Only Staff (user_type_id = 4) can have permissions managed
+        if (($user->user_type_id ?? null) !== 4) {
+            abort(403, 'يمكن تعيين الصلاحيات للموظفين (Staff) فقط');
+        }
 
         $validated = $request->validate([
             'permissions' => ['nullable', 'array'],
@@ -329,10 +525,10 @@ class UserController extends Controller
             // SECURITY: Filter permissions to admin-only (no supplier/buyer permissions)
             $adminPermissionService = app(\App\Services\AdminPermissionService::class);
             $adminPermissionIds = $adminPermissionService->getAdminPermissions()->pluck('id')->toArray();
-            
+
             // Only allow admin permissions to be assigned
             $validPermissionIds = array_intersect($requestedPermissionIds, $adminPermissionIds);
-            
+
             // Warn if any permissions were filtered out
             $filteredCount = count($requestedPermissionIds) - count($validPermissionIds);
             if ($filteredCount > 0) {

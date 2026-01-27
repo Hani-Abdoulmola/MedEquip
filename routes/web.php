@@ -93,10 +93,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/role-permissions', [RolePermissionController::class, 'index'])->middleware('permission:permissions.view')->name('role-permissions.index');
         Route::post('/role-permissions/{user}/assign', [RolePermissionController::class, 'assignPermissions'])->middleware('permission:permissions.view')->name('role-permissions.assign');
         Route::post('/role-permissions/role/{role}/update', [RolePermissionController::class, 'updateRolePermissions'])->middleware('permission:permissions.view')->name('role-permissions.update-role');
-        Route::post('/role-permissions/{user}/apply-template', [RolePermissionController::class, 'applyTemplate'])->middleware('permission:permissions.view')->name('role-permissions.apply-template');
         Route::post('/role-permissions/bulk-assign', [RolePermissionController::class, 'bulkAssignPermissions'])->middleware('permission:permissions.view')->name('role-permissions.bulk-assign');
-        Route::get('/role-permissions/audit-log', [RolePermissionController::class, 'auditLog'])->middleware('permission:permissions.view')->name('role-permissions.audit-log');
-        Route::get('/role-permissions/usage-report', [RolePermissionController::class, 'usageReport'])->middleware('permission:permissions.view')->name('role-permissions.usage-report');
 
         // Legacy Routes (kept for backward compatibility, redirect to unified page)
         Route::get('/roles', function () {
@@ -108,29 +105,29 @@ Route::middleware('auth')->group(function () {
 
 
         // Suppliers Management
-        Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers');
-        Route::get('/suppliers/export', [SupplierController::class, 'export'])->name('suppliers.export');
-        Route::get('/suppliers/create', [SupplierController::class, 'create'])->name('suppliers.create');
-        Route::post('/suppliers', [SupplierController::class, 'store'])->name('suppliers.store');
-        Route::post('/suppliers/{supplier}/verify', [SupplierController::class, 'verify'])->name('suppliers.verify');
-        Route::post('/suppliers/{supplier}/toggle-active', [SupplierController::class, 'toggleActive'])->name('suppliers.toggle-active');
-        Route::get('/suppliers/{supplier}', [SupplierController::class, 'show'])->name('suppliers.show');
-        Route::get('/suppliers/{supplier}/edit', [SupplierController::class, 'edit'])->name('suppliers.edit');
-        Route::put('/suppliers/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
-        Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy'])->name('suppliers.destroy');
+        Route::get('/suppliers', [SupplierController::class, 'index'])->middleware('permission:suppliers.view')->name('suppliers');
+        Route::get('/suppliers/export', [SupplierController::class, 'export'])->middleware('permission:suppliers.view')->name('suppliers.export');
+        Route::get('/suppliers/create', [SupplierController::class, 'create'])->middleware('permission:suppliers.create')->name('suppliers.create');
+        Route::post('/suppliers', [SupplierController::class, 'store'])->middleware('permission:suppliers.create')->name('suppliers.store');
+        Route::post('/suppliers/{supplier}/verify', [SupplierController::class, 'verify'])->middleware('permission:suppliers.verify')->name('suppliers.verify');
+        Route::post('/suppliers/{supplier}/toggle-active', [SupplierController::class, 'toggleActive'])->middleware('permission:suppliers.toggle_active')->name('suppliers.toggle-active');
+        Route::get('/suppliers/{supplier}', [SupplierController::class, 'show'])->middleware('permission:suppliers.view')->name('suppliers.show');
+        Route::get('/suppliers/{supplier}/edit', [SupplierController::class, 'edit'])->middleware('permission:suppliers.update')->name('suppliers.edit');
+        Route::put('/suppliers/{supplier}', [SupplierController::class, 'update'])->middleware('permission:suppliers.update')->name('suppliers.update');
+        Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy'])->middleware('permission:suppliers.delete')->name('suppliers.destroy');
 
 
         // Buyers Management
-        Route::get('/buyers', [BuyerController::class, 'index'])->name('buyers');
-        Route::get('/buyers/export', [BuyerController::class, 'export'])->name('buyers.export');
-        Route::get('/buyers/create', [BuyerController::class, 'create'])->name('buyers.create');
-        Route::post('/buyers', [BuyerController::class, 'store'])->name('buyers.store');
-        Route::get('/buyers/{buyer}', [BuyerController::class, 'show'])->name('buyers.show');
-        Route::get('/buyers/{buyer}/edit', [BuyerController::class, 'edit'])->name('buyers.edit');
-        Route::put('/buyers/{buyer}', [BuyerController::class, 'update'])->name('buyers.update');
-        Route::delete('/buyers/{buyer}', [BuyerController::class, 'destroy'])->name('buyers.destroy');
-        Route::post('/buyers/{buyer}/toggle-active', [BuyerController::class, 'toggleActive'])->name('buyers.toggle-active');
-        Route::post('/buyers/{buyer}/verify', [BuyerController::class, 'verifyBuyer'])->name('buyers.verify');
+        Route::get('/buyers', [BuyerController::class, 'index'])->middleware('permission:buyers.view')->name('buyers');
+        Route::get('/buyers/export', [BuyerController::class, 'export'])->middleware('permission:buyers.view')->name('buyers.export');
+        Route::get('/buyers/create', [BuyerController::class, 'create'])->middleware('permission:buyers.create')->name('buyers.create');
+        Route::post('/buyers', [BuyerController::class, 'store'])->middleware('permission:buyers.create')->name('buyers.store');
+        Route::get('/buyers/{buyer}', [BuyerController::class, 'show'])->middleware('permission:buyers.view')->name('buyers.show');
+        Route::get('/buyers/{buyer}/edit', [BuyerController::class, 'edit'])->middleware('permission:buyers.update')->name('buyers.edit');
+        Route::put('/buyers/{buyer}', [BuyerController::class, 'update'])->middleware('permission:buyers.update')->name('buyers.update');
+        Route::delete('/buyers/{buyer}', [BuyerController::class, 'destroy'])->middleware('permission:buyers.delete')->name('buyers.destroy');
+        Route::post('/buyers/{buyer}/toggle-active', [BuyerController::class, 'toggleActive'])->middleware('permission:buyers.toggle_active')->name('buyers.toggle-active');
+        Route::post('/buyers/{buyer}/verify', [BuyerController::class, 'verifyBuyer'])->middleware('permission:buyers.verify')->name('buyers.verify');
 
 
         // Products Management
@@ -146,142 +143,158 @@ Route::middleware('auth')->group(function () {
 
         // Product Requests Management (Canonical Catalog Workflow)
         Route::prefix('product-requests')->name('product-requests.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\Web\AdminProductRequestController::class, 'index'])->name('index');
-            Route::get('/{productRequest}', [\App\Http\Controllers\Web\AdminProductRequestController::class, 'show'])->name('show');
-            Route::get('/{productRequest}/review', [\App\Http\Controllers\Web\AdminProductRequestController::class, 'review'])->name('review');
-            Route::post('/{productRequest}/approve', [\App\Http\Controllers\Web\AdminProductRequestController::class, 'approve'])->name('approve');
-            Route::post('/{productRequest}/merge', [\App\Http\Controllers\Web\AdminProductRequestController::class, 'merge'])->name('merge');
-            Route::post('/{productRequest}/reject', [\App\Http\Controllers\Web\AdminProductRequestController::class, 'reject'])->name('reject');
+            Route::get('/', [\App\Http\Controllers\Web\AdminProductRequestController::class, 'index'])->middleware('permission:products.view')->name('index');
+            Route::get('/{productRequest}', [\App\Http\Controllers\Web\AdminProductRequestController::class, 'show'])->middleware('permission:products.view')->name('show');
+            Route::get('/{productRequest}/review', [\App\Http\Controllers\Web\AdminProductRequestController::class, 'review'])->middleware('permission:products.view')->name('review');
+            Route::post('/{productRequest}/approve', [\App\Http\Controllers\Web\AdminProductRequestController::class, 'approve'])->middleware('permission:products.approve')->name('approve');
+            Route::post('/{productRequest}/merge', [\App\Http\Controllers\Web\AdminProductRequestController::class, 'merge'])->middleware('permission:products.approve')->name('merge');
+            Route::post('/{productRequest}/reject', [\App\Http\Controllers\Web\AdminProductRequestController::class, 'reject'])->middleware('permission:products.reject')->name('reject');
         });
 
         // Diagnostics
         Route::get('/diagnostics/factory-data', [\App\Http\Controllers\Web\AdminDiagnosticsController::class, 'factoryData'])->middleware('permission:products.view')->name('diagnostics.factory-data');
 
         // Product Categories Management
-        Route::get('/categories', [ProductCategoryController::class, 'index'])->name('categories.index');
-        Route::get('/categories/create', [ProductCategoryController::class, 'create'])->name('categories.create');
-        Route::post('/categories', [ProductCategoryController::class, 'store'])->name('categories.store');
-        Route::get('/categories/{category}', [ProductCategoryController::class, 'show'])->name('categories.show');
-        Route::get('/categories/{category}/edit', [ProductCategoryController::class, 'edit'])->name('categories.edit');
-        Route::put('/categories/{category}', [ProductCategoryController::class, 'update'])->name('categories.update');
-        Route::delete('/categories/{category}', [ProductCategoryController::class, 'destroy'])->name('categories.destroy');
+        Route::get('/categories', [ProductCategoryController::class, 'index'])->middleware('permission:categories.view')->name('categories.index');
+        Route::get('/categories/create', [ProductCategoryController::class, 'create'])->middleware('permission:categories.create')->name('categories.create');
+        Route::post('/categories', [ProductCategoryController::class, 'store'])->middleware('permission:categories.create')->name('categories.store');
+        Route::get('/categories/{category}', [ProductCategoryController::class, 'show'])->middleware('permission:categories.view')->name('categories.show');
+        Route::get('/categories/{category}/edit', [ProductCategoryController::class, 'edit'])->middleware('permission:categories.update')->name('categories.edit');
+        Route::put('/categories/{category}', [ProductCategoryController::class, 'update'])->middleware('permission:categories.update')->name('categories.update');
+        Route::delete('/categories/{category}', [ProductCategoryController::class, 'destroy'])->middleware('permission:categories.delete')->name('categories.destroy');
 
         // Manufacturers Management
-        Route::get('/manufacturers', [AdminManufacturerController::class, 'index'])->name('manufacturers.index');
-        Route::get('/manufacturers/create', [AdminManufacturerController::class, 'create'])->name('manufacturers.create');
-        Route::post('/manufacturers', [AdminManufacturerController::class, 'store'])->name('manufacturers.store');
-        Route::get('/manufacturers/{manufacturer}', [AdminManufacturerController::class, 'show'])->name('manufacturers.show');
-        Route::get('/manufacturers/{manufacturer}/edit', [AdminManufacturerController::class, 'edit'])->name('manufacturers.edit');
-        Route::put('/manufacturers/{manufacturer}', [AdminManufacturerController::class, 'update'])->name('manufacturers.update');
-        Route::delete('/manufacturers/{manufacturer}', [AdminManufacturerController::class, 'destroy'])->name('manufacturers.destroy');
+        Route::get('/manufacturers', [AdminManufacturerController::class, 'index'])->middleware('permission:manufacturers.view')->name('manufacturers.index');
+        Route::get('/manufacturers/create', [AdminManufacturerController::class, 'create'])->middleware('permission:manufacturers.create')->name('manufacturers.create');
+        Route::post('/manufacturers', [AdminManufacturerController::class, 'store'])->middleware('permission:manufacturers.create')->name('manufacturers.store');
+        Route::get('/manufacturers/{manufacturer}', [AdminManufacturerController::class, 'show'])->middleware('permission:manufacturers.view')->name('manufacturers.show');
+        Route::get('/manufacturers/{manufacturer}/edit', [AdminManufacturerController::class, 'edit'])->middleware('permission:manufacturers.update')->name('manufacturers.edit');
+        Route::put('/manufacturers/{manufacturer}', [AdminManufacturerController::class, 'update'])->middleware('permission:manufacturers.update')->name('manufacturers.update');
+        Route::delete('/manufacturers/{manufacturer}', [AdminManufacturerController::class, 'destroy'])->middleware('permission:manufacturers.delete')->name('manufacturers.destroy');
 
 
         // Orders Management
-        Route::get('/orders', [OrderController::class, 'index'])->name('orders');
-        Route::get('/orders/export', [OrderController::class, 'export'])->name('orders.export');
-        Route::get('/orders/create', [OrderController::class, 'create'])->name('orders.create');
-        Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
-        Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
-        Route::get('/orders/{order}/edit', [OrderController::class, 'edit'])->name('orders.edit');
-        Route::put('/orders/{order}', [OrderController::class, 'update'])->name('orders.update');
-        Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
+        Route::get('/orders', [OrderController::class, 'index'])->middleware('permission:orders.view')->name('orders');
+        Route::get('/orders/export', [OrderController::class, 'export'])->middleware('permission:orders.view')->name('orders.export');
+        Route::get('/orders/create', [OrderController::class, 'create'])->middleware('permission:orders.create')->name('orders.create');
+        Route::post('/orders', [OrderController::class, 'store'])->middleware('permission:orders.create')->name('orders.store');
+        Route::get('/orders/{order}', [OrderController::class, 'show'])->middleware('permission:orders.view')->name('orders.show');
+        Route::get('/orders/{order}/edit', [OrderController::class, 'edit'])->middleware('permission:orders.update')->name('orders.edit');
+        Route::put('/orders/{order}', [OrderController::class, 'update'])->middleware('permission:orders.update')->name('orders.update');
+        Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->middleware('permission:orders.delete')->name('orders.destroy');
 
         // RFQs Management (Admin Full CRUD + Monitoring)
-        Route::get('/rfqs', [AdminRfqController::class, 'index'])->name('rfqs.index');
-        Route::get('/rfqs/create', [AdminRfqController::class, 'create'])->name('rfqs.create');
-        Route::post('/rfqs', [AdminRfqController::class, 'store'])->name('rfqs.store');
-        Route::get('/rfqs/{rfq}', [AdminRfqController::class, 'show'])->name('rfqs.show');
-        Route::get('/rfqs/{rfq}/edit', [AdminRfqController::class, 'edit'])->name('rfqs.edit');
-        Route::put('/rfqs/{rfq}', [AdminRfqController::class, 'update'])->name('rfqs.update');
-        Route::delete('/rfqs/{rfq}', [AdminRfqController::class, 'destroy'])->name('rfqs.destroy');
-        Route::patch('/rfqs/{rfq}/status', [AdminRfqController::class, 'updateStatus'])->name('rfqs.update-status');
-        Route::patch('/rfqs/{rfq}/visibility', [AdminRfqController::class, 'toggleVisibility'])->name('rfqs.toggle-visibility');
-        Route::post('/rfqs/{rfq}/assign-suppliers', [AdminRfqController::class, 'assignSuppliers'])->name('rfqs.assign-suppliers');
+        Route::get('/rfqs', [AdminRfqController::class, 'index'])->middleware('permission:rfqs.view')->name('rfqs.index');
+        Route::get('/rfqs/create', [AdminRfqController::class, 'create'])->middleware('permission:rfqs.create')->name('rfqs.create');
+        Route::post('/rfqs', [AdminRfqController::class, 'store'])->middleware('permission:rfqs.create')->name('rfqs.store');
+        Route::get('/rfqs/{rfq}', [AdminRfqController::class, 'show'])->middleware('permission:rfqs.view')->name('rfqs.show');
+        Route::get('/rfqs/{rfq}/edit', [AdminRfqController::class, 'edit'])->middleware('permission:rfqs.update')->name('rfqs.edit');
+        Route::put('/rfqs/{rfq}', [AdminRfqController::class, 'update'])->middleware('permission:rfqs.update')->name('rfqs.update');
+        Route::delete('/rfqs/{rfq}', [AdminRfqController::class, 'destroy'])->middleware('permission:rfqs.delete')->name('rfqs.destroy');
+        Route::patch('/rfqs/{rfq}/status', [AdminRfqController::class, 'updateStatus'])->middleware('permission:rfqs.update_status')->name('rfqs.update-status');
+        Route::patch('/rfqs/{rfq}/visibility', [AdminRfqController::class, 'toggleVisibility'])->middleware('permission:rfqs.toggle_visibility')->name('rfqs.toggle-visibility');
+        Route::post('/rfqs/{rfq}/assign-suppliers', [AdminRfqController::class, 'assignSuppliers'])->middleware('permission:rfqs.assign_suppliers')->name('rfqs.assign-suppliers');
 
         // RFQ Items Management
-        Route::get('/rfqs/{rfq}/items/create', [\App\Http\Controllers\Web\AdminRfqItemController::class, 'create'])->name('rfqs.items.create');
-        Route::post('/rfqs/{rfq}/items', [\App\Http\Controllers\Web\AdminRfqItemController::class, 'store'])->name('rfqs.items.store');
-        Route::get('/rfqs/{rfq}/items/{item}/edit', [\App\Http\Controllers\Web\AdminRfqItemController::class, 'edit'])->name('rfqs.items.edit');
-        Route::put('/rfqs/{rfq}/items/{item}', [\App\Http\Controllers\Web\AdminRfqItemController::class, 'update'])->name('rfqs.items.update');
-        Route::delete('/rfqs/{rfq}/items/{item}', [\App\Http\Controllers\Web\AdminRfqItemController::class, 'destroy'])->name('rfqs.items.destroy');
+        Route::get('/rfqs/{rfq}/items/create', [\App\Http\Controllers\Web\AdminRfqItemController::class, 'create'])->middleware('permission:rfqs.update')->name('rfqs.items.create');
+        Route::post('/rfqs/{rfq}/items', [\App\Http\Controllers\Web\AdminRfqItemController::class, 'store'])->middleware('permission:rfqs.update')->name('rfqs.items.store');
+        Route::get('/rfqs/{rfq}/items/{item}/edit', [\App\Http\Controllers\Web\AdminRfqItemController::class, 'edit'])->middleware('permission:rfqs.update')->name('rfqs.items.edit');
+        Route::put('/rfqs/{rfq}/items/{item}', [\App\Http\Controllers\Web\AdminRfqItemController::class, 'update'])->middleware('permission:rfqs.update')->name('rfqs.items.update');
+        Route::delete('/rfqs/{rfq}/items/{item}', [\App\Http\Controllers\Web\AdminRfqItemController::class, 'destroy'])->middleware('permission:rfqs.update')->name('rfqs.items.destroy');
 
         // Quotations Management (Admin Full CRUD + Monitoring)
-        Route::get('/quotations', [AdminQuotationController::class, 'index'])->name('quotations.index');
-        Route::get('/quotations/export', [AdminQuotationController::class, 'export'])->name('quotations.export');
-        Route::get('/quotations/create', [AdminQuotationController::class, 'create'])->name('quotations.create');
-        Route::post('/quotations', [AdminQuotationController::class, 'store'])->name('quotations.store');
-        Route::get('/quotations/compare', [AdminQuotationController::class, 'compare'])->name('quotations.compare');
-        Route::get('/quotations/{quotation}', [AdminQuotationController::class, 'show'])->name('quotations.show');
-        Route::get('/quotations/{quotation}/edit', [AdminQuotationController::class, 'edit'])->name('quotations.edit');
-        Route::put('/quotations/{quotation}', [AdminQuotationController::class, 'update'])->name('quotations.update');
-        Route::delete('/quotations/{quotation}', [AdminQuotationController::class, 'destroy'])->name('quotations.destroy');
-        Route::post('/quotations/{quotation}/accept', [AdminQuotationController::class, 'accept'])->name('quotations.accept');
-        Route::post('/quotations/{quotation}/reject', [AdminQuotationController::class, 'reject'])->name('quotations.reject');
+        Route::get('/quotations', [AdminQuotationController::class, 'index'])->middleware('permission:quotations.view')->name('quotations.index');
+        Route::get('/quotations/export', [AdminQuotationController::class, 'export'])->middleware('permission:quotations.view')->name('quotations.export');
+        Route::get('/quotations/create', [AdminQuotationController::class, 'create'])->middleware('permission:quotations.create')->name('quotations.create');
+        Route::post('/quotations', [AdminQuotationController::class, 'store'])->middleware('permission:quotations.create')->name('quotations.store');
+        Route::get('/quotations/compare', [AdminQuotationController::class, 'compare'])->middleware('permission:quotations.compare')->name('quotations.compare');
+        Route::get('/quotations/{quotation}', [AdminQuotationController::class, 'show'])->middleware('permission:quotations.view')->name('quotations.show');
+        Route::get('/quotations/{quotation}/edit', [AdminQuotationController::class, 'edit'])->middleware('permission:quotations.update')->name('quotations.edit');
+        Route::put('/quotations/{quotation}', [AdminQuotationController::class, 'update'])->middleware('permission:quotations.update')->name('quotations.update');
+        Route::delete('/quotations/{quotation}', [AdminQuotationController::class, 'destroy'])->middleware('permission:quotations.delete')->name('quotations.destroy');
+        Route::post('/quotations/{quotation}/accept', [AdminQuotationController::class, 'accept'])->middleware('permission:quotations.accept')->name('quotations.accept');
+        Route::post('/quotations/{quotation}/reject', [AdminQuotationController::class, 'reject'])->middleware('permission:quotations.reject')->name('quotations.reject');
 
         // Invoices Management
-        Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
-        Route::get('/invoices/export', [InvoiceController::class, 'export'])->name('invoices.export');
-        Route::get('/invoices/create', [InvoiceController::class, 'create'])->name('invoices.create');
-        Route::post('/invoices', [InvoiceController::class, 'store'])->name('invoices.store');
-        Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
-        Route::get('/invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->name('invoices.edit');
-        Route::put('/invoices/{invoice}', [InvoiceController::class, 'update'])->name('invoices.update');
-        Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
+        Route::get('/invoices', [InvoiceController::class, 'index'])->middleware('permission:invoices.view')->name('invoices.index');
+        Route::get('/invoices/export', [InvoiceController::class, 'export'])->middleware('permission:invoices.export')->name('invoices.export');
+        Route::get('/invoices/create', [InvoiceController::class, 'create'])->middleware('permission:invoices.create')->name('invoices.create');
+        Route::post('/invoices', [InvoiceController::class, 'store'])->middleware('permission:invoices.create')->name('invoices.store');
+        Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->middleware('permission:invoices.view')->name('invoices.show');
+        Route::get('/invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->middleware('permission:invoices.update')->name('invoices.edit');
+        Route::put('/invoices/{invoice}', [InvoiceController::class, 'update'])->middleware('permission:invoices.update')->name('invoices.update');
+        Route::post('/invoices/{invoice}/approve', [InvoiceController::class, 'approve'])->middleware('permission:invoices.approve')->name('invoices.approve');
+        Route::post('/invoices/{invoice}/cancel', [InvoiceController::class, 'cancel'])->middleware('permission:invoices.update')->name('invoices.cancel');
+        Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->middleware('permission:invoices.delete')->name('invoices.destroy');
 
         // Payments Management
-        Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
-        Route::get('/payments/export', [PaymentController::class, 'export'])->name('payments.export');
-        Route::get('/payments/create', [PaymentController::class, 'create'])->name('payments.create');
-        Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
-        Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
-        Route::get('/payments/{payment}/edit', [PaymentController::class, 'edit'])->name('payments.edit');
-        Route::put('/payments/{payment}', [PaymentController::class, 'update'])->name('payments.update');
-        Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
+        Route::get('/payments', [PaymentController::class, 'index'])->middleware('permission:payments.view')->name('payments.index');
+        Route::get('/payments/export', [PaymentController::class, 'export'])->middleware('permission:payments.export')->name('payments.export');
+        Route::get('/payments/create', [PaymentController::class, 'create'])->middleware('permission:payments.create')->name('payments.create');
+        Route::post('/payments', [PaymentController::class, 'store'])->middleware('permission:payments.create')->name('payments.store');
+        Route::get('/payments/{payment}', [PaymentController::class, 'show'])->middleware('permission:payments.view')->name('payments.show');
+        Route::get('/payments/{payment}/edit', [PaymentController::class, 'edit'])->middleware('permission:payments.update')->name('payments.edit');
+        Route::put('/payments/{payment}', [PaymentController::class, 'update'])->middleware('permission:payments.update')->name('payments.update');
+        Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->middleware('permission:payments.delete')->name('payments.destroy');
 
         // Deliveries Management
-        Route::get('/deliveries', [DeliveryController::class, 'index'])->name('deliveries.index');
-        Route::get('/deliveries/export', [DeliveryController::class, 'export'])->name('deliveries.export');
-        Route::get('/deliveries/create', [DeliveryController::class, 'create'])->name('deliveries.create');
-        Route::post('/deliveries', [DeliveryController::class, 'store'])->name('deliveries.store');
-        Route::get('/deliveries/{delivery}', [DeliveryController::class, 'show'])->name('deliveries.show');
-        Route::get('/deliveries/{delivery}/edit', [DeliveryController::class, 'edit'])->name('deliveries.edit');
-        Route::put('/deliveries/{delivery}', [DeliveryController::class, 'update'])->name('deliveries.update');
-        Route::delete('/deliveries/{delivery}', [DeliveryController::class, 'destroy'])->name('deliveries.destroy');
+        Route::get('/deliveries', [DeliveryController::class, 'index'])->middleware('permission:deliveries.view')->name('deliveries.index');
+        Route::get('/deliveries/export', [DeliveryController::class, 'export'])->middleware('permission:deliveries.view')->name('deliveries.export');
+        Route::get('/deliveries/create', [DeliveryController::class, 'create'])->middleware('permission:deliveries.create')->name('deliveries.create');
+        Route::post('/deliveries', [DeliveryController::class, 'store'])->middleware('permission:deliveries.create')->name('deliveries.store');
+        Route::get('/deliveries/{delivery}', [DeliveryController::class, 'show'])->middleware('permission:deliveries.view')->name('deliveries.show');
+        Route::get('/deliveries/{delivery}/edit', [DeliveryController::class, 'edit'])->middleware('permission:deliveries.update')->name('deliveries.edit');
+        Route::put('/deliveries/{delivery}', [DeliveryController::class, 'update'])->middleware('permission:deliveries.update')->name('deliveries.update');
+        Route::delete('/deliveries/{delivery}', [DeliveryController::class, 'destroy'])->middleware('permission:deliveries.delete')->name('deliveries.destroy');
 
         // Reports
-        Route::get('/reports', [AdminReportsController::class, 'index'])->name('reports');
+        Route::get('/reports', [AdminReportsController::class, 'index'])->middleware('permission:reports.view')->name('reports');
 
         // Activity Log
-        Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity');
-        Route::get('/activity/{activity}', [ActivityLogController::class, 'show'])->name('activity.show');
+        Route::get('/activity', [ActivityLogController::class, 'index'])->middleware('permission:activity_logs.view')->name('activity');
+        Route::get('/activity/{activity}', [ActivityLogController::class, 'show'])->middleware('permission:activity_logs.view')->name('activity.show');
 
         // Registration Approvals
-        Route::get('/registrations/pending', [RegistrationApprovalController::class, 'index'])->name('registrations.pending');
-        Route::post('/registrations/{type}/{id}/approve', [RegistrationApprovalController::class, 'approve'])->name('registrations.approve');
-        Route::post('/registrations/{type}/{id}/reject', [RegistrationApprovalController::class, 'reject'])->name('registrations.reject');
+        Route::get('/registrations/pending', [RegistrationApprovalController::class, 'index'])->middleware('permission:suppliers.verify')->name('registrations.pending');
+        Route::post('/registrations/{type}/{id}/approve', [RegistrationApprovalController::class, 'approve'])->middleware('permission:suppliers.verify')->name('registrations.approve');
+        Route::post('/registrations/{type}/{id}/reject', [RegistrationApprovalController::class, 'reject'])->middleware('permission:suppliers.verify')->name('registrations.reject');
 
         // Settings
-        Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
-        Route::post('/settings/general', [SettingController::class, 'updateGeneral'])->name('settings.update.general');
-        Route::post('/settings/email', [SettingController::class, 'updateEmail'])->name('settings.update.email');
-        Route::post('/settings/payment', [SettingController::class, 'updatePayment'])->name('settings.update.payment');
-        Route::post('/settings/security', [SettingController::class, 'updateSecurity'])->name('settings.update.security');
-        Route::post('/settings/email/test', [SettingController::class, 'testEmailConnection'])->name('settings.email.test');
+        Route::get('/settings', [SettingController::class, 'index'])->middleware('permission:settings.view')->name('settings.index');
+        Route::post('/settings/general', [SettingController::class, 'updateGeneral'])->middleware('permission:settings.update')->name('settings.update.general');
+        Route::post('/settings/email', [SettingController::class, 'updateEmail'])->middleware('permission:settings.update')->name('settings.update.email');
+        Route::post('/settings/payment', [SettingController::class, 'updatePayment'])->middleware('permission:settings.update')->name('settings.update.payment');
+        Route::post('/settings/security', [SettingController::class, 'updateSecurity'])->middleware('permission:settings.update')->name('settings.update.security');
+        Route::post('/settings/email/test', [SettingController::class, 'testEmailConnection'])->middleware('permission:settings.update')->name('settings.email.test');
 
         // Notifications
         Route::get('/notifications', [NotificationController::class, 'index'])
+            ->middleware('permission:notifications.view')
             ->name('notifications.index');
 
+        Route::get('/notifications/create', [NotificationController::class, 'create'])
+            ->middleware('permission:notifications.create')
+            ->name('notifications.create');
+
+        Route::post('/notifications', [NotificationController::class, 'store'])
+            ->middleware('permission:notifications.create')
+            ->name('notifications.store');
+
+
         Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])
+            ->middleware('permission:notifications.view')
             ->name('notifications.read');
 
         Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])
+            ->middleware('permission:notifications.view')
             ->name('notifications.read-all');
 
         Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])
+            ->middleware('permission:notifications.delete')
             ->name('notifications.destroy');
 
         Route::delete('/notifications', [NotificationController::class, 'destroyAll'])
+            ->middleware('permission:notifications.delete')
             ->name('notifications.destroy-all');
     });
 
@@ -313,6 +326,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/orders/export', [SupplierOrderController::class, 'export'])->name('orders.export');
         Route::get('/orders/{order}', [SupplierOrderController::class, 'show'])->name('orders.show');
         Route::patch('/orders/{order}/status', [SupplierOrderController::class, 'updateStatus'])->name('orders.update-status');
+        Route::post('/orders/{order}/create-invoice', [SupplierOrderController::class, 'createInvoice'])->name('orders.create-invoice');
 
         // Supplier Deliveries
         Route::get('/deliveries', [SupplierDeliveryController::class, 'index'])->name('deliveries.index');
@@ -325,7 +339,13 @@ Route::middleware('auth')->group(function () {
         // Supplier Invoices
         Route::get('/invoices', [SupplierInvoiceController::class, 'index'])->name('invoices.index');
         Route::get('/invoices/export', [SupplierInvoiceController::class, 'export'])->name('invoices.export');
+        Route::get('/invoices/create', [SupplierInvoiceController::class, 'create'])->name('invoices.create');
+        Route::post('/invoices', [SupplierInvoiceController::class, 'store'])->name('invoices.store');
         Route::get('/invoices/{invoice}', [SupplierInvoiceController::class, 'show'])->name('invoices.show');
+        Route::get('/invoices/{invoice}/edit', [SupplierInvoiceController::class, 'edit'])->name('invoices.edit');
+        Route::put('/invoices/{invoice}', [SupplierInvoiceController::class, 'update'])->name('invoices.update');
+        Route::post('/invoices/{invoice}/cancel', [SupplierInvoiceController::class, 'cancel'])->name('invoices.cancel');
+        Route::post('/invoices/{invoice}/send', [SupplierInvoiceController::class, 'sendToBuyer'])->name('invoices.send');
         Route::get('/invoices/{invoice}/download', [SupplierInvoiceController::class, 'download'])->name('invoices.download');
 
         // Supplier Payments
@@ -344,6 +364,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/notifications', [SupplierNotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/read', [SupplierNotificationController::class, 'markAsRead'])->name('notifications.read');
         Route::post('/notifications/read-all', [SupplierNotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+        Route::post('/notifications/{id}/reply', [SupplierNotificationController::class, 'reply'])->name('notifications.reply');
         Route::delete('/notifications/{id}', [SupplierNotificationController::class, 'destroy'])->name('notifications.destroy');
         Route::delete('/notifications', [SupplierNotificationController::class, 'destroyAll'])->name('notifications.destroy-all');
 
@@ -371,6 +392,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/products/{product}', [\App\Http\Controllers\Web\Buyers\BuyerProductController::class, 'show'])->name('products.show');
         Route::post('/products/{product}/favorite', [\App\Http\Controllers\Web\Buyers\BuyerProductController::class, 'toggleFavorite'])->name('products.favorite');
         Route::get('/products/{product}/create-rfq', [\App\Http\Controllers\Web\Buyers\BuyerProductController::class, 'createRfqWithProduct'])->name('products.create-rfq');
+        // Phase 3: Price & Stock Alerts
+        Route::post('/products/{product}/price-alert', [\App\Http\Controllers\Web\Buyers\BuyerProductController::class, 'setPriceAlert'])->name('products.price-alert');
+        Route::delete('/products/{product}/price-alert', [\App\Http\Controllers\Web\Buyers\BuyerProductController::class, 'removePriceAlert'])->name('products.price-alert.remove');
+        Route::post('/products/{product}/stock-alert', [\App\Http\Controllers\Web\Buyers\BuyerProductController::class, 'setStockAlert'])->name('products.stock-alert');
+        Route::delete('/products/{product}/stock-alert', [\App\Http\Controllers\Web\Buyers\BuyerProductController::class, 'removeStockAlert'])->name('products.stock-alert.remove');
 
         // Buyer RFQs Management
         Route::get('/rfqs', [\App\Http\Controllers\Web\Buyers\BuyerRfqController::class, 'index'])->name('rfqs.index');
@@ -418,10 +444,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/orders/{order}', [\App\Http\Controllers\Web\Buyers\BuyerOrderController::class, 'show'])->name('orders.show');
         Route::post('/orders/{order}/reorder', [\App\Http\Controllers\Web\Buyers\BuyerOrderController::class, 'reorder'])->name('orders.reorder');
         Route::post('/orders/{order}/add-to-cart', [\App\Http\Controllers\Web\Buyers\BuyerOrderController::class, 'addToCart'])->name('orders.add-to-cart');
+        Route::post('/orders/{order}/cancel', [\App\Http\Controllers\Web\Buyers\BuyerOrderController::class, 'cancel'])->name('orders.cancel');
 
         // Buyer Invoices
         Route::get('/invoices', [\App\Http\Controllers\Web\Buyers\BuyerInvoiceController::class, 'index'])->name('invoices.index');
         Route::get('/invoices/{invoice}', [\App\Http\Controllers\Web\Buyers\BuyerInvoiceController::class, 'show'])->name('invoices.show');
+        Route::post('/invoices/{invoice}/acknowledge', [\App\Http\Controllers\Web\Buyers\BuyerInvoiceController::class, 'acknowledge'])->name('invoices.acknowledge');
+        Route::post('/invoices/{invoice}/dispute', [\App\Http\Controllers\Web\Buyers\BuyerInvoiceController::class, 'dispute'])->name('invoices.dispute');
+        Route::post('/invoices/{invoice}/request-copy', [\App\Http\Controllers\Web\Buyers\BuyerInvoiceController::class, 'requestCopy'])->name('invoices.request-copy');
         Route::get('/invoices/{invoice}/download', [\App\Http\Controllers\Web\Buyers\BuyerInvoiceController::class, 'download'])->name('invoices.download');
 
         // Buyer Deliveries
@@ -433,6 +463,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/notifications', [\App\Http\Controllers\Web\Buyers\BuyerNotificationController::class, 'index'])->name('notifications.index');
         Route::post('/notifications/{id}/read', [\App\Http\Controllers\Web\Buyers\BuyerNotificationController::class, 'markAsRead'])->name('notifications.read');
         Route::post('/notifications/read-all', [\App\Http\Controllers\Web\Buyers\BuyerNotificationController::class, 'markAllAsRead'])->name('notifications.read-all');
+        Route::post('/notifications/{id}/reply', [\App\Http\Controllers\Web\Buyers\BuyerNotificationController::class, 'reply'])->name('notifications.reply');
         Route::delete('/notifications/{id}', [\App\Http\Controllers\Web\Buyers\BuyerNotificationController::class, 'destroy'])->name('notifications.destroy');
         Route::delete('/notifications', [\App\Http\Controllers\Web\Buyers\BuyerNotificationController::class, 'destroyAll'])->name('notifications.destroy-all');
 
@@ -452,6 +483,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/cart/count', [\App\Http\Controllers\Web\Buyers\BuyerCartController::class, 'count'])->name('cart.count');
         Route::get('/cart/checkout', [\App\Http\Controllers\Web\Buyers\BuyerCartController::class, 'checkout'])->name('cart.checkout');
         Route::post('/cart/submit-rfq', [\App\Http\Controllers\Web\Buyers\BuyerCartController::class, 'submitRfq'])->name('cart.submit-rfq');
+        Route::post('/cart/templates/{template}/load', [\App\Http\Controllers\Web\Buyers\BuyerCartController::class, 'loadTemplate'])->name('cart.template.load');
 
         // Buyer Reports
         Route::get('/reports', [\App\Http\Controllers\Web\Buyers\BuyerReportsController::class, 'index'])->name('reports.index');

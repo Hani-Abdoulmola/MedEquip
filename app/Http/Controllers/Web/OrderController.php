@@ -28,22 +28,12 @@ class OrderController extends Controller
     {
         $user = auth()->user();
         
-        // Check permission for admin users
-        if (!$user->hasRole(['Buyer', 'Supplier']) && !$user->can('orders.view')) {
-            abort(403, 'ليس لديك صلاحية عرض الطلبات');
-        }
-        
+        // Permission check is handled by route middleware for admin routes
+        // This controller is only accessible via admin routes, so permission is already checked
         $query = Order::with(['quotation.rfq', 'buyer', 'supplier', 'items']);
 
-        // Role-based filtering
-        if ($user->hasRole('Buyer') && $user->buyerProfile) {
-            // Buyers only see their own orders
-            $query->where('buyer_id', $user->buyerProfile->id);
-        } elseif ($user->hasRole('Supplier') && $user->supplierProfile) {
-            // Suppliers only see orders assigned to them
-            $query->where('supplier_id', $user->supplierProfile->id);
-        }
-        // Admins see all orders (no filter)
+        // Note: Role-based filtering is not needed here since this is an admin-only route
+        // Buyers and Suppliers access orders through their own routes (buyer.orders, supplier.orders)
 
         // Filters
         if (request()->filled('buyer') && $user->hasRole('Admin')) {
@@ -74,29 +64,95 @@ class OrderController extends Controller
         $orders = $query->latest('id')->paginate(15);
 
         // Role-based stats calculation
+        // Use consistent keys that match supplier.orders.index view expectations
         if ($user->hasRole('Buyer') && $user->buyerProfile) {
             $buyerId = $user->buyerProfile->id;
+            $statsResult = Order::where('buyer_id', $buyerId)
+                ->selectRaw('
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as pending,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as processing,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as shipped,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as delivered,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as cancelled,
+                    COALESCE(SUM(CASE WHEN status = ? THEN total_amount ELSE 0 END), 0) as total_revenue
+                ', [
+                    Order::STATUS_PENDING,
+                    Order::STATUS_PROCESSING,
+                    Order::STATUS_SHIPPED,
+                    Order::STATUS_DELIVERED,
+                    Order::STATUS_CANCELLED,
+                    Order::STATUS_DELIVERED,
+                ])
+                ->first();
+            
             $stats = [
-                'total_orders' => Order::where('buyer_id', $buyerId)->count(),
-                'pending_orders' => Order::where('buyer_id', $buyerId)->where('status', 'pending')->count(),
-                'processing_orders' => Order::where('buyer_id', $buyerId)->where('status', 'processing')->count(),
-                'delivered_orders' => Order::where('buyer_id', $buyerId)->where('status', 'delivered')->count(),
+                'total' => $statsResult ? (int)($statsResult->total ?? 0) : 0,
+                'pending' => $statsResult ? (int)($statsResult->pending ?? 0) : 0,
+                'processing' => $statsResult ? (int)($statsResult->processing ?? 0) : 0,
+                'shipped' => $statsResult ? (int)($statsResult->shipped ?? 0) : 0,
+                'delivered' => $statsResult ? (int)($statsResult->delivered ?? 0) : 0,
+                'cancelled' => $statsResult ? (int)($statsResult->cancelled ?? 0) : 0,
+                'total_revenue' => $statsResult ? (float)($statsResult->total_revenue ?? 0) : 0,
             ];
         } elseif ($user->hasRole('Supplier') && $user->supplierProfile) {
             $supplierId = $user->supplierProfile->id;
+            $statsResult = Order::where('supplier_id', $supplierId)
+                ->selectRaw('
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as pending,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as processing,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as shipped,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as delivered,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as cancelled,
+                    COALESCE(SUM(CASE WHEN status = ? THEN total_amount ELSE 0 END), 0) as total_revenue
+                ', [
+                    Order::STATUS_PENDING,
+                    Order::STATUS_PROCESSING,
+                    Order::STATUS_SHIPPED,
+                    Order::STATUS_DELIVERED,
+                    Order::STATUS_CANCELLED,
+                    Order::STATUS_DELIVERED,
+                ])
+                ->first();
+            
             $stats = [
-                'total_orders' => Order::where('supplier_id', $supplierId)->count(),
-                'pending_orders' => Order::where('supplier_id', $supplierId)->where('status', 'pending')->count(),
-                'processing_orders' => Order::where('supplier_id', $supplierId)->where('status', 'processing')->count(),
-                'delivered_orders' => Order::where('supplier_id', $supplierId)->where('status', 'delivered')->count(),
+                'total' => $statsResult ? (int)($statsResult->total ?? 0) : 0,
+                'pending' => $statsResult ? (int)($statsResult->pending ?? 0) : 0,
+                'processing' => $statsResult ? (int)($statsResult->processing ?? 0) : 0,
+                'shipped' => $statsResult ? (int)($statsResult->shipped ?? 0) : 0,
+                'delivered' => $statsResult ? (int)($statsResult->delivered ?? 0) : 0,
+                'cancelled' => $statsResult ? (int)($statsResult->cancelled ?? 0) : 0,
+                'total_revenue' => $statsResult ? (float)($statsResult->total_revenue ?? 0) : 0,
             ];
         } else {
             // Admin stats (all orders)
+            $statsResult = Order::selectRaw('
+                COUNT(*) as total,
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as processing,
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as shipped,
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as delivered,
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as cancelled,
+                COALESCE(SUM(CASE WHEN status = ? THEN total_amount ELSE 0 END), 0) as total_revenue
+            ', [
+                Order::STATUS_PENDING,
+                Order::STATUS_PROCESSING,
+                Order::STATUS_SHIPPED,
+                Order::STATUS_DELIVERED,
+                Order::STATUS_CANCELLED,
+                Order::STATUS_DELIVERED,
+            ])
+            ->first();
+            
             $stats = [
-                'total_orders' => Order::count(),
-                'pending_orders' => Order::where('status', 'pending')->count(),
-                'processing_orders' => Order::where('status', 'processing')->count(),
-                'delivered_orders' => Order::where('status', 'delivered')->count(),
+                'total' => $statsResult ? (int)($statsResult->total ?? 0) : 0,
+                'pending' => $statsResult ? (int)($statsResult->pending ?? 0) : 0,
+                'processing' => $statsResult ? (int)($statsResult->processing ?? 0) : 0,
+                'shipped' => $statsResult ? (int)($statsResult->shipped ?? 0) : 0,
+                'delivered' => $statsResult ? (int)($statsResult->delivered ?? 0) : 0,
+                'cancelled' => $statsResult ? (int)($statsResult->cancelled ?? 0) : 0,
+                'total_revenue' => $statsResult ? (float)($statsResult->total_revenue ?? 0) : 0,
             ];
         }
 

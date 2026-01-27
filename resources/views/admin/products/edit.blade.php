@@ -23,6 +23,25 @@
 
         {{-- Edit Product Form --}}
         <div class="bg-white rounded-2xl shadow-medical p-8">
+            {{-- Success Message --}}
+            @if (session('success'))
+                <div class="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-xl">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            {{-- Error Messages --}}
+            @if ($errors->any())
+                <div class="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-xl">
+                    <h3 class="font-bold mb-2">يرجى تصحيح الأخطاء التالية:</h3>
+                    <ul class="list-disc list-inside space-y-1">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <form method="POST" action="{{ route('admin.products.update', $product->id) }}" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
@@ -70,6 +89,38 @@
                             @enderror
                         </div>
 
+                        {{-- SKU --}}
+                        <div>
+                            <label for="sku" class="block text-sm font-semibold text-medical-gray-700 mb-2">
+                                رمز المنتج (SKU)
+                            </label>
+                            <input type="text" id="sku" name="sku" value="{{ old('sku', $product->sku) }}"
+                                class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('sku') border-red-500 @enderror">
+                            @error('sku')
+                                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        {{-- Manufacturer --}}
+                        <div>
+                            <label for="manufacturer_id" class="block text-sm font-semibold text-medical-gray-700 mb-2">
+                                المُصنّع
+                            </label>
+                            <select id="manufacturer_id" name="manufacturer_id"
+                                class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('manufacturer_id') border-red-500 @enderror">
+                                <option value="">اختر المُصنّع</option>
+                                @foreach ($manufacturers as $id => $name)
+                                    <option value="{{ $id }}"
+                                        {{ old('manufacturer_id', $product->manufacturer_id) == $id ? 'selected' : '' }}>
+                                        {{ $name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('manufacturer_id')
+                                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
                         {{-- Category --}}
                         <div>
                             <label for="category_id" class="block text-sm font-semibold text-medical-gray-700 mb-2">
@@ -90,16 +141,33 @@
                             @enderror
                         </div>
 
-                        {{-- Status --}}
+                        {{-- Review Status (REQUIRED) --}}
+                        <div>
+                            <label for="review_status" class="block text-sm font-semibold text-medical-gray-700 mb-2">
+                                حالة المراجعة <span class="text-red-500">*</span>
+                            </label>
+                            <select id="review_status" name="review_status" required
+                                class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('review_status') border-red-500 @enderror">
+                                <option value="pending" {{ old('review_status', $product->review_status) == 'pending' ? 'selected' : '' }}>قيد المراجعة</option>
+                                <option value="approved" {{ old('review_status', $product->review_status) == 'approved' ? 'selected' : '' }}>معتمد</option>
+                                <option value="needs_update" {{ old('review_status', $product->review_status) == 'needs_update' ? 'selected' : '' }}>يحتاج تعديل</option>
+                                <option value="rejected" {{ old('review_status', $product->review_status) == 'rejected' ? 'selected' : '' }}>مرفوض</option>
+                            </select>
+                            @error('review_status')
+                                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        {{-- Active Status --}}
                         <div>
                             <label for="is_active" class="block text-sm font-semibold text-medical-gray-700 mb-2">
                                 الحالة
                             </label>
                             <select id="is_active" name="is_active"
                                 class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('is_active') border-red-500 @enderror">
-                                <option value="1" {{ old('is_active', $product->is_active) == 1 ? 'selected' : '' }}>
+                                <option value="1" {{ old('is_active', $product->is_active ? 1 : 0) == 1 ? 'selected' : '' }}>
                                     نشط</option>
-                                <option value="0" {{ old('is_active', $product->is_active) == 0 ? 'selected' : '' }}>
+                                <option value="0" {{ old('is_active', $product->is_active ? 1 : 0) == 0 ? 'selected' : '' }}>
                                     غير نشط</option>
                             </select>
                             @error('is_active')

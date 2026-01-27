@@ -10,6 +10,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Builder;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * Product Request Model
@@ -44,9 +47,9 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property string|null $canonical_hash
  * @property float|null $similarity_score
  */
-class ProductRequest extends Model
+class ProductRequest extends Model implements HasMedia
 {
-    use Auditable, HasFactory, SoftDeletes, LogsActivity;
+    use Auditable, HasFactory, SoftDeletes, LogsActivity, InteractsWithMedia;
 
     // ==========================================
     // Status Constants

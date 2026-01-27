@@ -16,10 +16,7 @@ class SettingController extends Controller
      */
     public function index()
     {
-        // Check permission
-        if (!auth()->user()->can('settings.view')) {
-            abort(403, 'ليس لديك صلاحية عرض الإعدادات');
-        }
+        // Permission check is handled by route middleware
         
         /** @var \App\Models\User|null $authUser */
         $authUser = Auth::user();

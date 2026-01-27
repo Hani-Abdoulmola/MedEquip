@@ -1,14 +1,14 @@
 <x-dashboard.layout title="إضافة مستخدم جديد" userRole="admin" :userName="auth()->user()->name" userType="مدير النظام">
 
     {{-- Page Header --}}
-    <div class="mb-6">
-        <div class="flex items-center justify-between">
+    <div class="mb-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
                 <h1 class="text-3xl font-bold text-medical-gray-900 font-display">إضافة مستخدم جديد</h1>
                 <p class="mt-2 text-medical-gray-600">إنشاء حساب مستخدم جديد في النظام</p>
             </div>
             <a href="{{ route('admin.users') }}"
-                class="inline-flex items-center space-x-2 space-x-reverse px-6 py-3 bg-medical-gray-100 text-medical-gray-700 rounded-xl hover:bg-medical-gray-200 transition-all duration-200 font-medium">
+                class="inline-flex items-center gap-1 px-6 py-3 bg-medical-gray-100 text-medical-gray-700 rounded-xl hover:bg-medical-gray-200 font-medium transition-all">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -18,216 +18,137 @@
         </div>
     </div>
 
+    {{-- RBAC Info Box --}}
+    {{-- <div class="mb-6 bg-gradient-to-r from-medical-blue-50 to-medical-green-50 border border-medical-blue-200 rounded-xl p-4">
+        <div class="flex items-start gap-3">
+            <svg class="w-6 h-6 text-medical-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div class="flex-1">
+                <h3 class="font-semibold text-medical-gray-900 mb-1">نظام إدارة الصلاحيات (RBAC)</h3>
+                <p class="text-sm text-medical-gray-700 leading-relaxed">
+                    <strong>مدير النظام (Admin):</strong> يمتلك جميع الصلاحيات تلقائياً عبر نظام Spatie Roles & Permissions. لا يحتاج إلى تعيين صلاحيات إضافية.
+                    <br>
+                    <strong>موظف إداري (Staff):</strong> يحتاج إلى تعيين صلاحيات صريحة بعد الإنشاء. يمكنك إدارة صلاحياته من صفحة <a href="{{ route('admin.role-permissions.index') }}" class="text-medical-blue-600 hover:text-medical-blue-700 underline font-medium">الأدوار والصلاحيات</a>.
+                </p>
+            </div>
+        </div>
+    </div> --}}
+
     {{-- Create User Form --}}
-    <div class="bg-white rounded-2xl shadow-medical p-8" x-data="{ showPassword: false, userType: '{{ old('user_type_id') }}' }">
+    <div class="bg-white rounded-2xl shadow-medical p-6 md:p-8" x-data="{
+        showPassword: false,
+        userTypeRole: '{{ old('user_type_role', '') }}',
+        get selectedRole() {
+            if (!this.userTypeRole || this.userTypeRole === '') return null;
+            const parts = String(this.userTypeRole).split(':');
+            return parts.length === 2 ? parts[1] : null;
+        },
+        validOptions: @json(array_keys($combinedOptions)),
+        isValidOption(value) {
+            return this.validOptions.includes(value);
+        }
+    }" x-cloak>
         <form method="POST" action="{{ route('admin.users.store') }}">
             @csrf
 
             {{-- Basic Information Section --}}
             <div class="mb-8">
-                <h2 class="text-xl font-bold text-medical-gray-900 mb-6 pb-3 border-b border-medical-gray-200">المعلومات
+                <h2 class="text-xl font-bold text-medical-gray-900 mb-6 pb-2 border-b border-medical-gray-200">المعلومات
                     الأساسية</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {{-- Full Name --}}
                     <div>
-                        <label for="name" class="block text-sm font-medium text-medical-gray-700 mb-2">
+                        <label for="name" class="block text-sm font-medium text-medical-gray-700 mb-1">
                             الاسم الكامل <span class="text-red-500">*</span>
                         </label>
                         <input type="text" id="name" name="name" value="{{ old('name') }}" required
-                            class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('name') border-red-500 @enderror">
+                            autofocus autocomplete="off"
+                            class="w-full px-4 py-2.5 border border-medical-gray-300 rounded-md focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('name') border-red-500 @enderror placeholder-medical-gray-400"
+                            placeholder="مثال: محمد علي">
                         @error('name')
-                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
 
                     {{-- Email --}}
                     <div>
-                        <label for="email" class="block text-sm font-medium text-medical-gray-700 mb-2">
+                        <label for="email" class="block text-sm font-medium text-medical-gray-700 mb-1">
                             البريد الإلكتروني <span class="text-red-500">*</span>
                         </label>
                         <input type="email" id="email" name="email" value="{{ old('email') }}" required
-                            class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('email') border-red-500 @enderror">
+                            autocomplete="off"
+                            class="w-full px-4 py-2.5 border border-medical-gray-300 rounded-md focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('email') border-red-500 @enderror placeholder-medical-gray-400"
+                            placeholder="example@email.com">
                         @error('email')
-                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
 
                     {{-- Phone --}}
                     <div>
-                        <label for="phone" class="block text-sm font-medium text-medical-gray-700 mb-2">
+                        <label for="phone" class="block text-sm font-medium text-medical-gray-700 mb-1">
                             رقم الهاتف <span class="text-red-500">*</span>
                         </label>
-                        <input type="text" id="phone" name="phone" value="{{ old('phone') }}" required
-                            class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('phone') border-red-500 @enderror"
+                        <input type="tel" id="phone" name="phone" value="{{ old('phone') }}" required
+                            class="w-full px-4 py-2.5 border border-medical-gray-300 rounded-md focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('phone') border-red-500 @enderror placeholder-medical-gray-400"
                             placeholder="+218 91 234 5678">
                         @error('phone')
-                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
 
-                    {{-- User Type --}}
-                    <div class="flex flex-col items-end">
-                        <label for="user_type_id"
-                            class="mb-2 text-sm font-medium text-medical-gray-700 w-full text-right">
-                            نوع المستخدم <span class="text-red-500">*</span>
+                    {{-- User Type & Role (RBAC-based) --}}
+                    <div class="sm:col-span-2 lg:col-span-1">
+                        <label for="user_type_role"
+                            class="block mb-1 text-sm font-medium text-medical-gray-700 text-right w-full">
+                            نوع المستخدم والدور (RBAC) <span class="text-red-500">*</span>
                         </label>
-                        <div class="relative w-full" dir="rtl">
-                            <select id="user_type_id" name="user_type_id" x-model="userType"
-                                class="w-full px-4 py-3 pr-10 pl-4 border border-medical-gray-300 rounded-xl appearance-none focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('user_type_id') border-red-500 @enderror text-right">
-                                <option value="">اختر نوع المستخدم</option>
-                                <option value="1">مدير النظام</option>
-                                {{-- <option value="2">مورد</option> --}}
-                                {{-- <option value="3">مشتري</option> --}}
+                        <div class="relative">
+                            <select id="user_type_role" name="user_type_role" required
+                                class="w-full px-4 py-2.5 border border-medical-gray-300 rounded-md focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('user_type_role') border-red-500 @enderror appearance-none bg-white cursor-pointer pr-10">
+                                <option value="">-- اختر نوع المستخدم والدور --</option>
+                                @foreach($combinedOptions as $key => $label)
+                                    <option value="{{ $key }}" {{ old('user_type_role') == $key ? 'selected' : '' }}>
+                                        {{ $label }}
+                                    </option>
+                                @endforeach
                             </select>
+                            <div class="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center">
+                                <svg class="h-5 w-5 text-medical-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
                         </div>
-                        @error('user_type_id')
-                            <p class="mt-2 text-sm text-red-600 w-full text-right">{{ $message }}</p>
+                        @error('user_type_role')
+                            <p class="mt-1 text-xs text-red-600 text-right">{{ $message }}</p>
                         @enderror
+                        <div class="mt-2 space-y-1">
+                            <p class="text-xxs text-medical-gray-500 text-right">
+                                يتم تحديد نوع المستخدم والدور معاً وفقاً لنظام RBAC
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
 
-
-            <!-- Supplier Section -->
-            {{-- <div x-show="userType == 2" x-cloak x-transition
-                    class="mt-8 bg-medical-blue-50/40 p-6 rounded-2xl border border-medical-blue-200 shadow-medical-sm">
-
-                    <h3 class="text-lg font-bold text-medical-blue-800 mb-4">بيانات المورد</h3>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-                        <!-- Row 1: company_name, commercial_register, tax_number -->
-                        <div>
-                            <label class="text-sm text-medical-gray-700 mb-1 block">اسم الشركة</label>
-                            <input type="text" name="supplier[company_name]"
-                                placeholder="مثال: شركة الفجر للمعدات الطبية"
-                                class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl">
-                        </div>
-                        <div>
-                            <label class="text-sm text-medical-gray-700 mb-1 block">السجل التجاري</label>
-                            <input type="text" name="supplier[commercial_register]"
-                                class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl">
-                        </div>
-                        <div>
-                            <label class="text-sm text-medical-gray-700 mb-1 block">الرقم الضريبي</label>
-                            <input type="text" name="supplier[tax_number]"
-                                class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl">
-                        </div>
-
-                        <!-- Row 2: country, city, address -->
-                        <div>
-                            <label class="text-sm text-medical-gray-700 mb-1 block">البلد</label>
-                            <select name="supplier[country]"
-                                class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl">
-                                <option value="">اختر البلد</option>
-                                <option value="Libya">ليبيا</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="text-sm text-medical-gray-700 mb-1 block">المدينة</label>
-                            <input type="text" name="supplier[city]" placeholder="مثال: طرابلس"
-                                class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl">
-                        </div>
-                        <div>
-                            <label class="text-sm text-medical-gray-700 mb-1 block">العنوان</label>
-                            <input type="text" name="supplier[address]"
-                                class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl">
-                        </div>
-
-                        <!-- Row 3: contact_email, contact_phone, is_verified -->
-                        <div>
-                            <label class="text-sm text-medical-gray-700 mb-1 block">البريد الإلكتروني للتواصل</label>
-                            <input type="email" name="supplier[contact_email]"
-                                class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl">
-                        </div>
-                        <div>
-                            <label class="text-sm text-medical-gray-700 mb-1 block">رقم الهاتف التجاري</label>
-                            <input type="text" name="supplier[contact_phone]"
-                                class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl">
-                        </div>
-                        <div>
-                            <label class="text-sm text-medical-gray-700 mb-1 block">الحالة (مفعل؟)</label>
-                            <select name="supplier[is_active]"
-                                class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl">
-                                <option value="1">نشط</option>
-                                <option value="0">غير نشط</option>
-                            </select>
-                        </div>
-
-                    </div>
-
-                </div> --}}
-
-            <!-- Buyer Section -->
-            {{-- <div x-show="userType == 3" x-cloak x-transition
-                    class="mt-8 bg-medical-green-50/40 p-6 rounded-2xl border border-medical-green-200 shadow-medical-sm">
-
-                    <h3 class="text-lg font-bold text-medical-green-800 mb-4">بيانات المشتري (جهة طبية)</h3>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                        <div>
-                            <label class="text-sm text-medical-gray-700 mb-1 block">اسم المنشأة</label>
-                            <input type="text" name="buyer[organization_name]"
-                                class="w-full px-4 py-3 border rounded-xl">
-                        </div>
-
-                        <div>
-                            <label class="text-sm text-medical-gray-700 mb-1 block">نوع المنشأة</label>
-                            <select name="buyer[organization_type]" class="w-full px-4 py-3 border rounded-xl">
-                                <option value="">اختر النوع</option>
-                                <option value="hospital">مستشفى</option>
-                                <option value="clinic">عيادة</option>
-                                <option value="lab">مختبر</option>
-                                <option value="center">مركز طبي</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="text-sm text-medical-gray-700 mb-1 block">رقم الترخيص</label>
-                            <input type="text" name="buyer[license_number]"
-                                class="w-full px-4 py-3 border rounded-xl">
-                        </div>
-
-                        <div>
-                            <label class="text-sm text-medical-gray-700 mb-1 block">البلد</label>
-                            <select name="buyer[country]" class="w-full px-4 py-3 border rounded-xl">
-                                <option value="">اختر البلد</option>
-                                <option value="Libya">ليبيا</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="text-sm text-medical-gray-700 mb-1 block">المدينة</label>
-                            <input type="text" name="buyer[city]" class="w-full px-4 py-3 border rounded-xl">
-                        </div>
-
-                        <div class="md:col-span-2">
-                            <label class="text-sm text-medical-gray-700 mb-1 block">العنوان</label>
-                            <input type="text" name="buyer[address]" class="w-full px-4 py-3 border rounded-xl">
-                        </div>
-
-                    </div>
-                </div><br> --}}
-
             {{-- Password Section --}}
             <div class="mb-8">
-                <h2 class="text-xl font-bold text-medical-gray-900 mb-6 pb-3 border-b border-medical-gray-200">
-                    كلمة
-                    المرور</h2>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <h2 class="text-xl font-bold text-medical-gray-900 mb-6 pb-2 border-b border-medical-gray-200">
+                    كلمة المرور</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     {{-- Password --}}
                     <div>
-                        <label for="password" class="block text-sm font-medium text-medical-gray-700 mb-2">
+                        <label for="password" class="block text-sm font-medium text-medical-gray-700 mb-1">
                             كلمة المرور <span class="text-red-500">*</span>
                         </label>
                         <div class="relative">
                             <input :type="showPassword ? 'text' : 'password'" id="password" name="password" required
-                                class="w-full px-4 py-3 pl-12 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('password') border-red-500 @enderror">
-                            <button type="button" @click="showPassword = !showPassword"
-                                class="absolute left-4 top-1/2 transform -translate-y-1/2 text-medical-gray-400 hover:text-medical-gray-600 transition-colors duration-200">
+                                class="w-full px-4 py-2.5 pl-11 border border-medical-gray-300 rounded-md focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('password') border-red-500 @enderror placeholder-medical-gray-400"
+                                placeholder="كلمة المرور">
+                            <button type="button" tabindex="-1" @click="showPassword = !showPassword"
+                                class="absolute left-3 top-1/2 -translate-y-1/2 text-medical-gray-400 hover:text-medical-gray-600 transition-colors duration-200">
                                 <svg x-show="!showPassword" class="w-5 h-5" fill="none" stroke="currentColor"
                                     viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -243,95 +164,101 @@
                             </button>
                         </div>
                         @error('password')
-                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                         @enderror
-                        <p class="mt-2 text-xs text-medical-gray-500">يجب أن تحتوي كلمة المرور على 8 أحرف على
-                            الأقل
-                        </p>
+                        <p class="mt-1 text-xxs text-medical-gray-500">كلمة المرور لا تقل عن 8 أحرف/أرقام، مع مراعاة
+                            الأمان.</p>
                     </div>
 
                     {{-- Password Confirmation --}}
                     <div>
                         <label for="password_confirmation"
-                            class="block text-sm font-medium text-medical-gray-700 mb-2">
+                            class="block text-sm font-medium text-medical-gray-700 mb-1">
                             تأكيد كلمة المرور <span class="text-red-500">*</span>
                         </label>
                         <input :type="showPassword ? 'text' : 'password'" id="password_confirmation"
                             name="password_confirmation" required
-                            class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200">
+                            class="w-full px-4 py-2.5 border border-medical-gray-300 rounded-md focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 placeholder-medical-gray-400"
+                            placeholder="أعد كتابة كلمة المرور">
                     </div>
                 </div>
             </div>
 
-            {{-- Role Selection Section --}}
-            <div class="mb-8">
-                <h2 class="text-xl font-bold text-medical-gray-900 mb-6 pb-3 border-b border-medical-gray-200">
-                    الدور والصلاحيات
-                </h2>
-
-                <div class="max-w-md">
-                    <label for="role" class="block text-sm font-medium text-medical-gray-700 mb-2">
-                        تعيين دور (اختياري)
-                    </label>
-                    <select id="role" name="role"
-                        class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent transition-all duration-200">
-                        <option value="">بدون دور</option>
-                        @foreach ($roles as $roleName => $roleLabel)
-                            <option value="{{ $roleName }}" {{ old('role') === $roleName ? 'selected' : '' }}>
-                                {{ $roleLabel }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <p class="mt-2 text-xs text-medical-gray-500">
-                        يمكن تعديل الصلاحيات لاحقاً من صفحة تعديل المستخدم
-                    </p>
-                </div>
-            </div>
+            {{-- RBAC & Permissions Note (for Staff users) --}}
+            <template x-if="selectedRole === 'Staff'">
+                <div x-transition:enter="transition ease-out duration-200"
+                    x-transition:enter-start="opacity-0 transform translate-y-2"
+                    x-transition:enter-end="opacity-100 transform translate-y-0"
+                    x-transition:leave="transition ease-in duration-150"
+                    x-transition:leave-start="opacity-100 transform translate-y-0"
+                    x-transition:leave-end="opacity-0 transform translate-y-2"
+                    class="mb-6 bg-medical-blue-50 border-l-4 border-medical-blue-500 p-4 rounded-r-lg">
+                    <div class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-medical-blue-600 mt-0.5 flex-shrink-0" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div>
+                            <p class="text-sm font-medium text-medical-gray-900 mb-1">إدارة الصلاحيات للموظف الإداري
+                            </p>
+                            <p class="text-xs text-medical-gray-700">
+                                بعد إنشاء المستخدم، يمكنك تعيين الصلاحيات الصريحة له من صفحة
+                                <a href="{{ route('admin.role-permissions.index') }}"
+                                    class="text-medical-blue-600 hover:text-medical-blue-700 underline font-semibold">الأدوار
+                                    والصلاحيات</a>.
+                                الموظفون الإداريون يحتاجون إلى صلاحيات صريحة للوصول إلى أقسام النظام.
+                            </p>
+                        </div>
+                    </div>
+            </template>
 
             {{-- Account Settings Section --}}
             <div class="mb-8">
-                <h2 class="text-xl font-bold text-medical-gray-900 mb-6 pb-3 border-b border-medical-gray-200">
-                    إعدادات
-                    الحساب</h2>
+                <h2 class="text-xl font-bold text-medical-gray-900 mb-6 pb-2 border-b border-medical-gray-200">
+                    إعدادات الحساب
+                </h2>
 
                 <div class="space-y-4">
-                    {{-- Status --}}
-                    <div>
-                        <label for="status" class="block text-sm font-medium text-medical-gray-700 mb-2">
-                            حالة الحساب <span class="text-red-500">*</span>
-                        </label>
-                        <select id="status" name="status" required
-                            class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('status') border-red-500 @enderror">
-                            <option value="active" {{ old('status', 'active') == 'active' ? 'selected' : '' }}>نشط
-                            </option>
-                            <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>غير
-                                نشط
-                            </option>
-                            <option value="suspended" {{ old('status') == 'suspended' ? 'selected' : '' }}>
-                                موقوف
-                            </option>
-                        </select>
-                        @error('status')
-                            <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {{-- Status --}}
+                        <div>
+                            <label for="status" class="block text-sm font-medium text-medical-gray-700 mb-1">
+                                حالة الحساب <span class="text-red-500">*</span>
+                            </label>
+                            <select id="status" name="status" required
+                                class="w-full px-4 py-2.5 border border-medical-gray-300 rounded-md focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('status') border-red-500 @enderror">
+                                <option value="active" {{ old('status', 'active') == 'active' ? 'selected' : '' }}>نشط
+                                </option>
+                                <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>غير نشط
+                                </option>
+                                <option value="suspended" {{ old('status') == 'suspended' ? 'selected' : '' }}>موقوف
+                                </option>
+                            </select>
+                            @error('status')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
 
-                    {{-- Email Verification --}}
-                    <div class="flex items-center">
-                        <input type="checkbox" id="email_verified" name="email_verified" value="1"
-                            {{ old('email_verified') ? 'checked' : '' }}
-                            class="w-4 h-4 text-medical-blue-600 border-medical-gray-300 rounded focus:ring-2 focus:ring-medical-blue-500">
-                        <label for="email_verified" class="mr-3 text-sm font-medium text-medical-gray-700">
-                            تفعيل البريد الإلكتروني تلقائياً
-                        </label>
+                        {{-- Email Verification --}}
+                        <div class="flex items-center gap-2 mt-2 md:mt-0">
+                            <input type="checkbox" id="email_verified" name="email_verified" value="1"
+                                {{ old('email_verified') ? 'checked' : '' }}
+                                class="w-4 h-4 text-medical-blue-600 border-medical-gray-300 rounded focus:ring-2 focus:ring-medical-blue-500">
+                            <label for="email_verified"
+                                class="text-sm font-medium text-medical-gray-700 cursor-pointer">
+                                تفعيل البريد الإلكتروني تلقائياً
+                            </label>
+                        </div>
                     </div>
 
                     {{-- Send Welcome Email --}}
-                    <div class="flex items-center">
+                    <div class="flex items-center gap-2 mt-2">
                         <input type="checkbox" id="send_welcome_email" name="send_welcome_email" value="1"
                             {{ old('send_welcome_email', '1') ? 'checked' : '' }}
                             class="w-4 h-4 text-medical-blue-600 border-medical-gray-300 rounded focus:ring-2 focus:ring-medical-blue-500">
-                        <label for="send_welcome_email" class="mr-3 text-sm font-medium text-medical-gray-700">
+                        <label for="send_welcome_email"
+                            class="text-sm font-medium text-medical-gray-700 cursor-pointer">
                             إرسال بريد إلكتروني ترحيبي للمستخدم
                         </label>
                     </div>
@@ -339,9 +266,9 @@
             </div>
 
             {{-- Form Actions --}}
-            <div class="flex items-center justify-end space-x-4 space-x-reverse pt-6 border-t border-medical-gray-200">
+            <div class="flex items-center justify-end gap-3 pt-6 border-t border-medical-gray-200">
                 <a href="{{ route('admin.users') }}"
-                    class="inline-flex items-center space-x-2 space-x-reverse px-6 py-3 bg-medical-gray-100 text-medical-gray-700 rounded-xl hover:bg-medical-gray-200 transition-all duration-200 font-medium">
+                    class="inline-flex items-center gap-1 px-6 py-3 bg-medical-gray-100 text-medical-gray-700 rounded-md hover:bg-medical-gray-200 font-medium transition-all">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M6 18L18 6M6 6l12 12" />
@@ -349,7 +276,7 @@
                     <span>إلغاء</span>
                 </a>
                 <button type="submit"
-                    class="inline-flex items-center space-x-2 space-x-reverse px-6 py-3 bg-medical-blue-600 text-white rounded-xl hover:bg-medical-blue-700 transition-all duration-200 font-medium shadow-medical">
+                    class="inline-flex items-center gap-1 px-6 py-3 bg-medical-blue-600 text-white rounded-md hover:bg-medical-blue-700 font-medium transition-all shadow-medical">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
@@ -358,5 +285,4 @@
             </div>
         </form>
     </div>
-
 </x-dashboard.layout>

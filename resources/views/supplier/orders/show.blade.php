@@ -162,9 +162,23 @@
             @endif
 
             {{-- Invoices --}}
-            @if ($order->invoices->isNotEmpty())
-                <div class="bg-white rounded-2xl shadow-medical p-6">
-                    <h3 class="text-lg font-bold text-medical-gray-900 mb-4">الفواتير</h3>
+            <div class="bg-white rounded-2xl shadow-medical p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-medical-gray-900">الفواتير</h3>
+                    @if($order->status === 'delivered' && $order->invoices->where('status', '!=', 'cancelled')->isEmpty())
+                        <form action="{{ route('supplier.orders.create-invoice', $order) }}" method="POST" class="inline">
+                            @csrf
+                            <button type="submit"
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-medical-green-600 text-white rounded-xl hover:bg-medical-green-700 transition-colors text-sm font-medium">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                إنشاء فاتورة
+                            </button>
+                        </form>
+                    @endif
+                </div>
+                @if ($order->invoices->isNotEmpty())
                     <div class="space-y-3">
                         @foreach ($order->invoices as $invoice)
                             <div class="flex items-center justify-between p-4 bg-medical-gray-50 rounded-xl">
@@ -187,8 +201,10 @@
                             </div>
                         @endforeach
                     </div>
-                </div>
-            @endif
+                @else
+                    <p class="text-sm text-medical-gray-500 text-center py-4">لا توجد فواتير لهذا الطلب</p>
+                @endif
+            </div>
 
             {{-- Deliveries --}}
             @if ($order->deliveries->isNotEmpty())

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web\Suppliers;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Suppliers\SupplierProductRequest;
 use App\Models\Product;
+use App\Models\ProductRequest;
 use App\Models\ProductCategory;
 use App\Models\Manufacturer;
 use Illuminate\Http\RedirectResponse;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use App\Services\NotificationService;
 
 /**
  * Supplier Product Controller
@@ -186,10 +188,19 @@ class SupplierProductController extends Controller
         DB::beginTransaction();
 
         try {
+            // Debug: Log the action value
+            Log::info('Supplier product store - Action received', [
+                'action' => $request->action,
+                'all_input' => $request->all(),
+            ]);
+
             if ($request->action === 'new') {
-                // CREATE NEW PRODUCT (Pending admin review)
-                $product = Product::create([
-                    'created_by' => Auth::id(),
+                // CREATE PRODUCT REQUEST (Pending admin review)
+                // This creates a ProductRequest record, NOT a Product record
+                // The ProductRequest will be reviewed by admin and converted to a Product when approved
+                
+                $productRequestData = [
+                    'supplier_id' => $supplier->id,
                     'name' => $request->name,
                     'model' => $request->model,
                     'brand' => $request->brand,
@@ -209,43 +220,50 @@ class SupplierProductController extends Controller
                         ? array_filter(array_map('trim', explode("\n", $request->certifications)))
                         : null,
                     'installation_requirements' => $request->installation_requirements,
-                    'is_active' => true,
-                    'review_status' => Product::REVIEW_PENDING, // Needs admin approval
+                    'proposed_price' => $request->price,
+                    'proposed_stock' => $request->stock_quantity,
+                    'proposed_lead_time' => $request->lead_time,
+                    'proposed_warranty' => $request->warranty,
+                    'status' => ProductRequest::STATUS_PENDING, // Needs admin approval
+                ];
+
+                Log::info('Creating ProductRequest', [
+                    'supplier_id' => $supplier->id,
+                    'data' => $productRequestData
                 ]);
+
+                $productRequest = ProductRequest::create($productRequestData);
 
                 // Upload images if provided
                 if ($request->hasFile('images')) {
                     foreach ($request->file('images') as $image) {
-                        $product->addMedia($image)->toMediaCollection('product_images');
+                        $productRequest->addMedia($image)->toMediaCollection('product_request_images');
                     }
                 }
 
-                // Link supplier with offer data
-                $supplier->products()->attach($product->id, [
-                    'price' => $request->price,
-                    'stock_quantity' => $request->stock_quantity,
-                    'lead_time' => $request->lead_time,
-                    'warranty' => $request->warranty,
-                    'status' => $request->status,
-                    'notes' => $request->notes,
-                ]);
-
                 DB::commit();
 
+                // Notify admins about new product request
+                \App\Services\NotificationService::notifyAdmins(
+                    'طلب منتج جديد',
+                    "طلب المورد {$supplier->company_name} إضافة منتج جديد: {$productRequest->name}",
+                    route('admin.product-requests.review', $productRequest->id)
+                );
+
                 // Log activity
-                activity('supplier_products')
-                    ->performedOn($product)
+                activity('product_requests')
+                    ->performedOn($productRequest)
                     ->causedBy(Auth::user())
                     ->withProperties([
-                        'product_id' => $product->id,
-                        'product_name' => $product->name,
-                        'action' => 'created_new',
+                        'product_request_id' => $productRequest->id,
+                        'product_name' => $productRequest->name,
+                        'action' => 'created',
                     ])
-                    ->log('📦 أنشأ المورد منتجاً جديداً (بانتظار المراجعة)');
+                    ->log('📦 أنشأ المورد طلب منتج جديد (بانتظار المراجعة)');
 
                 return redirect()
                     ->route('supplier.products.index')
-                    ->with('success', '✔ تم إضافة المنتج بنجاح — بانتظار مراجعة الإدارة');
+                    ->with('success', '✔ تم إرسال طلب المنتج بنجاح — بانتظار مراجعة الإدارة');
 
             } else {
                 // LINK EXISTING PRODUCT
@@ -294,8 +312,11 @@ class SupplierProductController extends Controller
 
             Log::error('Supplier product creation error', [
                 'supplier_id' => $supplier->id,
+                'action' => $request->action ?? 'unknown',
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
             ]);
 
             return back()
@@ -370,6 +391,9 @@ class SupplierProductController extends Controller
         DB::beginTransaction();
 
         try {
+            // Check if product needs update (before any changes)
+            $wasNeedsUpdate = $product->review_status === Product::REVIEW_NEEDS_UPDATE;
+
             // Update offer data (pivot) - ALWAYS allowed
             $supplier->products()->updateExistingPivot($product->id, [
                 'price' => $request->price,
@@ -381,7 +405,7 @@ class SupplierProductController extends Controller
             ]);
 
             // Update product data ONLY if needs_update
-            if ($product->review_status === Product::REVIEW_NEEDS_UPDATE) {
+            if ($wasNeedsUpdate) {
                 $product->update([
                     'name' => $request->name,
                     'model' => $request->model,
@@ -403,6 +427,7 @@ class SupplierProductController extends Controller
                         : null,
                     'installation_requirements' => $request->installation_requirements,
                     'review_status' => Product::REVIEW_PENDING, // Reset to pending for re-review
+                    'review_notes' => null, // Clear admin notes
                 ]);
 
                 // Handle new images
@@ -415,6 +440,16 @@ class SupplierProductController extends Controller
 
             DB::commit();
 
+
+            // Notify admins if product was updated after needs_update
+            if ($wasNeedsUpdate) {
+                \App\Services\NotificationService::notifyAdmins(
+                    '🔄 منتج تم تحديثه بعد طلب التعديل',
+                    "قام المورد {$supplier->company_name} بتحديث المنتج: {$product->name} بعد طلب التعديل. يحتاج إلى مراجعة.",
+                    route('admin.products.review', $product->id)
+                );
+            }
+
             // Log activity
             activity('supplier_products')
                 ->performedOn($product)
@@ -422,12 +457,20 @@ class SupplierProductController extends Controller
                 ->withProperties([
                     'product_id' => $product->id,
                     'product_name' => $product->name,
+                    'updated_base_product' => $wasNeedsUpdate,
+                    'pivot_data' => [
+                        'price' => $request->price,
+                        'stock_quantity' => $request->stock_quantity,
+                        'status' => $request->status,
+                    ],
                 ])
-                ->log('🔄 حدّث المورد بيانات المنتج');
+                ->log($wasNeedsUpdate ? '🔄 حدّث المورد المنتج بعد طلب التعديل' : '✏ حدّث المورد عرض المنتج');
 
             return redirect()
                 ->route('supplier.products.index')
-                ->with('success', '✔ تم تحديث المنتج بنجاح');
+                ->with('success', $wasNeedsUpdate 
+                    ? '✔ تم تحديث المنتج وإعادة إرساله للمراجعة' 
+                    : '✔ تم تحديث عرض المنتج بنجاح');
 
         } catch (\Throwable $e) {
             DB::rollBack();

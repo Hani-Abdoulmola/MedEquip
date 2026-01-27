@@ -12,6 +12,7 @@ class RolePolicy
      */
     public function viewAny(User $user): bool
     {
+        // Gate::before() handles Admin bypass
         return $user->can('roles.view');
     }
 
@@ -20,6 +21,7 @@ class RolePolicy
      */
     public function view(User $user, Role $role): bool
     {
+        // Gate::before() handles Admin bypass
         return $user->can('roles.view');
     }
 
@@ -28,6 +30,7 @@ class RolePolicy
      */
     public function create(User $user): bool
     {
+        // Gate::before() handles Admin bypass
         return $user->can('roles.create');
     }
 
@@ -36,6 +39,7 @@ class RolePolicy
      */
     public function update(User $user, Role $role): bool
     {
+        // Gate::before() handles Admin bypass
         return $user->can('roles.update');
     }
 
@@ -44,6 +48,7 @@ class RolePolicy
      */
     public function delete(User $user, Role $role): bool
     {
+        // Gate::before() handles Admin bypass
         return $user->can('roles.delete');
     }
 }

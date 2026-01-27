@@ -19,12 +19,15 @@ class RfqItem extends Model
         'specifications',
         'quantity',
         'unit',
+        'preferred_supplier_id',
+        'max_price',
         'is_approved',
         'approved_at',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
+        'max_price' => 'decimal:2',
         'is_approved' => 'boolean',
         'approved_at' => 'datetime:Y-m-d H:i',
     ];
@@ -47,6 +50,14 @@ class RfqItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class, 'product_id');
+    }
+
+    /**
+     * Preferred supplier for this item (from RFQ builder).
+     */
+    public function preferredSupplier(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class, 'preferred_supplier_id');
     }
 
     /**

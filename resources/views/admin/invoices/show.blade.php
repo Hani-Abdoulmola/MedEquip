@@ -9,6 +9,28 @@
                 <p class="mt-2 text-medical-gray-600">{{ $invoice->invoice_number }}</p>
             </div>
             <div class="flex items-center gap-3">
+                @if($invoice->status === \App\Models\Invoice::STATUS_ISSUED && auth()->user()->can('approve', $invoice))
+                    <form action="{{ route('admin.invoices.approve', $invoice->id) }}" method="POST" class="inline">
+                        @csrf
+                        <button type="submit"
+                            class="inline-flex items-center gap-2 px-6 py-3 bg-medical-green-600 text-white rounded-xl hover:bg-medical-green-700 transition-all duration-200 font-medium"
+                            onclick="return confirm('هل أنت متأكد من اعتماد هذه الفاتورة؟')">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>اعتماد</span>
+                        </button>
+                    </form>
+                @endif
+                @if($invoice->status !== \App\Models\Invoice::STATUS_CANCELLED && auth()->user()->can('update', $invoice))
+                    <button type="button" onclick="showCancelModal()"
+                        class="inline-flex items-center gap-2 px-6 py-3 bg-medical-red-600 text-white rounded-xl hover:bg-medical-red-700 transition-all duration-200 font-medium">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        <span>إلغاء</span>
+                    </button>
+                @endif
                 <a href="{{ route('admin.invoices.edit', $invoice->id) }}"
                     class="inline-flex items-center gap-2 px-6 py-3 bg-medical-yellow-600 text-white rounded-xl hover:bg-medical-yellow-700 transition-all duration-200 font-medium">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -273,6 +295,56 @@
             </div>
         </div>
     </div>
+
+    {{-- Cancel Invoice Modal --}}
+    @if($invoice->status !== \App\Models\Invoice::STATUS_CANCELLED && auth()->user()->can('update', $invoice))
+        <div id="cancelModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" style="display: none;">
+            <div class="bg-white rounded-2xl shadow-medical p-8 max-w-md w-full mx-4">
+                <h3 class="text-xl font-bold text-medical-gray-900 mb-4">إلغاء الفاتورة</h3>
+                <p class="text-medical-gray-600 mb-6">هل أنت متأكد من إلغاء هذه الفاتورة؟ يمكنك إضافة سبب الإلغاء (اختياري).</p>
+                
+                <form action="{{ route('admin.invoices.cancel', $invoice->id) }}" method="POST">
+                    @csrf
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-medical-gray-700 mb-2">
+                            سبب الإلغاء (اختياري)
+                        </label>
+                        <textarea name="cancellation_reason" rows="3"
+                            class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent"
+                            placeholder="أدخل سبب الإلغاء..."></textarea>
+                    </div>
+                    
+                    <div class="flex items-center gap-3">
+                        <button type="submit"
+                            class="flex-1 px-6 py-3 bg-medical-red-600 text-white rounded-xl hover:bg-medical-red-700 transition-all duration-200 font-medium">
+                            تأكيد الإلغاء
+                        </button>
+                        <button type="button" onclick="hideCancelModal()"
+                            class="flex-1 px-6 py-3 bg-medical-gray-200 text-medical-gray-700 rounded-xl hover:bg-medical-gray-300 transition-all duration-200 font-medium">
+                            إلغاء
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            function showCancelModal() {
+                document.getElementById('cancelModal').style.display = 'flex';
+            }
+            
+            function hideCancelModal() {
+                document.getElementById('cancelModal').style.display = 'none';
+            }
+            
+            // Close modal when clicking outside
+            document.getElementById('cancelModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideCancelModal();
+                }
+            });
+        </script>
+    @endif
 
 </x-dashboard.layout>
 

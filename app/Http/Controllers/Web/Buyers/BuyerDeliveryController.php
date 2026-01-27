@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web\Buyers;
 use App\Http\Controllers\Controller;
 use App\Models\Delivery;
 use App\Services\NotificationService;
+use App\Services\OrderDeliveryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -180,6 +181,10 @@ class BuyerDeliveryController extends Controller
             
             if ($allDelivered) {
                 $order->update(['status' => 'delivered']);
+                
+                // Auto-create delivery and invoice if not exists
+                $orderDeliveryService = app(OrderDeliveryService::class);
+                $orderDeliveryService->handleOrderDelivered($order, Auth::user());
             }
 
             // Notify supplier

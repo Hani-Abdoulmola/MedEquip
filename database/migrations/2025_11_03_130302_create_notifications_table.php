@@ -13,11 +13,19 @@ return new class extends Migration
     {
         Schema::create('notifications', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->uuid('parent_notification_id')->nullable()->after('id'); // For reply threading
             $table->string('type');
             $table->morphs('notifiable');
             $table->text('data');
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
+            
+            // Foreign key for parent notification (replies)
+            $table->foreign('parent_notification_id')
+                ->references('id')
+                ->on('notifications')
+                ->onDelete('cascade');
+            $table->index('parent_notification_id');
         });
     }
 

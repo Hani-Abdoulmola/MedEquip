@@ -22,6 +22,8 @@ class InvoicePolicy
             return true;
         }
 
+        // Gate::before() handles Admin bypass
+        // Staff users need explicit permission
         return $user->can('invoices.view');
     }
 
@@ -40,7 +42,7 @@ class InvoicePolicy
             return $invoice->order && $invoice->order->supplier_id === $user->supplierProfile->id;
         }
 
-        // Admin/Staff with permission can view all
+        // Gate::before() handles Admin bypass
         return $user->can('invoices.view');
     }
 
@@ -49,6 +51,12 @@ class InvoicePolicy
      */
     public function create(User $user): bool
     {
+        // Suppliers can create invoices for their orders
+        if ($user->hasRole('Supplier') && $user->supplierProfile) {
+            return true;
+        }
+
+        // Gate::before() handles Admin bypass
         return $user->can('invoices.create');
     }
 
@@ -69,7 +77,7 @@ class InvoicePolicy
             }
         }
 
-        // Admin/Staff with permission can update any invoice
+        // Gate::before() handles Admin bypass
         return true;
     }
 
@@ -78,7 +86,31 @@ class InvoicePolicy
      */
     public function delete(User $user, Invoice $invoice): bool
     {
+        // Suppliers cannot delete invoices (only admin can)
+        if ($user->hasRole('Supplier')) {
+            return false;
+        }
+
+        // Gate::before() handles Admin bypass
         return $user->can('invoices.delete');
+    }
+
+    /**
+     * Determine if the user can cancel the invoice.
+     */
+    public function cancel(User $user, Invoice $invoice): bool
+    {
+        // Suppliers can cancel their invoices if not approved and not paid
+        if ($user->hasRole('Supplier') && $user->supplierProfile) {
+            if ($invoice->order && $invoice->order->supplier_id === $user->supplierProfile->id) {
+                // Can cancel if not approved and no payments
+                return in_array($invoice->status, ['draft', 'issued']) 
+                    && $invoice->payment_status === Invoice::PAYMENT_UNPAID;
+            }
+        }
+
+        // Gate::before() handles Admin bypass
+        return $user->can('invoices.update');
     }
 
     /**
@@ -86,6 +118,7 @@ class InvoicePolicy
      */
     public function approve(User $user, Invoice $invoice): bool
     {
+        // Gate::before() handles Admin bypass
         return $user->can('invoices.approve');
     }
 
@@ -103,6 +136,7 @@ class InvoicePolicy
      */
     public function export(User $user): bool
     {
+        // Gate::before() handles Admin bypass
         return $user->can('invoices.export');
     }
 }

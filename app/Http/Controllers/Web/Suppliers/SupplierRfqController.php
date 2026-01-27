@@ -10,7 +10,9 @@ use App\Models\QuotationItem;
 use App\Models\Rfq;
 use App\Models\RfqItem;
 use App\Services\NotificationService;
+use App\Services\QuotationWorkflowService;
 use App\Services\ReferenceCodeService;
+use App\Services\RfqWorkflowService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -39,6 +41,14 @@ class SupplierRfqController extends Controller
 
         if (!$supplier) {
             abort(403, 'لا يوجد ملف تعريف للمورد');
+        }
+
+        // Only verified and active suppliers can see RFQs
+        if (!$supplier->is_verified || !$supplier->is_active) {
+            return view('supplier.rfqs.index', [
+                'rfqs' => collect([])->paginate(15),
+                'stats' => ['total' => 0, 'open' => 0, 'quoted' => 0, 'pending' => 0],
+            ])->with('info', 'يجب التحقق من حسابك أولاً لرؤية طلبات عروض الأسعار.');
         }
 
         $query = Rfq::with(['buyer', 'items', 'quotations' => function ($q) use ($supplier) {
@@ -194,8 +204,11 @@ class SupplierRfqController extends Controller
 
     /**
      * Store a new quotation.
+     * 
+     * Refactored to use QuotationWorkflowService for state management.
+     * Creates quotation in 'draft' status then immediately submits it.
      */
-    public function storeQuote(SupplierQuotationRequest $request, Rfq $rfq): RedirectResponse
+    public function storeQuote(SupplierQuotationRequest $request, Rfq $rfq, QuotationWorkflowService $workflowService): RedirectResponse
     {
         $this->authorize('createQuotation', $rfq);
 
@@ -209,43 +222,29 @@ class SupplierRfqController extends Controller
         }
 
         // Validate RFQ can accept quotations using workflow service
-        $validation = \App\Services\RfqWorkflowService::canAcceptQuotations($rfq);
+        $validation = RfqWorkflowService::canAcceptQuotations($rfq);
         if (!$validation['valid']) {
             return redirect()
                 ->route('supplier.rfqs.show', $rfq)
                 ->with('error', $validation['message']);
         }
 
-        DB::beginTransaction();
-
         try {
-            // Re-check RFQ status inside transaction (race condition prevention)
-            $rfq->refresh();
-            if ($rfq->status !== 'open') {
-                DB::rollBack();
-                return redirect()
-                    ->route('supplier.rfqs.show', $rfq)
-                    ->with('error', 'الطلب تم إغلاقه أثناء تقديم العرض.');
-            }
+            DB::beginTransaction();
 
-            // Re-check deadline inside transaction
-            if ($rfq->deadline && $rfq->deadline->isPast()) {
-                DB::rollBack();
-                return redirect()
-                    ->route('supplier.rfqs.show', $rfq)
-                    ->with('error', 'انتهت فترة تقديم العروض لهذا الطلب.');
-            }
-            // Calculate total from items if provided
+            // Calculate total from items
             $items = $request->input('items', []);
             $totalPrice = $this->calculateQuotationTotal($request, $rfq);
 
+            // Create quotation in draft status first
             $quotation = Quotation::create([
                 'rfq_id' => $rfq->id,
                 'supplier_id' => $supplier->id,
+                'created_by' => Auth::id(),
                 'reference_code' => ReferenceCodeService::generateUnique('QUO', Quotation::class),
                 'total_price' => $totalPrice,
                 'terms' => $request->terms,
-                'status' => 'pending',
+                'status' => 'draft', // Start as draft
                 'valid_until' => $request->valid_until,
             ]);
 
@@ -261,6 +260,12 @@ class SupplierRfqController extends Controller
                 }
             }
 
+            DB::commit();
+
+            // NOW submit the quotation using workflow service (draft → pending)
+            // This ensures proper state machine validation and notifications
+            $quotation = $workflowService->submitQuotation($quotation);
+
             // Update rfq_supplier status
             DB::table('rfq_supplier')
                 ->where('rfq_id', $rfq->id)
@@ -274,28 +279,16 @@ class SupplierRfqController extends Controller
                 route('admin.quotations.show', $quotation->id)
             );
 
-            // Notify buyer using workflow service
-            \App\Services\RfqWorkflowService::notifyQuotationSubmitted($quotation);
-
-            // Log activity
-            activity('supplier_quotations')
-                ->performedOn($quotation)
-                ->causedBy(Auth::user())
-                ->withProperties([
-                    'rfq_id' => $rfq->id,
-                    'total_price' => $quotation->total_price,
-                    'items_count' => count($items),
-                ])
-                ->log('قدم المورد عرض سعر جديد');
-
-            DB::commit();
-
             return redirect()
                 ->route('supplier.rfqs.show', $rfq)
                 ->with('success', 'تم تقديم عرض السعر بنجاح');
 
+        } catch (\InvalidArgumentException $e) {
+            // Business rule violation
+            return back()
+                ->withInput()
+                ->withErrors(['error' => $e->getMessage()]);
         } catch (\Throwable $e) {
-            DB::rollBack();
             Log::error('Quotation creation error', [
                 'supplier_id' => $supplier->id,
                 'rfq_id' => $rfq->id,
@@ -371,6 +364,7 @@ class SupplierRfqController extends Controller
                 'terms' => $request->terms,
                 'valid_until' => $request->valid_until,
                 'status' => 'pending', // Reset to pending on update
+                'updated_by' => Auth::id(),
             ]);
 
             // Update quotation items

@@ -22,6 +22,14 @@ class Quotation extends Model implements HasMedia
         'terms',
         'status',
         'valid_until',
+        'submitted_at',
+        'accepted_at',
+        'rejected_at',
+        'expired_at',
+        'withdrawn_at',
+        'converted_at',
+        'accepted_by',
+        'rejected_by',
         'rejection_reason',
         'updated_by',
     ];
@@ -29,6 +37,12 @@ class Quotation extends Model implements HasMedia
     protected $casts = [
         'total_price' => 'decimal:2',
         'valid_until' => 'datetime:Y-m-d H:i',
+        'submitted_at' => 'datetime:Y-m-d H:i',
+        'accepted_at' => 'datetime:Y-m-d H:i',
+        'rejected_at' => 'datetime:Y-m-d H:i',
+        'expired_at' => 'datetime:Y-m-d H:i',
+        'withdrawn_at' => 'datetime:Y-m-d H:i',
+        'converted_at' => 'datetime:Y-m-d H:i',
     ];
 
     // 🔗 RFQ المرتبط بالعرض
@@ -41,6 +55,24 @@ class Quotation extends Model implements HasMedia
     public function supplier()
     {
         return $this->belongsTo(Supplier::class, 'supplier_id');
+    }
+
+    // 👤 User who accepted this quotation
+    public function acceptedBy()
+    {
+        return $this->belongsTo(User::class, 'accepted_by');
+    }
+
+    // 👤 User who rejected this quotation
+    public function rejectedBy()
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
+    }
+
+    // 👤 User who last updated this quotation
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 
     // 📦 أوامر الشراء الناتجة عن قبول هذا العرض

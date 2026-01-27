@@ -80,93 +80,227 @@
 
     {{-- Filters --}}
     <div class="bg-white rounded-2xl p-6 shadow-medical mb-6">
-        <form method="GET">
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <form method="GET" id="products-filter-form">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
 
-                {{-- Search --}}
-                <div>
-                    <label class="block text-sm font-medium text-medical-gray-700 mb-1">البحث</label>
-                    <input name="search" value="{{ request('search') }}" placeholder="الاسم، الموديل، العلامة التجارية"
-                        class="w-full px-4 py-2.5 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent">
+                {{-- Enhanced Search --}}
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-medical-gray-700 mb-1">
+                        <span class="flex items-center">
+                            <svg class="w-4 h-4 ml-1 text-medical-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            بحث شامل
+                        </span>
+                    </label>
+                    <div class="relative">
+                        <input name="search" value="{{ request('search') }}" 
+                            placeholder="ابحث في: الاسم، الموديل، SKU، الوصف، الفئة، المورد، المصنّع..."
+                            class="w-full px-4 py-2.5 pr-10 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent transition-all"
+                            onkeypress="if(event.key === 'Enter') { event.preventDefault(); this.form.submit(); }">
+                        @if(request('search'))
+                            <button type="button" 
+                                onclick="document.querySelector('input[name=search]').value=''; document.getElementById('products-filter-form').submit();"
+                                class="absolute left-2 top-1/2 transform -translate-y-1/2 text-medical-gray-400 hover:text-medical-red-500 transition"
+                                title="مسح البحث">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        @else
+                            <div class="absolute left-2 top-1/2 transform -translate-y-1/2 text-medical-gray-400 pointer-events-none">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                        @endif
+                    </div>
+                    <p class="mt-1 text-xs text-medical-gray-500">
+                        <span class="inline-flex items-center">
+                            <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            يبحث في جميع حقول المنتج والعلاقات (اضغط Enter للبحث)
+                        </span>
+                    </p>
                 </div>
 
                 {{-- Supplier --}}
                 <div>
                     <label class="block text-sm font-medium text-medical-gray-700 mb-1">المورد</label>
-                    <select name="supplier" class="w-full px-4 py-2.5 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent">
-                        <option value="">جميع الموردين</option>
-                        @foreach ($suppliers as $id => $name)
-                            <option value="{{ $id }}" {{ request('supplier') == $id ? 'selected' : '' }}>
-                                {{ $name }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <div class="relative" x-data="{ open: false, search: '' }">
+                        <select name="supplier" 
+                            class="w-full px-4 py-2.5 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent appearance-none bg-white cursor-pointer"
+                            onchange="this.form.submit()">
+                            <option value="">جميع الموردين</option>
+                            @foreach ($suppliers as $id => $name)
+                                <option value="{{ $id }}" {{ request('supplier') == $id ? 'selected' : '' }}>
+                                    {{ $name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                            <svg class="w-5 h-5 text-medical-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                        </div>
+                    </div>
                 </div>
 
                 {{-- Category --}}
                 <div>
                     <label class="block text-sm font-medium text-medical-gray-700 mb-1">الفئة</label>
-                    <select name="category" class="w-full px-4 py-2.5 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent">
-                        <option value="">جميع الفئات</option>
-                        @foreach ($categories as $id => $name)
-                            <option value="{{ $id }}" {{ request('category') == $id ? 'selected' : '' }}>
-                                {{ $name }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <div class="relative">
+                        <select name="category" 
+                            class="w-full px-4 py-2.5 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent appearance-none bg-white cursor-pointer"
+                            onchange="this.form.submit()">
+                            <option value="">جميع الفئات</option>
+                            @foreach ($categories as $id => $name)
+                                <option value="{{ $id }}" {{ request('category') == $id ? 'selected' : '' }}>
+                                    {{ $name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                            <svg class="w-5 h-5 text-medical-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7" />
+                            </svg>
+                        </div>
+                    </div>
                 </div>
 
                 {{-- Manufacturer --}}
                 <div>
                     <label class="block text-sm font-medium text-medical-gray-700 mb-1">المُصنّع</label>
-                    <select name="manufacturer" class="w-full px-4 py-2.5 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent">
-                        <option value="">جميع المصنّعين</option>
-                        @foreach ($manufacturers as $id => $name)
-                            <option value="{{ $id }}"
-                                {{ request('manufacturer') == $id ? 'selected' : '' }}>
-                                {{ $name }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <div class="relative">
+                        <select name="manufacturer" 
+                            class="w-full px-4 py-2.5 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent appearance-none bg-white cursor-pointer"
+                            onchange="this.form.submit()">
+                            <option value="">جميع المصنّعين</option>
+                            @foreach ($manufacturers as $id => $name)
+                                <option value="{{ $id }}" {{ request('manufacturer') == $id ? 'selected' : '' }}>
+                                    {{ $name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                            <svg class="w-5 h-5 text-medical-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                        </div>
+                    </div>
                 </div>
 
                 {{-- Active Status --}}
                 <div>
                     <label class="block text-sm font-medium text-medical-gray-700 mb-1">حالة النشاط</label>
-                    <select name="status" class="w-full px-4 py-2.5 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent">
+                    <select name="status" 
+                        class="w-full px-4 py-2.5 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent appearance-none bg-white cursor-pointer"
+                        onchange="this.form.submit()">
                         <option value="">كل الحالات</option>
                         <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>نشط</option>
-                        <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>غير نشط
-                        </option>
+                        <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>غير نشط</option>
                     </select>
                 </div>
 
                 {{-- Review Status --}}
                 <div>
                     <label class="block text-sm font-medium text-medical-gray-700 mb-1">حالة المراجعة</label>
-                    <select name="review_status" class="w-full px-4 py-2.5 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent">
+                    <select name="review_status" 
+                        class="w-full px-4 py-2.5 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent appearance-none bg-white cursor-pointer"
+                        onchange="this.form.submit()">
                         <option value="">كل الحالات</option>
-                        <option value="pending" {{ request('review_status') == 'pending' ? 'selected' : '' }}>قيد
-                            المراجعة</option>
-                        <option value="approved" {{ request('review_status') == 'approved' ? 'selected' : '' }}>معتمد
-                        </option>
-                        <option value="needs_update"
-                            {{ request('review_status') == 'needs_update' ? 'selected' : '' }}>يحتاج تعديل</option>
-                        <option value="rejected" {{ request('review_status') == 'rejected' ? 'selected' : '' }}>مرفوض
-                        </option>
+                        <option value="pending" {{ request('review_status') == 'pending' ? 'selected' : '' }}>قيد المراجعة</option>
+                        <option value="approved" {{ request('review_status') == 'approved' ? 'selected' : '' }}>معتمد</option>
+                        <option value="needs_update" {{ request('review_status') == 'needs_update' ? 'selected' : '' }}>يحتاج تعديل</option>
+                        <option value="rejected" {{ request('review_status') == 'rejected' ? 'selected' : '' }}>مرفوض</option>
                     </select>
                 </div>
 
             </div>
 
-            <div class="mt-4 flex items-center gap-3 justify-end">
-                <a href="{{ route('admin.products.index') }}" 
-                    class="px-6 py-2.5 bg-medical-gray-100 text-medical-gray-700 rounded-xl hover:bg-medical-gray-200 transition">
-                    إعادة تعيين
-                </a>
-                <button type="submit" class="px-6 py-2.5 bg-medical-blue-600 text-white rounded-xl hover:bg-medical-blue-700 transition">
-                    تطبيق الفلاتر
-                </button>
+            {{-- Active Filters Display --}}
+            @php
+                $hasActiveFilters = request()->filled('search') || request()->filled('supplier') || 
+                                    request()->filled('category') || request()->filled('manufacturer') || 
+                                    request()->filled('status') || request()->filled('review_status');
+            @endphp
+            @if($hasActiveFilters)
+                <div class="mt-4 pt-4 border-t border-medical-gray-200">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-sm font-medium text-medical-gray-700">الفلاتر النشطة:</span>
+                        <a href="{{ route('admin.products.index') }}" 
+                            class="text-sm text-medical-red-600 hover:text-medical-red-700 font-medium flex items-center">
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            إزالة جميع الفلاتر
+                        </a>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        @if(request('search'))
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-medical-blue-100 text-medical-blue-800">
+                                بحث: "{{ request('search') }}"
+                                <a href="{{ request()->fullUrlWithQuery(['search' => null]) }}" class="mr-2 hover:text-medical-red-600">×</a>
+                            </span>
+                        @endif
+                        @if(request('supplier'))
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-medical-green-100 text-medical-green-800">
+                                مورد: {{ $suppliers[request('supplier')] ?? 'N/A' }}
+                                <a href="{{ request()->fullUrlWithQuery(['supplier' => null]) }}" class="mr-2 hover:text-medical-red-600">×</a>
+                            </span>
+                        @endif
+                        @if(request('category'))
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-medical-purple-100 text-medical-purple-800">
+                                فئة: {{ $categories[request('category')] ?? 'N/A' }}
+                                <a href="{{ request()->fullUrlWithQuery(['category' => null]) }}" class="mr-2 hover:text-medical-red-600">×</a>
+                            </span>
+                        @endif
+                        @if(request('manufacturer'))
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-medical-yellow-100 text-medical-yellow-800">
+                                مصنّع: {{ $manufacturers[request('manufacturer')] ?? 'N/A' }}
+                                <a href="{{ request()->fullUrlWithQuery(['manufacturer' => null]) }}" class="mr-2 hover:text-medical-red-600">×</a>
+                            </span>
+                        @endif
+                        @if(request('status'))
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-medical-gray-100 text-medical-gray-800">
+                                حالة: {{ request('status') == 'active' ? 'نشط' : 'غير نشط' }}
+                                <a href="{{ request()->fullUrlWithQuery(['status' => null]) }}" class="mr-2 hover:text-medical-red-600">×</a>
+                            </span>
+                        @endif
+                        @if(request('review_status'))
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-medical-orange-100 text-medical-orange-800">
+                                مراجعة: {{ ['pending' => 'قيد المراجعة', 'approved' => 'معتمد', 'needs_update' => 'يحتاج تعديل', 'rejected' => 'مرفوض'][request('review_status')] }}
+                                <a href="{{ request()->fullUrlWithQuery(['review_status' => null]) }}" class="mr-2 hover:text-medical-red-600">×</a>
+                            </span>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
+            <div class="mt-4 flex items-center gap-3 justify-between">
+                <div class="text-sm text-medical-gray-600">
+                    @if($hasActiveFilters)
+                        <span class="font-medium">{{ $products->total() }}</span> منتج مطابق للفلاتر
+                    @else
+                        إجمالي: <span class="font-medium">{{ $products->total() }}</span> منتج
+                    @endif
+                </div>
+                <div class="flex items-center gap-3">
+                    <a href="{{ route('admin.products.index') }}" 
+                        class="px-6 py-2.5 bg-medical-gray-100 text-medical-gray-700 rounded-xl hover:bg-medical-gray-200 transition flex items-center">
+                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        إعادة تعيين
+                    </a>
+                    <button type="submit" class="px-6 py-2.5 bg-medical-blue-600 text-white rounded-xl hover:bg-medical-blue-700 transition flex items-center shadow-sm">
+                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                        </svg>
+                        تطبيق الفلاتر
+                    </button>
+                </div>
             </div>
         </form>
     </div>
@@ -318,8 +452,8 @@
                                         </svg>
                                     </a>
 
-                                    {{-- Edit --}}
-                                    @can('products.edit')
+                                    @can('products.update')
+                                        {{-- Edit --}}
                                         <a href="{{ route('admin.products.edit', $product->id) }}"
                                             class="p-2 text-medical-green-600 hover:bg-medical-green-50 rounded-lg transition-colors duration-150"
                                             title="تعديل المنتج">
@@ -330,25 +464,27 @@
                                         </a>
                                     @endcan
 
-                                    {{-- Delete --}}
-                                    @if ($product->review_status !== 'pending')
-                                        <form action="{{ route('admin.products.destroy', $product->id) }}"
-                                            method="POST" 
-                                            onsubmit="return confirm('هل أنت متأكد من حذف هذا المنتج؟\nسيتم حذفه من جميع الموردين.');"
-                                            class="inline-block">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit"
-                                                class="p-2 text-medical-red-600 hover:bg-medical-red-50 rounded-lg transition-colors duration-150"
-                                                title="حذف المنتج">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
-                                        </form>
-                                    @endif
+                                    @can('products.delete')
+                                        {{-- Delete --}}
+                                        @if ($product->review_status !== 'pending')
+                                            <form action="{{ route('admin.products.destroy', $product->id) }}"
+                                                method="POST" 
+                                                onsubmit="return confirm('هل أنت متأكد من حذف هذا المنتج؟\nسيتم حذفه من جميع الموردين.');"
+                                                class="inline-block">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit"
+                                                    class="p-2 text-medical-red-600 hover:bg-medical-red-50 rounded-lg transition-colors duration-150"
+                                                    title="حذف المنتج">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        @endif
+                                    @endcan
 
                                 </div>
                             </td>

@@ -71,7 +71,7 @@
                         <label class="block text-sm font-semibold text-medical-gray-700 mb-2">
                             المجموع الفرعي <span class="text-medical-red-500">*</span>
                         </label>
-                        <input type="number" name="subtotal" step="0.01" min="0" value="{{ old('subtotal', $invoice->subtotal) }}" required
+                        <input type="number" id="subtotal" name="subtotal" step="0.01" min="0" value="{{ old('subtotal', $invoice->subtotal) }}" required
                             class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent @error('subtotal') border-medical-red-500 @enderror">
                         @error('subtotal')
                             <p class="mt-1 text-sm text-medical-red-600">{{ $message }}</p>
@@ -82,7 +82,7 @@
                         <label class="block text-sm font-semibold text-medical-gray-700 mb-2">
                             الضريبة
                         </label>
-                        <input type="number" name="tax" step="0.01" min="0" value="{{ old('tax', $invoice->tax) }}"
+                        <input type="number" id="tax" name="tax" step="0.01" min="0" value="{{ old('tax', $invoice->tax) }}"
                             class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent @error('tax') border-medical-red-500 @enderror">
                         @error('tax')
                             <p class="mt-1 text-sm text-medical-red-600">{{ $message }}</p>
@@ -93,7 +93,7 @@
                         <label class="block text-sm font-semibold text-medical-gray-700 mb-2">
                             الخصم
                         </label>
-                        <input type="number" name="discount" step="0.01" min="0" value="{{ old('discount', $invoice->discount) }}"
+                        <input type="number" id="discount" name="discount" step="0.01" min="0" value="{{ old('discount', $invoice->discount) }}"
                             class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent @error('discount') border-medical-red-500 @enderror">
                         @error('discount')
                             <p class="mt-1 text-sm text-medical-red-600">{{ $message }}</p>
@@ -105,9 +105,12 @@
                 <div>
                     <label class="block text-sm font-semibold text-medical-gray-700 mb-2">
                         المبلغ الإجمالي <span class="text-medical-red-500">*</span>
+                        <span class="text-xs text-medical-gray-500 font-normal">(يتم الحساب تلقائياً)</span>
                     </label>
-                    <input type="number" name="total_amount" step="0.01" min="0" value="{{ old('total_amount', $invoice->total_amount) }}" required
-                        class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent @error('total_amount') border-medical-red-500 @enderror">
+                    <input type="number" id="total_amount" name="total_amount" step="0.01" min="0" value="{{ old('total_amount', $invoice->total_amount) }}" required
+                        class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent @error('total_amount') border-medical-red-500 @enderror"
+                        readonly>
+                    <p class="mt-1 text-xs text-medical-gray-500">يتم حساب المبلغ الإجمالي تلقائياً من (المجموع الفرعي + الضريبة - الخصم)</p>
                     @error('total_amount')
                         <p class="mt-1 text-sm text-medical-red-600">{{ $message }}</p>
                     @enderror
@@ -177,6 +180,34 @@
             </div>
         </form>
     </div>
+
+    {{-- Auto-calculation JavaScript --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const subtotalInput = document.getElementById('subtotal');
+            const taxInput = document.getElementById('tax');
+            const discountInput = document.getElementById('discount');
+            const totalInput = document.getElementById('total_amount');
+
+            function calculateTotal() {
+                const subtotal = parseFloat(subtotalInput.value) || 0;
+                const tax = parseFloat(taxInput.value) || 0;
+                const discount = parseFloat(discountInput.value) || 0;
+                const total = Math.max(0, subtotal + tax - discount);
+                totalInput.value = total.toFixed(2);
+            }
+
+            if (subtotalInput && taxInput && discountInput && totalInput) {
+                [subtotalInput, taxInput, discountInput].forEach(input => {
+                    input.addEventListener('input', calculateTotal);
+                    input.addEventListener('change', calculateTotal);
+                });
+
+                // Calculate on page load
+                calculateTotal();
+            }
+        });
+    </script>
 
 </x-dashboard.layout>
 

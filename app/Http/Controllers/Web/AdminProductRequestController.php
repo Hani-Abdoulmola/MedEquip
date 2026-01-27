@@ -34,11 +34,7 @@ class AdminProductRequestController extends Controller
      */
     public function index(Request $request): View
     {
-        // Authorization check
-        if (!auth()->user()->can('products.view')) {
-            abort(403, 'ليس لديك صلاحية عرض طلبات المنتجات');
-        }
-
+        // Permission check is handled by route middleware
         $query = ProductRequest::with(['supplier.user', 'category', 'manufacturer', 'duplicateProduct', 'reviewer']);
 
         // Filter by status
@@ -91,10 +87,7 @@ class AdminProductRequestController extends Controller
      */
     public function review(ProductRequest $productRequest): View
     {
-        if (!auth()->user()->can('products.approve')) {
-            abort(403, 'ليس لديك صلاحية مراجعة طلبات المنتجات');
-        }
-
+        // Permission check is handled by route middleware
         $productRequest->load(['supplier.user', 'category', 'manufacturer', 'duplicateProduct', 'existingProduct']);
 
         // Find potential duplicates for comparison
@@ -127,9 +120,7 @@ class AdminProductRequestController extends Controller
      */
     public function approve(Request $request, ProductRequest $productRequest): RedirectResponse
     {
-        if (!auth()->user()->can('products.approve')) {
-            abort(403, 'ليس لديك صلاحية الموافقة على طلبات المنتجات');
-        }
+        // Permission check is handled by route middleware
 
         if (!$productRequest->canBeReviewed()) {
             return back()->withErrors(['error' => 'لا يمكن مراجعة هذا الطلب']);
@@ -175,9 +166,7 @@ class AdminProductRequestController extends Controller
      */
     public function merge(Request $request, ProductRequest $productRequest): RedirectResponse
     {
-        if (!auth()->user()->can('products.approve')) {
-            abort(403, 'ليس لديك صلاحية دمج طلبات المنتجات');
-        }
+        // Permission check is handled by route middleware
 
         if (!$productRequest->canBeReviewed()) {
             return back()->withErrors(['error' => 'لا يمكن مراجعة هذا الطلب']);
@@ -227,9 +216,7 @@ class AdminProductRequestController extends Controller
      */
     public function reject(Request $request, ProductRequest $productRequest): RedirectResponse
     {
-        if (!auth()->user()->can('products.reject')) {
-            abort(403, 'ليس لديك صلاحية رفض طلبات المنتجات');
-        }
+        // Permission check is handled by route middleware
 
         if (!$productRequest->canBeReviewed()) {
             return back()->withErrors(['error' => 'لا يمكن مراجعة هذا الطلب']);
@@ -277,9 +264,7 @@ class AdminProductRequestController extends Controller
      */
     public function show(ProductRequest $productRequest): View
     {
-        if (!auth()->user()->can('products.view')) {
-            abort(403, 'ليس لديك صلاحية عرض تفاصيل الطلب');
-        }
+        // Permission check is handled by route middleware
 
         $productRequest->load([
             'supplier.user',

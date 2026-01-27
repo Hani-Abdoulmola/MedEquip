@@ -5,9 +5,10 @@
 
     // Determine which dashboard to show based on user type
     $dashboardView = match ($userTypeId) {
-        1 => 'dashboards.admin',
-        2 => 'dashboards.supplier',
-        3 => 'dashboards.buyer',
+        1 => 'dashboards.admin',    // Admin
+        2 => 'dashboards.supplier', // Supplier
+        3 => 'dashboards.buyer',    // Buyer
+        4 => 'dashboards.admin',    // Staff (uses admin dashboard)
         default => null,
     };
 
@@ -16,14 +17,16 @@
         1 => 'مدير النظام',
         2 => 'مورد',
         3 => 'مشتري',
+        4 => 'موظف إداري',
         default => 'مستخدم',
     };
 
     // Get user role for components
     $userRole = match ($userTypeId) {
-        1 => 'admin',
-        2 => 'supplier',
-        3 => 'buyer',
+        1 => 'admin',    // Admin
+        2 => 'supplier', // Supplier
+        3 => 'buyer',    // Buyer
+        4 => 'admin',    // Staff (uses admin sidebar)
         default => 'admin',
     };
 @endphp
