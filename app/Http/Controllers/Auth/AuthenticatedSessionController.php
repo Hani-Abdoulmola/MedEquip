@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Setting;
 use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -42,6 +43,17 @@ class AuthenticatedSessionController extends Controller
 
         if (!$user) {
             return redirect()->route('login')->withErrors(['email' => 'فشل تسجيل الدخول']);
+        }
+
+        // Maintenance mode: only admins can login; others see message
+        if (Setting::getBoolean('maintenance_mode', false)) {
+            if (!$user->hasRole('Admin')) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                return redirect()->route('login')
+                    ->with('message', 'المنصة حاليا في وضع الصيانة، ستعود للعمل قريبا');
+            }
         }
 
         // Load relationships to avoid N+1 queries

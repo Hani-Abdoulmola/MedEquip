@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'supplier.profile' => \App\Http\Middleware\EnsureSupplierProfile::class,
             'buyer.verified' => \App\Http\Middleware\EnsureBuyerVerified::class,
             'internal.user' => \App\Http\Middleware\EnsureInternalUser::class,
+            'maintenance.allow_admin' => \App\Http\Middleware\EnsureNotMaintenanceMode::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

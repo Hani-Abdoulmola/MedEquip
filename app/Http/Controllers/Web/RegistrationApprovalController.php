@@ -163,7 +163,7 @@ class RegistrationApprovalController extends Controller
                 NotificationService::send(
                     $model->user,
                     '❌ تم رفض طلب التسجيل',
-                    "تم رفض طلب تسجيلك في منصة MediTrust. السبب: {$request->rejection_reason}",
+                    "تم رفض طلب تسجيلك في منصة MedEquip. السبب: {$request->rejection_reason}",
                     route('auth.waiting-approval')
                 );
             }

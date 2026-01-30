@@ -46,7 +46,8 @@ class BuyerRegistrationRequest extends FormRequest
             // 🏢 بيانات المشتري (المؤسسة الصحية)
             'organization_name' => ['required', 'string', 'max:200'],
             'organization_type' => ['required', 'string', 'max:100', 'in:مستشفى,عيادة,مختبر,مركز طبي,صيدلية,أخرى'],
-            'license_number' => ['nullable', 'string', 'max:100'],
+            'license_number' => ['required', 'string', 'max:100'],
+            'license_document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
 
             // 🌍 الموقع والاتصال
             'country' => ['required', 'string', 'max:100'],
@@ -82,6 +83,14 @@ class BuyerRegistrationRequest extends FormRequest
             
             'organization_type.required' => 'نوع المؤسسة مطلوب.',
             'organization_type.in' => 'نوع المؤسسة غير صحيح.',
+
+            'license_number.required' => 'رقم الترخيص الصحي مطلوب.',
+            'license_number.max' => 'رقم الترخيص لا يمكن أن يتجاوز 100 حرف.',
+
+            'license_document.required' => 'رفع وثيقة الترخيص مطلوب.',
+            'license_document.file' => 'يجب رفع ملف وثيقة الترخيص.',
+            'license_document.mimes' => 'وثيقة الترخيص يجب أن تكون من نوع PDF أو JPG أو PNG.',
+            'license_document.max' => 'حجم ملف وثيقة الترخيص يجب ألا يتجاوز 5 ميجابايت.',
             
             'country.required' => 'الدولة مطلوبة.',
             

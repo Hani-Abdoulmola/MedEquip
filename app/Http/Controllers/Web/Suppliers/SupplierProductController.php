@@ -370,10 +370,11 @@ class SupplierProductController extends Controller
 
     /**
      * Update the specified product in storage.
-     * 
-     * Suppliers can update:
-     * - Their offer data (price, stock, etc.) - ALWAYS
-     * - Product data (name, specs, etc.) - ONLY if review_status is 'needs_update'
+     *
+     * Suppliers have full access to edit their products:
+     * - Offer data (price, stock, etc.) - always
+     * - Product data (name, specs, description, images, etc.) - always
+     * After editing product data, review_status is set to pending so admin can re-review.
      */
     public function update(SupplierProductRequest $request, Product $product): RedirectResponse
     {
@@ -391,10 +392,7 @@ class SupplierProductController extends Controller
         DB::beginTransaction();
 
         try {
-            // Check if product needs update (before any changes)
-            $wasNeedsUpdate = $product->review_status === Product::REVIEW_NEEDS_UPDATE;
-
-            // Update offer data (pivot) - ALWAYS allowed
+            // Update offer data (pivot) - always allowed
             $supplier->products()->updateExistingPivot($product->id, [
                 'price' => $request->price,
                 'stock_quantity' => $request->stock_quantity,
@@ -404,51 +402,46 @@ class SupplierProductController extends Controller
                 'notes' => $request->notes,
             ]);
 
-            // Update product data ONLY if needs_update
-            if ($wasNeedsUpdate) {
-                $product->update([
-                    'name' => $request->name,
-                    'model' => $request->model,
-                    'brand' => $request->brand,
-                    'manufacturer_id' => $request->manufacturer_id,
-                    'category_id' => $request->category_id,
-                    'description' => $request->description,
-                    'specifications' => $request->specifications
-                        ? array_filter(array_map('trim', explode("\n", $request->specifications)))
-                        : null,
-                    'features' => $request->features
-                        ? array_filter(array_map('trim', explode("\n", $request->features)))
-                        : null,
-                    'technical_data' => $request->technical_data
-                        ? array_filter(array_map('trim', explode("\n", $request->technical_data)))
-                        : null,
-                    'certifications' => $request->certifications
-                        ? array_filter(array_map('trim', explode("\n", $request->certifications)))
-                        : null,
-                    'installation_requirements' => $request->installation_requirements,
-                    'review_status' => Product::REVIEW_PENDING, // Reset to pending for re-review
-                    'review_notes' => null, // Clear admin notes
-                ]);
+            // Update product data - full access for suppliers
+            $product->update([
+                'name' => $request->name,
+                'model' => $request->model,
+                'brand' => $request->brand,
+                'manufacturer_id' => $request->manufacturer_id,
+                'category_id' => $request->category_id,
+                'description' => $request->description,
+                'specifications' => $request->specifications
+                    ? array_filter(array_map('trim', explode("\n", $request->specifications)))
+                    : null,
+                'features' => $request->features
+                    ? array_filter(array_map('trim', explode("\n", $request->features)))
+                    : null,
+                'technical_data' => $request->technical_data
+                    ? array_filter(array_map('trim', explode("\n", $request->technical_data)))
+                    : null,
+                'certifications' => $request->certifications
+                    ? array_filter(array_map('trim', explode("\n", $request->certifications)))
+                    : null,
+                'installation_requirements' => $request->installation_requirements,
+                'review_status' => Product::REVIEW_PENDING,
+                'review_notes' => null,
+            ]);
 
-                // Handle new images
-                if ($request->hasFile('images')) {
-                    foreach ($request->file('images') as $image) {
-                        $product->addMedia($image)->toMediaCollection('product_images');
-                    }
+            // Handle new images - always allowed
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $image) {
+                    $product->addMedia($image)->toMediaCollection('product_images');
                 }
             }
 
             DB::commit();
 
-
-            // Notify admins if product was updated after needs_update
-            if ($wasNeedsUpdate) {
-                \App\Services\NotificationService::notifyAdmins(
-                    '🔄 منتج تم تحديثه بعد طلب التعديل',
-                    "قام المورد {$supplier->company_name} بتحديث المنتج: {$product->name} بعد طلب التعديل. يحتاج إلى مراجعة.",
-                    route('admin.products.review', $product->id)
-                );
-            }
+            // Notify admins that product was updated and needs review
+            \App\Services\NotificationService::notifyAdmins(
+                '🔄 منتج تم تحديثه',
+                "قام المورد {$supplier->company_name} بتحديث المنتج: {$product->name}. يحتاج إلى مراجعة.",
+                route('admin.products.review', $product->id)
+            );
 
             // Log activity
             activity('supplier_products')
@@ -457,20 +450,17 @@ class SupplierProductController extends Controller
                 ->withProperties([
                     'product_id' => $product->id,
                     'product_name' => $product->name,
-                    'updated_base_product' => $wasNeedsUpdate,
                     'pivot_data' => [
                         'price' => $request->price,
                         'stock_quantity' => $request->stock_quantity,
                         'status' => $request->status,
                     ],
                 ])
-                ->log($wasNeedsUpdate ? '🔄 حدّث المورد المنتج بعد طلب التعديل' : '✏ حدّث المورد عرض المنتج');
+                ->log('✏ حدّث المورد المنتج');
 
             return redirect()
                 ->route('supplier.products.index')
-                ->with('success', $wasNeedsUpdate 
-                    ? '✔ تم تحديث المنتج وإعادة إرساله للمراجعة' 
-                    : '✔ تم تحديث عرض المنتج بنجاح');
+                ->with('success', '✔ تم تحديث المنتج بنجاح وسيتم مراجعته من الإدارة');
 
         } catch (\Throwable $e) {
             DB::rollBack();

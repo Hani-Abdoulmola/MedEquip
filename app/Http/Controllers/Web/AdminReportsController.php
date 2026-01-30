@@ -360,10 +360,11 @@ class AdminReportsController extends Controller
 
     /**
      * Get payment statistics.
+     * Uses COALESCE(paid_at, created_at) so payments without paid_at are counted by created_at.
      */
     private function getPaymentStatistics(string $fromDate, string $toDate): array
     {
-        $stats = Payment::whereBetween('paid_at', [$fromDate, $toDate])
+        $stats = Payment::whereRaw('DATE(COALESCE(paid_at, created_at)) BETWEEN ? AND ?', [$fromDate, $toDate])
             ->selectRaw('
                 COUNT(*) as total,
                 COALESCE(SUM(amount), 0) as total_amount,
@@ -388,10 +389,11 @@ class AdminReportsController extends Controller
 
     /**
      * Get delivery statistics.
+     * Uses COALESCE(delivery_date, created_at) so deliveries without delivery_date are counted by created_at.
      */
     private function getDeliveryStatistics(string $fromDate, string $toDate): array
     {
-        $stats = Delivery::whereBetween('delivery_date', [$fromDate, $toDate])
+        $stats = Delivery::whereRaw('DATE(COALESCE(delivery_date, created_at)) BETWEEN ? AND ?', [$fromDate, $toDate])
             ->selectRaw('
                 COUNT(*) as total,
                 SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as pending,

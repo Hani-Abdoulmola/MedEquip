@@ -69,7 +69,7 @@
         <div x-show="userType === 'buyer'" x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0 transform scale-95"
             x-transition:enter-end="opacity-100 transform scale-100" class="mt-8">
-            <form method="POST" action="{{ route('register.buyer') }}" class="space-y-6">
+            <form method="POST" action="{{ route('register.buyer') }}" class="space-y-6" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" name="user_type" value="buyer">
 
@@ -199,12 +199,27 @@
                     {{-- License Number --}}
                     <div>
                         <label for="license_number" class="block text-sm font-semibold text-medical-gray-700 mb-2">
-                            رقم الترخيص الصحي
+                            رقم الترخيص الصحي <span class="text-medical-red-500">*</span>
                         </label>
                         <input id="license_number" type="text" name="license_number"
-                            value="{{ old('license_number') }}"
-                            class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:border-medical-blue-500 focus:ring-4 focus:ring-medical-blue-100 transition-all duration-300 @error('license_number') border-medical-red-500 @enderror">
+                            value="{{ old('license_number') }}" required
+                            class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:border-medical-blue-500 focus:ring-4 focus:ring-medical-blue-100 transition-all duration-300 @error('license_number') border-medical-red-500 @enderror"
+                            placeholder="رقم الترخيص الصحي للمؤسسة">
                         @error('license_number')
+                            <p class="mt-2 text-sm text-medical-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    {{-- License Document Upload --}}
+                    <div>
+                        <label for="license_document" class="block text-sm font-semibold text-medical-gray-700 mb-2">
+                            وثيقة الترخيص (PDF أو صورة) <span class="text-medical-red-500">*</span>
+                        </label>
+                        <input id="license_document" type="file" name="license_document" required
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:border-medical-blue-500 focus:ring-4 focus:ring-medical-blue-100 transition-all duration-300 @error('license_document') border-medical-red-500 @enderror">
+                        <p class="mt-1 text-xs text-medical-gray-500">PDF أو JPG أو PNG، حد أقصى 5 ميجابايت</p>
+                        @error('license_document')
                             <p class="mt-2 text-sm text-medical-red-600">{{ $message }}</p>
                         @enderror
                     </div>
@@ -297,7 +312,7 @@
         <div x-show="userType === 'supplier'" x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0 transform scale-95"
             x-transition:enter-end="opacity-100 transform scale-100" class="mt-8">
-            <form method="POST" action="{{ route('register.supplier') }}" class="space-y-6">
+            <form method="POST" action="{{ route('register.supplier') }}" class="space-y-6" enctype="multipart/form-data">
                 @csrf
                 <input type="hidden" name="user_type" value="supplier">
 
@@ -400,16 +415,17 @@
                         @enderror
                     </div>
 
-                    {{-- Commercial Register & Tax Number --}}
+                    {{-- Commercial Register (License Number) & Tax Number --}}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label for="commercial_register"
                                 class="block text-sm font-semibold text-medical-gray-700 mb-2">
-                                رقم السجل التجاري
+                                رقم السجل التجاري / رقم الترخيص <span class="text-medical-red-500">*</span>
                             </label>
                             <input id="commercial_register" type="text" name="commercial_register"
-                                value="{{ old('commercial_register') }}"
-                                class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:border-medical-green-500 focus:ring-4 focus:ring-medical-green-100 transition-all duration-300 @error('commercial_register') border-medical-red-500 @enderror">
+                                value="{{ old('commercial_register') }}" required
+                                class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:border-medical-green-500 focus:ring-4 focus:ring-medical-green-100 transition-all duration-300 @error('commercial_register') border-medical-red-500 @enderror"
+                                placeholder="رقم السجل التجاري أو الترخيص">
                             @error('commercial_register')
                                 <p class="mt-2 text-sm text-medical-red-600">{{ $message }}</p>
                             @enderror
@@ -425,6 +441,20 @@
                                 <p class="mt-2 text-sm text-medical-red-600">{{ $message }}</p>
                             @enderror
                         </div>
+                    </div>
+
+                    {{-- Verification Document Upload --}}
+                    <div>
+                        <label for="verification_document" class="block text-sm font-semibold text-medical-gray-700 mb-2">
+                            وثيقة التحقق (رخصة أو سجل تجاري) <span class="text-medical-red-500">*</span>
+                        </label>
+                        <input id="verification_document" type="file" name="verification_document" required
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:border-medical-green-500 focus:ring-4 focus:ring-medical-green-100 transition-all duration-300 @error('verification_document') border-medical-red-500 @enderror">
+                        <p class="mt-1 text-xs text-medical-gray-500">PDF أو JPG أو PNG، حد أقصى 5 ميجابايت</p>
+                        @error('verification_document')
+                            <p class="mt-2 text-sm text-medical-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     {{-- Country & City --}}

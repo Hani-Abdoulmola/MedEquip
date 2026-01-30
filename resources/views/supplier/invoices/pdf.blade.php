@@ -16,6 +16,12 @@
             color: #1f2937;
             line-height: 1.6;
             direction: rtl;
+            unicode-bidi: embed;
+        }
+        .rtl {
+            direction: rtl;
+            unicode-bidi: embed;
+            text-align: right;
         }
         .container {
             max-width: 800px;

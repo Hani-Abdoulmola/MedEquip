@@ -48,14 +48,14 @@ class PaymentController extends Controller
         }
 
         if (request()->filled('from_date')) {
-            $query->whereDate('paid_at', '>=', request('from_date'));
+            $query->whereRaw('DATE(COALESCE(paid_at, created_at)) >= ?', [request('from_date')]);
         }
 
         if (request()->filled('to_date')) {
-            $query->whereDate('paid_at', '<=', request('to_date'));
+            $query->whereRaw('DATE(COALESCE(paid_at, created_at)) <= ?', [request('to_date')]);
         }
 
-        $payments = $query->latest('paid_at')->paginate(20)->withQueryString();
+        $payments = $query->orderByRaw('COALESCE(paid_at, created_at) DESC')->paginate(20)->withQueryString();
 
         // Calculate stats
         $stats = Payment::selectRaw('

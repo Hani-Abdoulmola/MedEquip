@@ -286,6 +286,11 @@ class ProductCatalogService
                 'warranty' => $request->proposed_warranty,
                 'status' => 'available',
             ]);
+
+            // Copy product images from ProductRequest to Product so they appear on the new product
+            foreach ($request->getMedia('product_request_images') as $media) {
+                $media->copy($product, 'product_images', 'public');
+            }
             
             // Notify supplier
             NotificationService::send(

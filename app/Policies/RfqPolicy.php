@@ -131,8 +131,11 @@ class RfqPolicy
      */
     public function updateStatus(User $user, Rfq $rfq): bool
     {
-        // Gate::before() handles Admin bypass
-        // Staff users need explicit permission
+        // Buyer can update status (e.g. cancel) for their own RFQs
+        if ($user->hasRole('Buyer') && $user->buyerProfile) {
+            return $rfq->buyer_id === $user->buyerProfile->id;
+        }
+        // Gate::before() handles Admin bypass; Staff users need explicit permission
         return $user->can('rfqs.update_status');
     }
 

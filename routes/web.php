@@ -64,14 +64,14 @@ Route::get('/dashboard', function () {
 
     // Admin users see the admin dashboard with real data
     return app(AdminDashboardController::class)->index();
-})->middleware('auth')->name('dashboard');
+})->middleware(['auth', 'maintenance.allow_admin'])->name('dashboard');
 
 // Waiting Approval Page (for pending/rejected suppliers and buyers)
 Route::get('/waiting-approval', function () {
     return view('auth.waiting-approval');
-})->middleware('auth')->name('auth.waiting-approval');
+})->middleware(['auth', 'maintenance.allow_admin'])->name('auth.waiting-approval');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'maintenance.allow_admin'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

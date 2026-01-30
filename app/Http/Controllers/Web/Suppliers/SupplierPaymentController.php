@@ -45,12 +45,12 @@ class SupplierPaymentController extends Controller
             $query->where('currency', $request->currency);
         }
 
-        // Filter by date range
+        // Filter by date range (use COALESCE(paid_at, created_at) so payments without paid_at are included)
         if ($request->filled('date_from')) {
-            $query->whereDate('paid_at', '>=', $request->date_from);
+            $query->whereRaw('DATE(COALESCE(paid_at, created_at)) >= ?', [$request->date_from]);
         }
         if ($request->filled('date_to')) {
-            $query->whereDate('paid_at', '<=', $request->date_to);
+            $query->whereRaw('DATE(COALESCE(paid_at, created_at)) <= ?', [$request->date_to]);
         }
 
         // Search
@@ -64,7 +64,7 @@ class SupplierPaymentController extends Controller
             });
         }
 
-        $payments = $query->latest('paid_at')->latest('created_at')->paginate(15)->withQueryString();
+        $payments = $query->orderByRaw('COALESCE(paid_at, created_at) DESC')->paginate(15)->withQueryString();
 
         // Optimized stats calculation using single query
         $stats = Payment::where('supplier_id', $supplier->id)

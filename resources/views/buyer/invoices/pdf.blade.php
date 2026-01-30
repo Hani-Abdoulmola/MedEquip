@@ -1,10 +1,19 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>فاتورة {{ $invoice->invoice_number }}</title>
     <style>
-        body { font-family: 'DejaVu Sans', sans-serif; direction: rtl; margin: 40px; font-size: 12px; }
+        body {
+            font-family: 'DejaVu Sans', sans-serif;
+            direction: rtl;
+            unicode-bidi: embed;
+            margin: 40px;
+            font-size: 12px;
+            text-align: right;
+        }
+        .rtl { direction: rtl; unicode-bidi: embed; text-align: right; }
         .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #2563eb; padding-bottom: 20px; }
         .header h1 { margin: 0; color: #2563eb; font-size: 24px; }
         .info-section { display: flex; justify-content: space-between; margin-bottom: 30px; }

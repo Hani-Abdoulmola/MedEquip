@@ -60,7 +60,7 @@ class RegisteredUserController extends Controller
             ]);
 
             // 2️⃣ إنشاء ملف المشتري
-            Buyer::create([
+            $buyer = Buyer::create([
                 'user_id' => $user->id,
                 'organization_name' => $request->organization_name,
                 'organization_type' => $request->organization_type,
@@ -72,6 +72,11 @@ class RegisteredUserController extends Controller
                 'contact_phone' => $request->contact_phone ?? $request->phone,
                 'is_verified' => false, // يحتاج موافقة الإدارة
             ]);
+
+            if ($request->hasFile('license_document')) {
+                $buyer->addMediaFromRequest('license_document')
+                    ->toMediaCollection('license_documents', 'public');
+            }
 
             // 3️⃣ إسناد دور Buyer للمستخدم
             if (!$user->hasRole('Buyer')) {
@@ -152,6 +157,11 @@ class RegisteredUserController extends Controller
                 'is_verified' => false, // يحتاج موافقة الإدارة
             ]);
             \Log::info('Supplier created successfully:', ['supplier_id' => $supplier->id, 'company_name' => $supplier->company_name]);
+
+            if ($request->hasFile('verification_document')) {
+                $supplier->addMediaFromRequest('verification_document')
+                    ->toMediaCollection('verification_documents', 'public');
+            }
 
             // 3️⃣ إسناد دور Supplier للمستخدم
             if (!$user->hasRole('Supplier')) {

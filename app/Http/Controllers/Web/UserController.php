@@ -443,6 +443,16 @@ class UserController extends Controller
     {
         $this->authorize('delete', $user);
 
+        // Never delete the system administrator
+        $systemAdminEmails = array_map('strtolower', [
+            config('app.system_admin_email', 'admin@medequip.com'),
+            'admin@medequip.com',
+            'admin@MedEquip.com',
+        ]);
+        if (in_array(strtolower($user->email), $systemAdminEmails)) {
+            abort(403, 'لا يمكن حذف حساب مدير النظام.');
+        }
+
         // التأكد من أن المستخدم المراد حذفه هو موظف إداري فقط
         // Admin (user_type_id = 1) and Staff (user_type_id = 4) only
         if (!in_array($user->user_type_id, [1, 4])) {

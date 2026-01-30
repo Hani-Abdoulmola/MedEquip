@@ -609,17 +609,21 @@
                             @if ($product->hasMedia('product_images'))
                                 @php
                                     $firstMedia = $product->getFirstMedia('product_images');
-                                    $imageUrl = $firstMedia ? ($firstMedia->getUrl('preview') ?: $firstMedia->getUrl()) : null;
+                                    $imageUrl = $firstMedia
+                                        ? ($firstMedia->getUrl('preview') ?:
+                                        $firstMedia->getUrl())
+                                        : null;
                                 @endphp
-                                @if($imageUrl)
-                                    <img src="{{ $imageUrl }}"
-                                        alt="{{ $product->name }}"
+                                @if ($imageUrl)
+                                    <img src="{{ $imageUrl }}" alt="{{ $product->name }}"
                                         class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                                 @else
                                     <div class="w-full h-full flex items-center justify-center text-gray-300">
-                                        <svg class="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg class="w-20 h-20" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4">
+                                            </path>
                                         </svg>
                                     </div>
                                 @endif
@@ -762,7 +766,8 @@
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor"
                                                 viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z">
+                                                </path>
                                             </svg>
                                             أضف إلى السلة
                                         </button>
@@ -788,17 +793,20 @@
                                     @if ($product->hasMedia('product_images'))
                                         @php
                                             $firstMedia = $product->getFirstMedia('product_images');
-                                            $imageUrl = $firstMedia ? ($firstMedia->getUrl('thumb') ?: $firstMedia->getUrl()) : null;
+                                            $imageUrl = $firstMedia
+                                                ? ($firstMedia->getUrl('thumb') ?:
+                                                $firstMedia->getUrl())
+                                                : null;
                                         @endphp
-                                        @if($imageUrl)
-                                            <img src="{{ $imageUrl }}"
-                                                alt="{{ $product->name }}"
+                                        @if ($imageUrl)
+                                            <img src="{{ $imageUrl }}" alt="{{ $product->name }}"
                                                 class="w-full h-full object-cover hover:scale-110 transition-transform duration-300">
                                         @else
                                             <div class="w-full h-full flex items-center justify-center text-gray-300">
                                                 <svg class="w-12 h-12" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
                                                         d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4">
                                                     </path>
                                                 </svg>
@@ -926,8 +934,10 @@
                                                     class="px-5 py-2.5 bg-gradient-to-r from-medical-blue-600 to-medical-green-600 text-white rounded-xl hover:from-medical-blue-700 hover:to-medical-green-700 text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor"
                                                         viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z">
+                                                        </path>
                                                     </svg>
                                                     أضف إلى السلة
                                                 </button>

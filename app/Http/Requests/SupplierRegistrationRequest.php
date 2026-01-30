@@ -45,8 +45,9 @@ class SupplierRegistrationRequest extends FormRequest
 
             // 🏢 بيانات المورد (الشركة)
             'company_name' => ['required', 'string', 'max:200', 'unique:suppliers,company_name'],
-            'commercial_register' => ['nullable', 'string', 'max:100'],
+            'commercial_register' => ['required', 'string', 'max:100'],
             'tax_number' => ['nullable', 'string', 'max:100'],
+            'verification_document' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
 
             // 🌍 الموقع والاتصال
             'country' => ['required', 'string', 'max:100'],
@@ -80,6 +81,14 @@ class SupplierRegistrationRequest extends FormRequest
             'company_name.required' => 'اسم الشركة مطلوب.',
             'company_name.max' => 'اسم الشركة لا يمكن أن يتجاوز 200 حرف.',
             'company_name.unique' => 'يوجد مورد بنفس اسم الشركة.',
+
+            'commercial_register.required' => 'رقم السجل التجاري / رقم الترخيص مطلوب.',
+            'commercial_register.max' => 'رقم السجل التجاري لا يمكن أن يتجاوز 100 حرف.',
+
+            'verification_document.required' => 'رفع وثيقة التحقق (رخصة أو سجل تجاري) مطلوب.',
+            'verification_document.file' => 'يجب رفع ملف وثيقة التحقق.',
+            'verification_document.mimes' => 'وثيقة التحقق يجب أن تكون من نوع PDF أو JPG أو PNG.',
+            'verification_document.max' => 'حجم ملف وثيقة التحقق يجب ألا يتجاوز 5 ميجابايت.',
             
             'country.required' => 'الدولة مطلوبة.',
             

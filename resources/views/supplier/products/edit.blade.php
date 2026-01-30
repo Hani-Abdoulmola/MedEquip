@@ -38,7 +38,7 @@
                     @method('PUT')
 
                     @if($product->review_status === \App\Models\Product::REVIEW_NEEDS_UPDATE)
-                        {{-- Needs Update Alert --}}
+                        {{-- Needs Update Alert (shown when admin requested changes) --}}
                         <div class="mb-8 p-6 rounded-xl bg-yellow-50 border-2 border-yellow-300">
                             <div class="flex items-start gap-4">
                                 <svg class="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -58,12 +58,13 @@
                                 </div>
                             </div>
                         </div>
+                    @endif
 
-                        {{-- Product Information Section (Editable when needs_update) --}}
-                        <div class="mb-8">
-                            <h2 class="text-xl font-bold text-medical-gray-900 mb-6 pb-3 border-b border-medical-gray-200 font-display">
-                                معلومات المنتج (يجب التعديل)
-                            </h2>
+                    {{-- Product Information Section (Full access: always editable for suppliers) --}}
+                    <div class="mb-8">
+                        <h2 class="text-xl font-bold text-medical-gray-900 mb-6 pb-3 border-b border-medical-gray-200 font-display">
+                            معلومات المنتج
+                        </h2>
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {{-- Product Name --}}
@@ -162,7 +163,7 @@
                                     </label>
                                     <textarea id="specifications" name="specifications" rows="4"
                                         placeholder="أدخل كل مواصفة في سطر منفصل"
-                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('specifications') border-red-500 @enderror">{{ old('specifications', $product->specifications ? implode("\n", $product->specifications) : '')) }}</textarea>
+                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('specifications') border-red-500 @enderror">{{ old('specifications', $product->specifications ? implode("\n", $product->specifications) : '') }}</textarea>
                                     <p class="mt-1 text-xs text-medical-gray-500">أدخل كل مواصفة في سطر منفصل</p>
                                     @error('specifications')
                                         <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
@@ -176,7 +177,7 @@
                                     </label>
                                     <textarea id="features" name="features" rows="4"
                                         placeholder="أدخل كل ميزة في سطر منفصل"
-                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('features') border-red-500 @enderror">{{ old('features', $product->features ? implode("\n", $product->features) : '')) }}</textarea>
+                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('features') border-red-500 @enderror">{{ old('features', $product->features ? implode("\n", $product->features) : '') }}</textarea>
                                     <p class="mt-1 text-xs text-medical-gray-500">أدخل كل ميزة في سطر منفصل</p>
                                     @error('features')
                                         <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
@@ -190,7 +191,7 @@
                                     </label>
                                     <textarea id="technical_data" name="technical_data" rows="4"
                                         placeholder="أدخل كل معلومة تقنية في سطر منفصل"
-                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('technical_data') border-red-500 @enderror">{{ old('technical_data', $product->technical_data ? implode("\n", $product->technical_data) : '')) }}</textarea>
+                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('technical_data') border-red-500 @enderror">{{ old('technical_data', $product->technical_data ? implode("\n", $product->technical_data) : '') }}</textarea>
                                     <p class="mt-1 text-xs text-medical-gray-500">أدخل كل معلومة تقنية في سطر منفصل</p>
                                     @error('technical_data')
                                         <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
@@ -204,7 +205,7 @@
                                     </label>
                                     <textarea id="certifications" name="certifications" rows="4"
                                         placeholder="أدخل كل شهادة في سطر منفصل"
-                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('certifications') border-red-500 @enderror">{{ old('certifications', $product->certifications ? implode("\n", $product->certifications) : '')) }}</textarea>
+                                        class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:ring-4 focus:ring-medical-blue-500 focus:border-medical-blue-500 transition-all duration-200 @error('certifications') border-red-500 @enderror">{{ old('certifications', $product->certifications ? implode("\n", $product->certifications) : '') }}</textarea>
                                     <p class="mt-1 text-xs text-medical-gray-500">أدخل كل شهادة في سطر منفصل</p>
                                     @error('certifications')
                                         <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
@@ -241,44 +242,6 @@
                                 </div>
                             </div>
                         </div>
-                    @else
-                        {{-- Product Info (Read Only) when not needs_update --}}
-                        <div class="mb-8 p-6 rounded-xl bg-medical-gray-50 border border-medical-gray-200">
-                            <h2 class="text-xl font-bold text-medical-gray-900 mb-4 pb-3 border-b border-medical-gray-200 font-display">
-                                معلومات المنتج (للقراءة فقط)
-                            </h2>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <span class="font-semibold text-medical-gray-700">الاسم:</span>
-                                    <span class="text-medical-gray-600">{{ $product->name }}</span>
-                                </div>
-                                @if($product->model)
-                                    <div>
-                                        <span class="font-semibold text-medical-gray-700">الموديل:</span>
-                                        <span class="text-medical-gray-600">{{ $product->model }}</span>
-                                    </div>
-                                @endif
-                                @if($product->brand)
-                                    <div>
-                                        <span class="font-semibold text-medical-gray-700">العلامة التجارية:</span>
-                                        <span class="text-medical-gray-600">{{ $product->brand }}</span>
-                                    </div>
-                                @endif
-                                @if($product->category)
-                                    <div>
-                                        <span class="font-semibold text-medical-gray-700">الفئة:</span>
-                                        <span class="text-medical-gray-600">{{ $product->category->name }}</span>
-                                    </div>
-                                @endif
-                                @if($product->manufacturer)
-                                    <div>
-                                        <span class="font-semibold text-medical-gray-700">الشركة المصنعة:</span>
-                                        <span class="text-medical-gray-600">{{ $product->manufacturer->name }}</span>
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-                    @endif
 
                     {{-- Offer Information Section --}}
                     <div class="mb-8">
