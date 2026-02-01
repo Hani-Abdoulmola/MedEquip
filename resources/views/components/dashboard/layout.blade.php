@@ -9,7 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $title }} - MediEquip</title>
+    <title>{{ $title }} - MedEquip</title>
 
     {{-- Google Fonts - Professional Arabic & English Typography --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -51,8 +51,8 @@
                         x-transition:enter="transition ease-out duration-300"
                         x-transition:enter-start="opacity-0 transform translate-y-2"
                         x-transition:enter-end="opacity-100 transform translate-y-0"
-                        x-transition:leave="transition ease-in duration-200"
-                        x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+                        x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
+                        x-transition:leave-end="opacity-0">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-3 space-x-reverse">
                                 <svg class="w-6 h-6 text-medical-green-600" fill="none" stroke="currentColor"
@@ -78,8 +78,8 @@
                         x-transition:enter="transition ease-out duration-300"
                         x-transition:enter-start="opacity-0 transform translate-y-2"
                         x-transition:enter-end="opacity-100 transform translate-y-0"
-                        x-transition:leave="transition ease-in duration-200"
-                        x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+                        x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100"
+                        x-transition:leave-end="opacity-0">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-3 space-x-reverse">
                                 <svg class="w-6 h-6 text-medical-red-600" fill="none" stroke="currentColor"
@@ -105,12 +105,16 @@
 
             {{-- Footer --}}
             <footer class="bg-white border-t border-medical-gray-200 px-4 sm:px-6 lg:px-8 py-4">
-                <div class="flex flex-col sm:flex-row items-center justify-between text-sm text-medical-gray-600 space-y-2 sm:space-y-0">
-                    <p>&copy; 2025 MediEquip. جميع الحقوق محفوظة.</p>
+                <div
+                    class="flex flex-col sm:flex-row items-center justify-between text-sm text-medical-gray-600 space-y-2 sm:space-y-0">
+                    <p>&copy; 2025 MedEquip. جميع الحقوق محفوظة.</p>
                     <div class="flex items-center space-x-4 space-x-reverse">
-                        <a href="#" class="hover:text-medical-blue-600 transition-colors duration-200">الدعم الفني</a>
-                        <a href="#" class="hover:text-medical-blue-600 transition-colors duration-200">سياسة الخصوصية</a>
-                        <a href="#" class="hover:text-medical-blue-600 transition-colors duration-200">الشروط والأحكام</a>
+                        <a href="#" class="hover:text-medical-blue-600 transition-colors duration-200">الدعم
+                            الفني</a>
+                        <a href="#" class="hover:text-medical-blue-600 transition-colors duration-200">سياسة
+                            الخصوصية</a>
+                        <a href="#" class="hover:text-medical-blue-600 transition-colors duration-200">الشروط
+                            والأحكام</a>
                     </div>
                 </div>
             </footer>
@@ -121,4 +125,3 @@
 </body>
 
 </html>
-

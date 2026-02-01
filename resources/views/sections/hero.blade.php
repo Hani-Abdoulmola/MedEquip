@@ -46,7 +46,7 @@
                     <span class="relative inline-block">
                         <span
                             class="relative z-10 bg-gradient-to-r from-medical-blue-600 to-medical-green-600 bg-clip-text text-transparent">
-                            MediEquip
+                            MedEquip
                         </span>
                         <svg class="absolute -bottom-2 right-0 w-full h-3 text-medical-blue-300" viewBox="0 0 200 12"
                             fill="none" preserveAspectRatio="none">

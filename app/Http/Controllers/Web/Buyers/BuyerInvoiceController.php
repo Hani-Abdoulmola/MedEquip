@@ -154,9 +154,14 @@ class BuyerInvoiceController extends Controller
 
         $buyer = Auth::user()->buyerProfile;
 
-        $invoice->load(['order.supplier.user', 'order.items.product', 'order.buyer.user']);
+        $invoice->load(['order.supplier.user', 'order.items.product', 'order.buyer.user', 'payments']);
 
-        $pdf = PDF::loadView('buyer.invoices.pdf', compact('invoice'));
+        $logoPath = file_exists(public_path('assets/img/logo.png'))
+            ? public_path('assets/img/logo.png')
+            : (file_exists(public_path('assets/img/Caduceus Icon.png')) ? public_path('assets/img/Caduceus Icon.png') : null);
+        $reportTitle = 'فاتورة';
+
+        $pdf = PDF::loadView('buyer.invoices.pdf', compact('invoice', 'logoPath', 'reportTitle'));
 
         // Log activity
         activity('buyer_invoices')

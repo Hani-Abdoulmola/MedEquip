@@ -34,7 +34,7 @@
                 <h1 class="heading-primary">
                     منصة
                     <span class="text-medical relative">
-                        MediTrust
+                        MedEquip
                         <svg class="absolute -bottom-2 left-0 w-full h-3 text-primary/20" viewBox="0 0 200 12"
                             fill="none">
                             <path d="M2 10C20 3 40 1 60 2C80 3 100 6 120 4C140 2 160 1 180 4C185 5 190 7 198 10"
@@ -110,7 +110,7 @@
                     </div>
                     <div
                         class="relative bg-white rounded-3xl shadow-2xl p-8 transform -rotate-1 hover:rotate-0 transition-transform duration-500">
-                        <img src="{{ asset('assets/img/hero-img.svg') }}" alt="منصة MediTrust للمعدات الطبية"
+                        <img src="{{ asset('assets/img/hero-img.svg') }}" alt="منصة MedEquip للمعدات الطبية"
                             class="w-full h-auto" width="600" height="400">
                     </div>
                 </div>

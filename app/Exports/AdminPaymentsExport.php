@@ -39,18 +39,18 @@ class AdminPaymentsExport implements FromQuery, WithHeadings, WithMapping, WithS
         }
 
         if (!empty($this->filters['method'])) {
-            $query->where('payment_method', $this->filters['method']);
+            $query->where('method', $this->filters['method']);
         }
 
         if (!empty($this->filters['from_date'])) {
-            $query->whereDate('paid_at', '>=', $this->filters['from_date']);
+            $query->whereRaw('DATE(COALESCE(paid_at, created_at)) >= ?', [$this->filters['from_date']]);
         }
 
         if (!empty($this->filters['to_date'])) {
-            $query->whereDate('paid_at', '<=', $this->filters['to_date']);
+            $query->whereRaw('DATE(COALESCE(paid_at, created_at)) <= ?', [$this->filters['to_date']]);
         }
 
-        return $query->orderBy('paid_at', 'desc');
+        return $query->orderByRaw('COALESCE(paid_at, created_at) DESC');
     }
 
     public function headings(): array
@@ -92,7 +92,7 @@ class AdminPaymentsExport implements FromQuery, WithHeadings, WithMapping, WithS
             $payment->paid_at?->format('Y-m-d H:i'),
             number_format($payment->amount, 2),
             $payment->currency,
-            $methodLabels[$payment->payment_method] ?? $payment->payment_method,
+            $methodLabels[$payment->method] ?? $payment->method,
             $statusLabels[$payment->status] ?? $payment->status,
             $payment->invoice->invoice_number ?? '—',
             $payment->order->order_number ?? '—',

@@ -9,7 +9,7 @@
             <div class="space-y-6">
                 <div class="flex items-center space-x-3 space-x-reverse">
                     <x-application-logo class="h-12 w-12 shadow-medical" />
-                    <span class="text-2xl font-bold font-display">MediEquip</span>
+                    <span class="text-2xl font-bold font-display">MedEquip</span>
                 </div>
                 <p class="text-medical-gray-300 leading-relaxed">
                     منصة المعدات الطبية الرائدة في العالم العربي. نربط الموردين بالمؤسسات الصحية لتوفير أفضل الحلول
@@ -146,8 +146,8 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
-                        <a href="mailto:info@mediequip.com"
-                            class="text-medical-gray-300 hover:text-medical-blue-400 transition-colors duration-200">info@mediequip.com</a>
+                        <a href="mailto:info@medequip.com"
+                            class="text-medical-gray-300 hover:text-medical-blue-400 transition-colors duration-200">info@medequip.com</a>
                     </li>
                     <li class="flex items-start space-x-3 space-x-reverse">
                         <svg class="w-5 h-5 text-medical-blue-400 mt-1 flex-shrink-0" fill="none"
@@ -169,7 +169,7 @@
         <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
                 <p class="text-medical-gray-400 text-sm">
-                    © {{ date('Y') }} MediEquip. جميع الحقوق محفوظة.
+                    © {{ date('Y') }} MedEquip. جميع الحقوق محفوظة.
                 </p>
                 <div class="flex items-center space-x-6 space-x-reverse text-sm">
                     <a href="#"

@@ -12,7 +12,7 @@
                     <div class="flex flex-col">
                         <span
                             class="text-2xl font-bold bg-gradient-to-r from-medical-blue-600 to-medical-green-600 bg-clip-text text-transparent font-display">
-                            MediEquip
+                            MedEquip
                         </span>
                         <span class="text-xs text-medical-gray-600 font-medium -mt-1">منصة المعدات الطبية</span>
                     </div>

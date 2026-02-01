@@ -7,22 +7,22 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     {{-- SEO Meta Tags --}}
-    <title>@yield('title', 'MediEquip - منصة المعدات الطبية الرائدة في العالم العربي')</title>
-    <meta name="description" content="@yield('description', 'منصة MediEquip الرائدة لربط موردي المعدات الطبية بالمؤسسات الصحية في العالم العربي. حلول متكاملة، أسعار تنافسية، وخدمة احترافية.')">
-    <meta name="keywords" content="معدات طبية, مستلزمات طبية, موردين طبيين, مؤسسات صحية, تجارة طبية, MediEquip">
-    <meta name="author" content="MediEquip">
+    <title>@yield('title', 'MedEquip - منصة المعدات الطبية الرائدة في العالم العربي')</title>
+    <meta name="description" content="@yield('description', 'منصة MedEquip الرائدة لربط موردي المعدات الطبية بالمؤسسات الصحية في العالم العربي. حلول متكاملة، أسعار تنافسية، وخدمة احترافية.')">
+    <meta name="keywords" content="معدات طبية, مستلزمات طبية, موردين طبيين, مؤسسات صحية, تجارة طبية, MedEquip">
+    <meta name="author" content="MedEquip">
 
     {{-- Open Graph Meta Tags --}}
-    <meta property="og:title" content="@yield('og_title', 'MediEquip - منصة المعدات الطبية الرائدة')">
-    <meta property="og:description" content="@yield('og_description', 'منصة MediEquip الرائدة لربط موردي المعدات الطبية بالمؤسسات الصحية')">
+    <meta property="og:title" content="@yield('og_title', 'MedEquip - منصة المعدات الطبية الرائدة')">
+    <meta property="og:description" content="@yield('og_description', 'منصة MedEquip الرائدة لربط موردي المعدات الطبية بالمؤسسات الصحية')">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ url()->current() }}">
     <meta property="og:image" content="@yield('og_image', asset('images/og-image.jpg'))">
 
     {{-- Twitter Card Meta Tags --}}
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="@yield('twitter_title', 'MediEquip - منصة المعدات الطبية الرائدة')">
-    <meta name="twitter:description" content="@yield('twitter_description', 'منصة MediEquip الرائدة لربط موردي المعدات الطبية بالمؤسسات الصحية')">
+    <meta name="twitter:title" content="@yield('twitter_title', 'MedEquip - منصة المعدات الطبية الرائدة')">
+    <meta name="twitter:description" content="@yield('twitter_description', 'منصة MedEquip الرائدة لربط موردي المعدات الطبية بالمؤسسات الصحية')">
     <meta name="twitter:image" content="@yield('twitter_image', asset('images/twitter-image.jpg'))">
 
     {{-- Favicon --}}
@@ -86,7 +86,7 @@
     {
         "@@context": "https://schema.org",
         "@@type": "Organization",
-        "name": "MediEquip",
+        "name": "MedEquip",
         "description": "منصة المعدات الطبية الرائدة في العالم العربي",
         "url": "{{ url('/') }}",
         "logo": "{{ asset('assets/img/Caduceus Icon.png') }}",
@@ -98,9 +98,9 @@
             "availableLanguage": ["ar", "en"]
         },
         "sameAs": [
-            "https://facebook.com/MediEquip",
-            "https://twitter.com/MediEquip",
-            "https://linkedin.com/company/MediEquip"
+            "https://facebook.com/MedEquip",
+            "https://twitter.com/MedEquip",
+            "https://linkedin.com/company/MedEquip"
         ]
     }
     </script>

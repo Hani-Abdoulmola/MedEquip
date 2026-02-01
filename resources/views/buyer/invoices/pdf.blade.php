@@ -1,81 +1,59 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>فاتورة {{ $invoice->invoice_number }}</title>
-    <style>
-        body {
-            font-family: 'DejaVu Sans', sans-serif;
-            direction: rtl;
-            unicode-bidi: embed;
-            margin: 40px;
-            font-size: 12px;
-            text-align: right;
-        }
-        .rtl { direction: rtl; unicode-bidi: embed; text-align: right; }
-        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #2563eb; padding-bottom: 20px; }
-        .header h1 { margin: 0; color: #2563eb; font-size: 24px; }
-        .info-section { display: flex; justify-content: space-between; margin-bottom: 30px; }
-        .info-box { width: 45%; }
-        .info-box h3 { color: #374151; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { background-color: #2563eb; color: white; padding: 10px; text-align: right; }
-        td { padding: 10px; border-bottom: 1px solid #e5e7eb; }
-        .total-row { font-weight: bold; background-color: #f3f4f6; }
-        .footer { margin-top: 40px; text-align: center; color: #6b7280; font-size: 10px; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>فاتورة</h1>
-        <p>رقم الفاتورة: {{ $invoice->invoice_number }}</p>
-        <p>التاريخ: {{ $invoice->invoice_date?->format('Y/m/d') }}</p>
-    </div>
+@extends('layouts.pdf-report')
 
-    <div class="info-section">
-        <div class="info-box">
-            <h3>المورد</h3>
-            <p>{{ $invoice->order?->supplier?->company_name }}</p>
-            <p>{{ $invoice->order?->supplier?->contact_email }}</p>
-            <p>{{ $invoice->order?->supplier?->contact_phone }}</p>
-        </div>
-        <div class="info-box">
-            <h3>المشتري</h3>
-            <p>{{ $invoice->order?->buyer?->organization_name }}</p>
-            <p>{{ $invoice->order?->buyer?->contact_email }}</p>
-            <p>{{ $invoice->order?->buyer?->contact_phone }}</p>
-        </div>
-    </div>
+@section('content')
+<style>
+    .info-section { display: table; width: 100%; margin-bottom: 20px; }
+    .info-block { display: table-cell; width: 50%; vertical-align: top; padding: 15px; }
+    .info-block h3 { font-size: 14px; color: #4b5563; margin-bottom: 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
+    .info-block p { margin: 5px 0; font-size: 11px; }
+    .invoice-meta { margin-bottom: 15px; font-size: 12px; color: #4b5563; }
+    .total-row { font-weight: bold; background-color: #e2e2e2; }
+</style>
 
-    <table>
-        <thead>
+<div class="invoice-meta">
+    رقم الفاتورة: <strong>{{ $invoice->invoice_number }}</strong>
+    — التاريخ: {{ $invoice->invoice_date?->format('Y-m-d') ?? 'غير محدد' }}
+</div>
+
+<div class="info-section">
+    <div class="info-block">
+        <h3>المورد</h3>
+        <p>{{ $invoice->order?->supplier?->company_name ?? '—' }}</p>
+        <p>{{ $invoice->order?->supplier?->contact_email ?? '—' }}</p>
+        <p>{{ $invoice->order?->supplier?->contact_phone ?? '—' }}</p>
+    </div>
+    <div class="info-block">
+        <h3>المشتري</h3>
+        <p>{{ $invoice->order?->buyer?->organization_name ?? '—' }}</p>
+        <p>{{ $invoice->order?->buyer?->contact_email ?? '—' }}</p>
+        <p>{{ $invoice->order?->buyer?->contact_phone ?? '—' }}</p>
+    </div>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>المنتج</th>
+            <th>الكمية</th>
+            <th>السعر</th>
+            <th>الإجمالي</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach($invoice->order?->items ?? [] as $item)
             <tr>
-                <th>المنتج</th>
-                <th>الكمية</th>
-                <th>السعر</th>
-                <th>الإجمالي</th>
+                <td>{{ $item->item_name ?? $item->product?->name ?? '—' }}</td>
+                <td>{{ $item->quantity }} {{ $item->unit ?? '' }}</td>
+                <td>{{ number_format($item->unit_price, 2) }} د.ل</td>
+                <td>{{ number_format($item->total_price, 2) }} د.ل</td>
             </tr>
-        </thead>
-        <tbody>
-            @foreach($invoice->order?->items ?? [] as $item)
-                <tr>
-                    <td>{{ $item->item_name ?? $item->product?->name }}</td>
-                    <td>{{ $item->quantity }} {{ $item->unit }}</td>
-                    <td>{{ number_format($item->unit_price, 2) }}</td>
-                    <td>{{ number_format($item->total_price, 2) }}</td>
-                </tr>
-            @endforeach
-            <tr class="total-row">
-                <td colspan="3">الإجمالي</td>
-                <td>{{ number_format($invoice->total_amount, 2) }} د.ل</td>
-            </tr>
-        </tbody>
-    </table>
+        @endforeach
+        <tr class="total-row">
+            <td colspan="3">الإجمالي</td>
+            <td>{{ number_format($invoice->total_amount, 2) }} د.ل</td>
+        </tr>
+    </tbody>
+</table>
 
-    <div class="footer">
-        <p>تم إنشاء هذه الفاتورة إلكترونياً</p>
-    </div>
-</body>
-</html>
-
+<p style="margin-top: 20px; font-size: 10px; color: #6b7280;">رقم الطلب: {{ $invoice->order->order_number ?? '—' }}</p>
+@endsection

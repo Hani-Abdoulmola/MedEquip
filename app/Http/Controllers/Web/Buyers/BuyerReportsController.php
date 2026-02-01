@@ -315,9 +315,9 @@ class BuyerReportsController extends Controller
                 SUM(CASE WHEN status = "pending" THEN 1 ELSE 0 END) as pending,
                 SUM(CASE WHEN status = "accepted" THEN 1 ELSE 0 END) as accepted,
                 SUM(CASE WHEN status = "rejected" THEN 1 ELSE 0 END) as rejected,
-                COALESCE(AVG(total_amount), 0) as avg_amount,
-                COALESCE(MIN(total_amount), 0) as min_amount,
-                COALESCE(MAX(total_amount), 0) as max_amount
+                COALESCE(AVG(total_price), 0) as avg_amount,
+                COALESCE(MIN(total_price), 0) as min_amount,
+                COALESCE(MAX(total_price), 0) as max_amount
             ')
             ->first();
 

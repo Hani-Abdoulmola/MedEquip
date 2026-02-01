@@ -230,6 +230,7 @@ Route::middleware(['auth', 'maintenance.allow_admin'])->group(function () {
         // Payments Management
         Route::get('/payments', [PaymentController::class, 'index'])->middleware('permission:payments.view')->name('payments.index');
         Route::get('/payments/export', [PaymentController::class, 'export'])->middleware('permission:payments.export')->name('payments.export');
+        Route::get('/payments/export-pdf', [PaymentController::class, 'exportPdf'])->middleware('permission:payments.export')->name('payments.export-pdf');
         Route::get('/payments/create', [PaymentController::class, 'create'])->middleware('permission:payments.create')->name('payments.create');
         Route::post('/payments', [PaymentController::class, 'store'])->middleware('permission:payments.create')->name('payments.store');
         Route::get('/payments/{payment}', [PaymentController::class, 'show'])->middleware('permission:payments.view')->name('payments.show');

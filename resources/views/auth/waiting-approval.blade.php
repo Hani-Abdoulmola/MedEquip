@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>بانتظار الموافقة - MediTrust</title>
+    <title>بانتظار الموافقة - MedEquip</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
@@ -44,7 +44,7 @@
                         </svg>
                     </div>
                     <h1 class="text-3xl font-bold text-medical-gray-900 mb-4 font-display">طلبك قيد المراجعة</h1>
-                    <p class="text-medical-gray-600 text-lg mb-6">شكراً لتسجيلك في منصة MediTrust. طلب تسجيلك كـ<span
+                    <p class="text-medical-gray-600 text-lg mb-6">شكراً لتسجيلك في منصة MedEquip. طلب تسجيلك كـ<span
                             class="font-semibold text-medical-blue-600">{{ $entityType }}</span> قيد المراجعة من قبل
                         فريقنا.</p>
                     <div class="bg-medical-blue-50 rounded-xl p-6 mb-8">
@@ -72,7 +72,7 @@
                         <h3 class="font-semibold text-medical-red-900 mb-2">سبب الرفض:</h3>
                         <p class="text-medical-red-800">{{ $profile->rejection_reason }}</p>
                     </div>
-                    <a href="mailto:support@meditrust.ly"
+                    <a href="mailto:support@medequip.ly"
                         class="inline-flex items-center justify-center px-6 py-3 bg-medical-blue-600 text-white font-semibold rounded-xl hover:bg-medical-blue-700 transition-all duration-200 shadow-medical mb-4">تواصل
                         مع الدعم</a>
                 </div>
@@ -92,9 +92,9 @@
         </div>
 
         <div class="text-center mt-8">
-            <p class="text-medical-gray-600 text-sm">هل تحتاج إلى مساعدة؟ <a href="mailto:support@meditrust.ly"
+            <p class="text-medical-gray-600 text-sm">هل تحتاج إلى مساعدة؟ <a href="mailto:support@medequip.ly"
                     class="text-medical-blue-600 hover:text-medical-blue-700 font-semibold">تواصل معنا</a></p>
-            <p class="text-medical-gray-500 text-xs mt-2">&copy; {{ date('Y') }} MediTrust. جميع الحقوق محفوظة.</p>
+            <p class="text-medical-gray-500 text-xs mt-2">&copy; {{ date('Y') }} MedEquip. جميع الحقوق محفوظة.</p>
         </div>
     </div>
 </body>

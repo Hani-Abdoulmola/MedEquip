@@ -60,6 +60,11 @@ class PaymentRequest extends FormRequest
                 $invoice = Invoice::with('payments')->find($this->invoice_id);
                 if ($invoice) {
                     $totalPaid = $invoice->payments->sum('amount');
+                    // On update, exclude current payment so remaining = invoice total - other payments
+                    $currentPayment = $this->route('payment');
+                    if ($currentPayment && $currentPayment->invoice_id == $invoice->id) {
+                        $totalPaid -= (float) $currentPayment->amount;
+                    }
                     $remaining = $invoice->total_amount - $totalPaid;
 
                     if ($this->amount > $remaining) {

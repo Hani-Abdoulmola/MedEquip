@@ -39,16 +39,19 @@
         </div>
 
         {{-- Skipped Items Alert (Phase 2) --}}
-        @if(session('skipped_items') && count(session('skipped_items')) > 0)
+        @if (session('skipped_items') && count(session('skipped_items')) > 0)
             <div class="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4">
                 <div class="flex items-start gap-3">
-                    <svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    <svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                        </path>
                     </svg>
                     <div class="flex-1">
                         <h3 class="font-bold text-yellow-800 mb-2">تم تخطي بعض المنتجات</h3>
                         <ul class="text-sm text-yellow-700 space-y-1">
-                            @foreach(session('skipped_items') as $skipped)
+                            @foreach (session('skipped_items') as $skipped)
                                 <li class="flex items-start gap-2">
                                     <span class="text-yellow-600">•</span>
                                     <span><strong>{{ $skipped['name'] }}</strong>: {{ $skipped['reason'] }}</span>
@@ -80,21 +83,25 @@
                             $cartItem = $item['item'] ?? null;
                         @endphp
                         @php
-                            $isValid = $cartItem ? ($cartItem->is_valid ?? true) : true;
-                            $warnings = $cartItem ? ($cartItem->warnings ?? []) : [];
+                            $isValid = $cartItem ? $cartItem->is_valid ?? true : true;
+                            $warnings = $cartItem ? $cartItem->warnings ?? [] : [];
                         @endphp
-                        <div class="p-4 hover:bg-gray-50 transition-colors {{ !$isValid ? 'bg-red-50 border-r-4 border-red-500' : '' }}">
+                        <div
+                            class="p-4 hover:bg-gray-50 transition-colors {{ !$isValid ? 'bg-red-50 border-r-4 border-red-500' : '' }}">
                             {{-- Validation Warning (Phase 2) --}}
-                            @if(!$isValid && !empty($warnings))
+                            @if (!$isValid && !empty($warnings))
                                 <div class="mb-3 p-3 bg-red-100 border border-red-300 rounded-lg">
                                     <div class="flex items-center gap-2 mb-1">
-                                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                                            </path>
                                         </svg>
                                         <span class="text-sm font-bold text-red-800">تحذير: هذا المنتج غير صالح</span>
                                     </div>
                                     <ul class="text-xs text-red-700 list-disc list-inside space-y-1">
-                                        @foreach($warnings as $warning)
+                                        @foreach ($warnings as $warning)
                                             <li>{{ $warning }}</li>
                                         @endforeach
                                     </ul>
@@ -188,17 +195,21 @@
                                             <label class="text-sm text-gray-600">الوحدة:</label>
                                             <select name="unit"
                                                 class="px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent">
-                                                <option value="وحدة" {{ $item['unit'] == 'وحدة' ? 'selected' : '' }}>
+                                                <option value="وحدة"
+                                                    {{ $item['unit'] == 'وحدة' ? 'selected' : '' }}>
                                                     وحدة</option>
-                                                <option value="قطعة" {{ $item['unit'] == 'قطعة' ? 'selected' : '' }}>
+                                                <option value="قطعة"
+                                                    {{ $item['unit'] == 'قطعة' ? 'selected' : '' }}>
                                                     قطعة</option>
-                                                <option value="عبوة" {{ $item['unit'] == 'عبوة' ? 'selected' : '' }}>
+                                                <option value="عبوة"
+                                                    {{ $item['unit'] == 'عبوة' ? 'selected' : '' }}>
                                                     عبوة</option>
                                                 <option value="صندوق"
                                                     {{ $item['unit'] == 'صندوق' ? 'selected' : '' }}>صندوق</option>
                                                 <option value="طقم" {{ $item['unit'] == 'طقم' ? 'selected' : '' }}>
                                                     طقم</option>
-                                                <option value="جهاز" {{ $item['unit'] == 'جهاز' ? 'selected' : '' }}>
+                                                <option value="جهاز"
+                                                    {{ $item['unit'] == 'جهاز' ? 'selected' : '' }}>
                                                     جهاز</option>
                                             </select>
                                         </div>
@@ -240,7 +251,12 @@
             {{-- Summary & Actions (Phase 2) --}}
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6" x-data="{ showSaveTemplate: false, templateName: '' }">
                 @php
-                    $summary = $summary ?? ['items_count' => count($products), 'valid_items' => count($products), 'invalid_items' => 0, 'can_submit' => true];
+                    $summary = $summary ?? [
+                        'items_count' => count($products),
+                        'valid_items' => count($products),
+                        'invalid_items' => 0,
+                        'can_submit' => true,
+                    ];
                 @endphp
                 <div class="space-y-4">
                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -248,31 +264,35 @@
                             <h3 class="font-semibold text-gray-900">ملخص منشئ الطلبات</h3>
                             <p class="text-sm text-gray-500 mt-1">
                                 {{ $summary['items_count'] }} منتج - {{ $totalItems }} وحدة إجمالية
-                                @if($summary['invalid_items'] > 0)
-                                    <span class="text-red-600 font-semibold">({{ $summary['invalid_items'] }} غير صالح)</span>
+                                @if ($summary['invalid_items'] > 0)
+                                    <span class="text-red-600 font-semibold">({{ $summary['invalid_items'] }} غير
+                                        صالح)</span>
                                 @endif
                             </p>
-                            @if($summary['invalid_items'] > 0)
+                            @if ($summary['invalid_items'] > 0)
                                 <div class="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg">
                                     <p class="text-xs text-red-700">
-                                        ⚠️ يوجد {{ $summary['invalid_items'] }} منتج غير صالح. يرجى مراجعتها أو إزالتها قبل الإرسال.
+                                        ⚠️ يوجد {{ $summary['invalid_items'] }} منتج غير صالح. يرجى مراجعتها أو إزالتها
+                                        قبل الإرسال.
                                     </p>
                                 </div>
                             @endif
                         </div>
                         <div class="flex flex-wrap gap-2 w-full sm:w-auto">
-                            @if($templates->count() > 0)
+                            @if ($templates->count() > 0)
                                 <div class="relative" x-data="{ showTemplates: false }">
-                                    <button @click="showTemplates = !showTemplates" 
+                                    <button @click="showTemplates = !showTemplates"
                                         class="px-4 py-2.5 bg-medical-green-100 text-medical-green-700 rounded-lg hover:bg-medical-green-200 transition-colors text-sm font-medium">
                                         📋 تحميل قالب
                                     </button>
                                     <div x-show="showTemplates" @click.away="showTemplates = false" x-cloak
                                         class="absolute bottom-full mb-2 right-0 bg-white rounded-lg shadow-lg border border-gray-200 min-w-[200px] z-10">
-                                        @foreach($templates as $template)
-                                            <form action="{{ route('buyer.cart.template.load', $template) }}" method="POST" class="block">
+                                        @foreach ($templates as $template)
+                                            <form action="{{ route('buyer.cart.template.load', $template) }}"
+                                                method="POST" class="block">
                                                 @csrf
-                                                <button type="submit" class="w-full text-right px-4 py-2 hover:bg-gray-50 text-sm">
+                                                <button type="submit"
+                                                    class="w-full text-right px-4 py-2 hover:bg-gray-50 text-sm">
                                                     {{ $template->template_name }}
                                                 </button>
                                             </form>
@@ -280,17 +300,17 @@
                                     </div>
                                 </div>
                             @endif
-                            <button @click="showSaveTemplate = true" 
+                            {{-- <button @click="showSaveTemplate = true"
                                 class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
                                 💾 حفظ كقالب
-                            </button>
+                            </button> --}}
                             <a href="{{ route('buyer.products.index') }}"
                                 class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
                                 متابعة التصفح
                             </a>
                             <a href="{{ route('buyer.cart.checkout') }}"
                                 class="px-6 py-2.5 bg-medical-blue-600 text-white rounded-lg hover:bg-medical-blue-700 transition-colors text-sm font-medium {{ !$summary['can_submit'] ? 'opacity-50 cursor-not-allowed' : '' }}"
-                                @if(!$summary['can_submit']) onclick="event.preventDefault(); alert('يوجد منتجات غير صالحة. يرجى مراجعتها أولاً.');" @endif>
+                                @if (!$summary['can_submit']) onclick="event.preventDefault(); alert('يوجد منتجات غير صالحة. يرجى مراجعتها أولاً.');" @endif>
                                 إرسال كطلب عرض سعر
                             </a>
                         </div>
@@ -301,7 +321,8 @@
                 <div x-show="showSaveTemplate" x-cloak @click.away="showSaveTemplate = false"
                     class="fixed inset-0 z-50 overflow-y-auto mt-8">
                     <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20">
-                        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showSaveTemplate = false"></div>
+                        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                            @click="showSaveTemplate = false"></div>
                         <div class="relative bg-white rounded-lg px-4 pt-5 pb-4 shadow-xl max-w-md w-full">
                             <h3 class="text-lg font-bold text-gray-900 mb-4">حفظ كقالب</h3>
                             <form action="{{ route('buyer.cart.checkout') }}" method="POST" class="space-y-4">

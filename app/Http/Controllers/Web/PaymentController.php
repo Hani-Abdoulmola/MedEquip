@@ -12,8 +12,10 @@ use App\Models\Supplier;
 use App\Services\NotificationService;
 use App\Services\ReferenceCodeService;
 use App\Exports\AdminPaymentsExport;
+use Barryvdh\DomPDF\Facade\Pdf as PDF;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -130,11 +132,11 @@ class PaymentController extends Controller
                 $invoicePaymentService->refreshPaymentStatus($payment->invoice);
             }
 
-            // 🔔 إشعارات لجميع الأطراف
+            // 🔔 إشعارات لجميع الأطراف (استخدام أسماء المسارات الصحيحة: admin / supplier)
             NotificationService::notifyAdmins(
                 '💰 دفعة مالية جديدة',
                 "تم تسجيل دفعة رقم {$payment->payment_reference} بقيمة {$payment->amount} {$payment->currency}.",
-                route('payments.show', $payment->id)
+                route('admin.payments.show', $payment)
             );
 
             if ($payment->supplier?->user) {
@@ -142,7 +144,7 @@ class PaymentController extends Controller
                     $payment->supplier->user,
                     '💵 تم استلام دفعة جديدة',
                     "تم تسجيل دفعة جديدة تخص الطلب رقم {$payment->order?->order_number}.",
-                    route('payments.show', $payment->id)
+                    route('supplier.payments.show', $payment)
                 );
             }
 
@@ -151,7 +153,7 @@ class PaymentController extends Controller
                     $payment->buyer->user,
                     '✅ تم تسجيل دفعتك بنجاح',
                     "تم تسجيل دفعتك بمبلغ {$payment->amount} {$payment->currency}.",
-                    route('payments.show', $payment->id)
+                    route('buyer.dashboard')
                 );
             }
 
@@ -294,5 +296,50 @@ class PaymentController extends Controller
             new AdminPaymentsExport($filters),
             'payments_' . date('Y-m-d_His') . '.xlsx'
         );
+    }
+
+    /**
+     * 📥 تصدير المدفوعات إلى PDF (تقرير بنفس تنسيق التصدير)
+     */
+    public function exportPdf(): Response
+    {
+        if (!auth()->user()->hasRole('Admin')) {
+            abort(403);
+        }
+
+        $query = Payment::with(['invoice', 'order', 'buyer', 'supplier']);
+
+        if (request()->filled('search')) {
+            $search = request('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('payment_reference', 'like', "%{$search}%")
+                  ->orWhereHas('order', fn($sub) => $sub->where('order_number', 'like', "%{$search}%"))
+                  ->orWhereHas('buyer', fn($sub) => $sub->where('organization_name', 'like', "%{$search}%"))
+                  ->orWhereHas('supplier', fn($sub) => $sub->where('company_name', 'like', "%{$search}%"));
+            });
+        }
+        if (request()->filled('status')) {
+            $query->where('status', request('status'));
+        }
+        if (request()->filled('method')) {
+            $query->where('method', request('method'));
+        }
+        if (request()->filled('from_date')) {
+            $query->whereRaw('DATE(COALESCE(paid_at, created_at)) >= ?', [request('from_date')]);
+        }
+        if (request()->filled('to_date')) {
+            $query->whereRaw('DATE(COALESCE(paid_at, created_at)) <= ?', [request('to_date')]);
+        }
+
+        $payments = $query->orderByRaw('COALESCE(paid_at, created_at) DESC')->get();
+
+        $logoPath = file_exists(public_path('assets/img/logo.png'))
+            ? public_path('assets/img/logo.png')
+            : (file_exists(public_path('assets/img/Caduceus Icon.png')) ? public_path('assets/img/Caduceus Icon.png') : null);
+        $reportTitle = 'تقرير المدفوعات';
+
+        $pdf = PDF::loadView('admin.payments.pdf', compact('payments', 'logoPath', 'reportTitle'));
+
+        return $pdf->download('payments_' . date('Y-m-d_His') . '.pdf');
     }
 }

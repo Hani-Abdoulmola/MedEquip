@@ -208,8 +208,12 @@ class SupplierInvoiceController extends Controller
             ])
             ->log('قام المورد بتحميل الفاتورة: ' . $invoice->invoice_number);
 
-        // Generate PDF view
-        $pdf = PDF::loadView('supplier.invoices.pdf', compact('invoice'));
+        $logoPath = file_exists(public_path('assets/img/logo.png'))
+            ? public_path('assets/img/logo.png')
+            : (file_exists(public_path('assets/img/Caduceus Icon.png')) ? public_path('assets/img/Caduceus Icon.png') : null);
+        $reportTitle = 'فاتورة';
+
+        $pdf = PDF::loadView('supplier.invoices.pdf', compact('invoice', 'logoPath', 'reportTitle'));
 
         return $pdf->download("invoice-{$invoice->invoice_number}.pdf");
     }
