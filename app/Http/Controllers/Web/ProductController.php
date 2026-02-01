@@ -198,7 +198,7 @@ class ProductController extends Controller
             'ce_marked' => 'boolean',
             'fda_cleared' => 'boolean',
             'iso_certification' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'image' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         try {

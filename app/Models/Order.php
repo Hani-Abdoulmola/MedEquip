@@ -95,7 +95,7 @@ class Order extends Model implements HasMedia
         // ✅ صور مرتبطة بأمر الشراء (توقيع، فاتورة ورقية، إلخ)
         $this->addMediaCollection('order_images')
             ->useDisk('public')
-            ->acceptsMimeTypes(['image/jpeg', 'image/png'])
+            ->acceptsMimeTypes(['image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png'])
             ->withResponsiveImages();
     }
 

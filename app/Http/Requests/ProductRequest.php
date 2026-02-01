@@ -28,7 +28,7 @@ class ProductRequest extends FormRequest
             'is_active' => ['boolean'],
 
             // 🖼️ الصورة (باستخدام Spatie MediaLibrary)
-            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'image' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ];
     }
 

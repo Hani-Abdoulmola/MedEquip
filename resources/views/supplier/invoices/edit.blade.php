@@ -126,11 +126,13 @@
                             class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent @error('status') border-medical-red-500 @enderror">
                             <option value="draft" {{ old('status', $invoice->status) == 'draft' ? 'selected' : '' }}>مسودة</option>
                             <option value="issued" {{ old('status', $invoice->status) == 'issued' ? 'selected' : '' }}>صادرة</option>
+                            <option value="approved" {{ old('status', $invoice->status) == 'approved' ? 'selected' : '' }}>معتمدة</option>
+                            <option value="cancelled" {{ old('status', $invoice->status) == 'cancelled' ? 'selected' : '' }}>ملغية</option>
                         </select>
                         @error('status')
                             <p class="mt-1 text-sm text-medical-red-600">{{ $message }}</p>
                         @enderror
-                        <p class="mt-1 text-xs text-medical-gray-500">يمكنك التعديل فقط إذا كانت الفاتورة في حالة مسودة أو صادرة</p>
+                        <p class="mt-1 text-xs text-medical-gray-500">التغييرات المسموحة: مسودة↔صادرة، صادرة→معتمدة، أو إلغاء. التحقق يتم عند الحفظ.</p>
                     </div>
 
                     <div>

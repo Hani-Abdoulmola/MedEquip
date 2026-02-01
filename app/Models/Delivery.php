@@ -75,7 +75,7 @@ class Delivery extends Model implements HasMedia
         // صور أو مستندات إثبات التسليم
         $this->addMediaCollection('delivery_proofs')
             ->useDisk('public')
-            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'application/pdf'])
+            ->acceptsMimeTypes(['image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png', 'application/pdf'])
             ->withResponsiveImages();
 
         // ملفات أخرى مرتبطة بعملية التسليم (اختياري)

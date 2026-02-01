@@ -81,7 +81,7 @@ class Invoice extends Model implements HasMedia
         // ✅ صور الفواتير الورقية أو الإيصالات
         $this->addMediaCollection('invoice_images')
             ->useDisk('public')
-            ->acceptsMimeTypes(['image/jpeg', 'image/png'])
+            ->acceptsMimeTypes(['image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png'])
             ->withResponsiveImages();
     }
 

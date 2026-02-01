@@ -104,7 +104,7 @@ class Payment extends Model implements HasMedia
     {
         $this->addMediaCollection('payment_receipts')
             ->useDisk('public')
-            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'application/pdf'])
+            ->acceptsMimeTypes(['image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png', 'application/pdf'])
             ->withResponsiveImages();
     }
 

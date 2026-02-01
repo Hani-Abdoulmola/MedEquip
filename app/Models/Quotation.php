@@ -93,13 +93,13 @@ class Quotation extends Model implements HasMedia
         // ✅ ملفات العروض (مثلاً ملفات PDF)
         $this->addMediaCollection('quotation_documents')
             ->useDisk('public')
-            ->acceptsMimeTypes(['application/pdf', 'application/msword', 'image/jpeg', 'image/png'])
+            ->acceptsMimeTypes(['application/pdf', 'application/msword', 'image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png'])
             ->withResponsiveImages();
 
         // ✅ صور إضافية إن وُجدت
         $this->addMediaCollection('quotation_images')
             ->useDisk('public')
-            ->acceptsMimeTypes(['image/jpeg', 'image/png'])
+            ->acceptsMimeTypes(['image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png'])
             ->withResponsiveImages();
     }
 

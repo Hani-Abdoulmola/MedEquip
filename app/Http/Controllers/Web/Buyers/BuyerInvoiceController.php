@@ -5,10 +5,8 @@ namespace App\Http\Controllers\Web\Buyers;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
 use App\Services\NotificationService;
-use Barryvdh\DomPDF\Facade\Pdf as PDF;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -146,35 +144,25 @@ class BuyerInvoiceController extends Controller
     }
 
     /**
-     * Download invoice as PDF.
+     * Show print-friendly invoice page (browser print).
      */
-    public function download(Invoice $invoice): Response
+    public function print(Invoice $invoice): View
     {
         $this->authorize('download', $invoice);
 
-        $buyer = Auth::user()->buyerProfile;
+        $invoice->load(['order.supplier.user', 'order.items.product', 'order.buyer', 'payments']);
 
-        $invoice->load(['order.supplier.user', 'order.items.product', 'order.buyer.user', 'payments']);
-
-        $logoPath = file_exists(public_path('assets/img/logo.png'))
-            ? public_path('assets/img/logo.png')
-            : (file_exists(public_path('assets/img/Caduceus Icon.png')) ? public_path('assets/img/Caduceus Icon.png') : null);
-        $reportTitle = 'فاتورة';
-
-        $pdf = PDF::loadView('buyer.invoices.pdf', compact('invoice', 'logoPath', 'reportTitle'));
-
-        // Log activity
         activity('buyer_invoices')
             ->performedOn($invoice)
             ->causedBy(Auth::user())
             ->withProperties([
                 'invoice_id' => $invoice->id,
                 'invoice_number' => $invoice->invoice_number,
-                'action' => 'download',
+                'action' => 'print',
             ])
-            ->log('قام المشتري بتحميل الفاتورة: ' . $invoice->invoice_number);
+            ->log('قام المشتري بطباعة الفاتورة: ' . $invoice->invoice_number);
 
-        return $pdf->download("invoice-{$invoice->invoice_number}.pdf");
+        return view('buyer.invoices.print', compact('invoice'));
     }
 
     /**

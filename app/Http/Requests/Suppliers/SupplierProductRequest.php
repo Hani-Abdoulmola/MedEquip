@@ -59,7 +59,7 @@ class SupplierProductRequest extends FormRequest
                     'certifications'  => ['nullable', 'string', 'max:6000'],
                     'installation_requirements' => ['nullable', 'string', 'max:5000'],
                     'images'   => ['nullable', 'array'],
-                    'images.*' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+                    'images.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
                 ]);
             }
 
@@ -91,7 +91,7 @@ class SupplierProductRequest extends FormRequest
                 'certifications'  => ['nullable', 'string', 'max:6000'],
                 'installation_requirements' => ['nullable', 'string', 'max:5000'],
                 'images'   => ['nullable', 'array'],
-                'images.*' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+                'images.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             ]);
         } else {
             // EXISTING PRODUCT rules

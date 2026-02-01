@@ -12,7 +12,6 @@ use App\Models\Supplier;
 use App\Services\NotificationService;
 use App\Services\ReferenceCodeService;
 use App\Exports\AdminPaymentsExport;
-use Barryvdh\DomPDF\Facade\Pdf as PDF;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
@@ -299,9 +298,9 @@ class PaymentController extends Controller
     }
 
     /**
-     * 📥 تصدير المدفوعات إلى PDF (تقرير بنفس تنسيق التصدير)
+     * Show print-friendly payments report page (browser print).
      */
-    public function exportPdf(): Response
+    public function print(): View
     {
         if (!auth()->user()->hasRole('Admin')) {
             abort(403);
@@ -333,13 +332,6 @@ class PaymentController extends Controller
 
         $payments = $query->orderByRaw('COALESCE(paid_at, created_at) DESC')->get();
 
-        $logoPath = file_exists(public_path('assets/img/logo.png'))
-            ? public_path('assets/img/logo.png')
-            : (file_exists(public_path('assets/img/Caduceus Icon.png')) ? public_path('assets/img/Caduceus Icon.png') : null);
-        $reportTitle = 'تقرير المدفوعات';
-
-        $pdf = PDF::loadView('admin.payments.pdf', compact('payments', 'logoPath', 'reportTitle'));
-
-        return $pdf->download('payments_' . date('Y-m-d_His') . '.pdf');
+        return view('admin.payments.print', compact('payments'));
     }
 }

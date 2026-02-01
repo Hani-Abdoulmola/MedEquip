@@ -286,7 +286,7 @@ class Product extends Model implements HasMedia
     {
         $this->addMediaCollection('product_images')
             ->useDisk('public')
-            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->acceptsMimeTypes(['image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png', 'image/webp'])
             ->withResponsiveImages();
 
         $this->addMediaCollection('product_documents')

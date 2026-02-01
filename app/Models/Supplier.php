@@ -175,13 +175,13 @@ class Supplier extends Model implements HasMedia
         //  وثائق التحقق الرسمية (PDF أو صور)
         $this->addMediaCollection('verification_documents')
             ->useDisk('public')
-            ->acceptsMimeTypes(['application/pdf', 'image/jpeg', 'image/png'])
+            ->acceptsMimeTypes(['application/pdf', 'image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png'])
             ->singleFile();
 
         //  صور عامة (شعار الشركة أو صور المصنع)
         $this->addMediaCollection('supplier_images')
             ->useDisk('public')
-            ->acceptsMimeTypes(['image/jpeg', 'image/png'])
+            ->acceptsMimeTypes(['image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png'])
             ->withResponsiveImages();
     }
 

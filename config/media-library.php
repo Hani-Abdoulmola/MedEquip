@@ -119,8 +119,10 @@ return [
      * The media library will try to optimize all converted images by removing
      * metadata and applying a little bit of compression. These are
      * the optimizers that will be used by default.
+     * On Windows, external optimizers (jpegoptim, pngquant, etc.) are typically
+     * not installed, so we use an empty array to avoid conversion failures.
      */
-    'image_optimizers' => [
+    'image_optimizers' => PHP_OS_FAMILY === 'Windows' ? [] : [
         Spatie\ImageOptimizer\Optimizers\Jpegoptim::class => [
             '-m85', // set maximum quality to 85%
             '--force', // ensure that progressive generation is always done also if a little bigger
@@ -189,8 +191,8 @@ return [
      * thumbnails and have installed the php-ffmpeg/php-ffmpeg composer
      * dependency.
      */
-    'ffmpeg_path' => env('FFMPEG_PATH', '/usr/bin/ffmpeg'),
-    'ffprobe_path' => env('FFPROBE_PATH', '/usr/bin/ffprobe'),
+    'ffmpeg_path' => env('FFMPEG_PATH', PHP_OS_FAMILY === 'Windows' ? '' : '/usr/bin/ffmpeg'),
+    'ffprobe_path' => env('FFPROBE_PATH', PHP_OS_FAMILY === 'Windows' ? '' : '/usr/bin/ffprobe'),
 
     /*
      * Here you can override the class names of the jobs used by this package. Make sure

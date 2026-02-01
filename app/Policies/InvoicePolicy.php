@@ -65,20 +65,15 @@ class InvoicePolicy
      */
     public function update(User $user, Invoice $invoice): bool
     {
-        if (!$user->can('invoices.update')) {
-            return false;
-        }
-
-        // Supplier can update invoices for their orders (if status allows)
+        // Supplier: full access to own invoices (any non-cancelled status)
         if ($user->hasRole('Supplier') && $user->supplierProfile) {
             if ($invoice->order && $invoice->order->supplier_id === $user->supplierProfile->id) {
-                // Can only update if invoice is not approved
-                return in_array($invoice->status, ['draft', 'issued']);
+                return $invoice->status !== Invoice::STATUS_CANCELLED;
             }
         }
 
-        // Gate::before() handles Admin bypass
-        return true;
+        // Gate::before() handles Admin bypass; staff need permission
+        return $user->can('invoices.update');
     }
 
     /**
@@ -86,9 +81,11 @@ class InvoicePolicy
      */
     public function delete(User $user, Invoice $invoice): bool
     {
-        // Suppliers cannot delete invoices (only admin can)
-        if ($user->hasRole('Supplier')) {
-            return false;
+        // Supplier: can delete their own invoices
+        if ($user->hasRole('Supplier') && $user->supplierProfile) {
+            if ($invoice->order && $invoice->order->supplier_id === $user->supplierProfile->id) {
+                return true;
+            }
         }
 
         // Gate::before() handles Admin bypass
@@ -100,12 +97,10 @@ class InvoicePolicy
      */
     public function cancel(User $user, Invoice $invoice): bool
     {
-        // Suppliers can cancel their invoices if not approved and not paid
+        // Supplier: can cancel any non-cancelled own invoice
         if ($user->hasRole('Supplier') && $user->supplierProfile) {
             if ($invoice->order && $invoice->order->supplier_id === $user->supplierProfile->id) {
-                // Can cancel if not approved and no payments
-                return in_array($invoice->status, ['draft', 'issued']) 
-                    && $invoice->payment_status === Invoice::PAYMENT_UNPAID;
+                return $invoice->status !== Invoice::STATUS_CANCELLED;
             }
         }
 
@@ -118,6 +113,13 @@ class InvoicePolicy
      */
     public function approve(User $user, Invoice $invoice): bool
     {
+        // Supplier: can approve own invoices when status is issued
+        if ($user->hasRole('Supplier') && $user->supplierProfile) {
+            if ($invoice->order && $invoice->order->supplier_id === $user->supplierProfile->id) {
+                return $invoice->status === Invoice::STATUS_ISSUED;
+            }
+        }
+
         // Gate::before() handles Admin bypass
         return $user->can('invoices.approve');
     }

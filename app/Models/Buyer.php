@@ -253,13 +253,13 @@ class Buyer extends Model implements HasMedia
         // وثائق الترخيص والتحقق
         $this->addMediaCollection('license_documents')
             ->useDisk('public')
-            ->acceptsMimeTypes(['application/pdf', 'image/jpeg', 'image/png'])
+            ->acceptsMimeTypes(['application/pdf', 'image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png'])
             ->withResponsiveImages();
 
         // مرفقات أخرى تخص المشتري (اختياري)
         $this->addMediaCollection('buyer_attachments')
             ->useDisk('public')
-            ->acceptsMimeTypes(['application/pdf', 'image/jpeg', 'image/png'])
+            ->acceptsMimeTypes(['application/pdf', 'image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png'])
             ->withResponsiveImages();
     }
 

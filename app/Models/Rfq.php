@@ -134,7 +134,7 @@ class Rfq extends Model implements HasMedia
         // صور مرفقة إن وجدت
         $this->addMediaCollection('rfq_images')
             ->useDisk('public')
-            ->acceptsMimeTypes(['image/jpeg', 'image/png'])
+            ->acceptsMimeTypes(['image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png'])
             ->withResponsiveImages();
     }
 

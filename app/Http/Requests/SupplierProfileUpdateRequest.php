@@ -43,7 +43,7 @@ class SupplierProfileUpdateRequest extends FormRequest
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
 
             // Logo/Image
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'logo' => 'nullable|file|mimes:jpeg,png,jpg|max:2048',
         ];
     }
 

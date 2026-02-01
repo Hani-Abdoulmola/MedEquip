@@ -502,9 +502,23 @@ npm run build
 
 ### Step 7: Create Storage Link
 
+Uploaded files (product images, documents, etc.) are stored in `storage/app/public`. Laravel serves them via a **symbolic link** from `public/storage` to that folder. Create it with:
+
 ```bash
 php artisan storage:link
 ```
+
+**On Windows:** This command often fails because creating symlinks requires Administrator rights. If product images (or other uploads) do not appear after pull/clone on Windows:
+
+1. Open **Command Prompt** or **PowerShell as Administrator** (right‑click → Run as administrator).
+2. Go to your project root: `cd C:\path\to\MedEquip` (use your real path).
+3. Create the link using Windows’ built-in command:
+   ```cmd
+   mklink /D "public\storage" "storage\app\public"
+   ```
+   If `public\storage` already exists as an empty folder, remove it first: `rmdir public\storage`, then run `mklink` again.
+
+After the link exists, URLs like `/storage/1/...` will resolve correctly and images will display. This is the usual reason uploads work on macOS but not on Windows after pulling the project.
 
 ### Step 8: Start Development Server
 

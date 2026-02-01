@@ -230,7 +230,7 @@ Route::middleware(['auth', 'maintenance.allow_admin'])->group(function () {
         // Payments Management
         Route::get('/payments', [PaymentController::class, 'index'])->middleware('permission:payments.view')->name('payments.index');
         Route::get('/payments/export', [PaymentController::class, 'export'])->middleware('permission:payments.export')->name('payments.export');
-        Route::get('/payments/export-pdf', [PaymentController::class, 'exportPdf'])->middleware('permission:payments.export')->name('payments.export-pdf');
+        Route::get('/payments/print', [PaymentController::class, 'print'])->middleware('permission:payments.view')->name('payments.print');
         Route::get('/payments/create', [PaymentController::class, 'create'])->middleware('permission:payments.create')->name('payments.create');
         Route::post('/payments', [PaymentController::class, 'store'])->middleware('permission:payments.create')->name('payments.store');
         Route::get('/payments/{payment}', [PaymentController::class, 'show'])->middleware('permission:payments.view')->name('payments.show');
@@ -346,8 +346,11 @@ Route::middleware(['auth', 'maintenance.allow_admin'])->group(function () {
         Route::get('/invoices/{invoice}/edit', [SupplierInvoiceController::class, 'edit'])->name('invoices.edit');
         Route::put('/invoices/{invoice}', [SupplierInvoiceController::class, 'update'])->name('invoices.update');
         Route::post('/invoices/{invoice}/cancel', [SupplierInvoiceController::class, 'cancel'])->name('invoices.cancel');
+        Route::post('/invoices/{invoice}/approve', [SupplierInvoiceController::class, 'approve'])->name('invoices.approve');
+        Route::delete('/invoices/{invoice}', [SupplierInvoiceController::class, 'destroy'])->name('invoices.destroy');
         Route::post('/invoices/{invoice}/send', [SupplierInvoiceController::class, 'sendToBuyer'])->name('invoices.send');
-        Route::get('/invoices/{invoice}/download', [SupplierInvoiceController::class, 'download'])->name('invoices.download');
+        Route::get('/invoices/{invoice}/print', [SupplierInvoiceController::class, 'print'])->name('invoices.print');
+        Route::post('/invoices/{invoice}/payments', [SupplierInvoiceController::class, 'storePayment'])->name('invoices.payments.store');
 
         // Supplier Payments
         Route::get('/payments', [SupplierPaymentController::class, 'index'])->name('payments.index');
@@ -453,7 +456,7 @@ Route::middleware(['auth', 'maintenance.allow_admin'])->group(function () {
         Route::post('/invoices/{invoice}/acknowledge', [\App\Http\Controllers\Web\Buyers\BuyerInvoiceController::class, 'acknowledge'])->name('invoices.acknowledge');
         Route::post('/invoices/{invoice}/dispute', [\App\Http\Controllers\Web\Buyers\BuyerInvoiceController::class, 'dispute'])->name('invoices.dispute');
         Route::post('/invoices/{invoice}/request-copy', [\App\Http\Controllers\Web\Buyers\BuyerInvoiceController::class, 'requestCopy'])->name('invoices.request-copy');
-        Route::get('/invoices/{invoice}/download', [\App\Http\Controllers\Web\Buyers\BuyerInvoiceController::class, 'download'])->name('invoices.download');
+        Route::get('/invoices/{invoice}/print', [\App\Http\Controllers\Web\Buyers\BuyerInvoiceController::class, 'print'])->name('invoices.print');
 
         // Buyer Deliveries
         Route::get('/deliveries', [\App\Http\Controllers\Web\Buyers\BuyerDeliveryController::class, 'index'])->name('deliveries.index');

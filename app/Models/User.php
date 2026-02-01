@@ -126,12 +126,12 @@ class User extends Authenticatable implements HasMedia
         // Profile photos
         $this->addMediaCollection('profile_photos')
             ->singleFile()
-            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->acceptsMimeTypes(['image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png', 'image/webp'])
             ->withResponsiveImages();
 
         // User documents (ID, certificates, etc.)
         $this->addMediaCollection('user_documents')
-            ->acceptsMimeTypes(['application/pdf', 'image/jpeg', 'image/png'])
+            ->acceptsMimeTypes(['application/pdf', 'image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png'])
             ->withResponsiveImages();
     }
 

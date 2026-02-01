@@ -106,7 +106,7 @@
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-2">
                                     <a href="{{ route('buyer.invoices.show', $invoice) }}" class="text-medical-blue-600 hover:text-medical-blue-700">عرض</a>
-                                    <a href="{{ route('buyer.invoices.download', $invoice) }}" class="text-medical-green-600 hover:text-medical-green-700">تحميل</a>
+                                    <a href="{{ route('buyer.invoices.print', $invoice) }}" target="_blank" class="text-medical-blue-600 hover:text-medical-blue-700">طباعة</a>
                                 </div>
                             </td>
                         </tr>
