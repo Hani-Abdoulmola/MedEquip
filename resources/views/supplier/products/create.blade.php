@@ -189,8 +189,40 @@
                             المميزات
                         </label>
                         <textarea id="features" name="features" rows="3"
+                            placeholder="أدخل كل ميزة في سطر منفصل"
                             class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500">{{ old('features') }}</textarea>
                         <p class="mt-1 text-xs text-medical-gray-500">أدخل كل ميزة في سطر منفصل</p>
+                    </div>
+
+                    {{-- Technical Data --}}
+                    <div class="md:col-span-2">
+                        <label for="technical_data" class="block text-sm font-medium text-medical-gray-700 mb-2">
+                            البيانات التقنية
+                        </label>
+                        <textarea id="technical_data" name="technical_data" rows="3"
+                            placeholder="أدخل كل معلومة تقنية في سطر منفصل"
+                            class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500">{{ old('technical_data') }}</textarea>
+                        <p class="mt-1 text-xs text-medical-gray-500">أدخل كل معلومة تقنية في سطر منفصل</p>
+                    </div>
+
+                    {{-- Certifications --}}
+                    <div class="md:col-span-2">
+                        <label for="certifications" class="block text-sm font-medium text-medical-gray-700 mb-2">
+                            الشهادات
+                        </label>
+                        <textarea id="certifications" name="certifications" rows="3"
+                            placeholder="أدخل كل شهادة في سطر منفصل"
+                            class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500">{{ old('certifications') }}</textarea>
+                        <p class="mt-1 text-xs text-medical-gray-500">أدخل كل شهادة في سطر منفصل</p>
+                    </div>
+
+                    {{-- Installation Requirements --}}
+                    <div class="md:col-span-2">
+                        <label for="installation_requirements" class="block text-sm font-medium text-medical-gray-700 mb-2">
+                            متطلبات التركيب
+                        </label>
+                        <textarea id="installation_requirements" name="installation_requirements" rows="3"
+                            class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-medical-blue-500">{{ old('installation_requirements') }}</textarea>
                     </div>
 
                     {{-- Product Images --}}

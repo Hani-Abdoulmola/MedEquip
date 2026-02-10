@@ -276,12 +276,12 @@
     </div>
 
     {{-- Reply Modal --}}
-    <div id="replyModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center" style="display: none;">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div class="p-6 border-b border-medical-gray-200">
+    <div id="replyModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4" style="display: none;">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b border-medical-gray-200 flex-shrink-0">
                 <div class="flex items-center justify-between">
                     <h3 class="text-xl font-bold text-medical-gray-900">الرد على الإشعار</h3>
-                    <button onclick="closeReplyModal()" class="text-medical-gray-400 hover:text-medical-gray-600">
+                    <button type="button" onclick="closeReplyModal()" class="text-medical-gray-400 hover:text-medical-gray-600 p-1">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -289,7 +289,7 @@
                 </div>
                 <p id="replyNotificationTitle" class="mt-2 text-sm text-medical-gray-600"></p>
             </div>
-            <form id="replyForm" method="POST" class="p-6">
+            <form id="replyForm" method="POST" class="p-6 flex flex-col flex-1 min-h-0 overflow-y-auto">
                 @csrf
                 <div class="mb-6">
                     <label for="replyMessage" class="block text-sm font-bold text-medical-gray-900 mb-2">
@@ -301,13 +301,13 @@
                         maxlength="5000"></textarea>
                     <p class="mt-1 text-xs text-medical-gray-500">يجب ألا يتجاوز 5000 حرف</p>
                 </div>
-                <div class="flex items-center justify-end gap-3">
+                <div class="flex items-center justify-end gap-3 flex-shrink-0 pt-2">
                     <button type="button" onclick="closeReplyModal()"
-                        class="px-6 py-3 bg-medical-gray-100 text-medical-gray-700 rounded-xl hover:bg-medical-gray-200 transition font-medium">
+                        class="inline-flex items-center justify-center px-6 py-3 bg-medical-gray-100 text-medical-gray-700 rounded-xl hover:bg-medical-gray-200 transition font-medium">
                         إلغاء
                     </button>
                     <button type="submit"
-                        class="px-6 py-3 bg-gradient-to-r from-medical-purple-600 to-medical-purple-700 text-white rounded-xl hover:from-medical-purple-700 hover:to-medical-purple-800 transition font-medium">
+                        class="inline-flex items-center justify-center px-6 py-3 bg-medical-purple-600 text-white rounded-xl hover:bg-medical-purple-700 transition font-medium border border-medical-purple-600 shadow-md">
                         إرسال الرد
                     </button>
                 </div>

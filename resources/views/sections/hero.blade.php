@@ -110,11 +110,8 @@
 
             {{-- Image/Illustration Column --}}
             <div class="relative animate-fade-in-up" style="animation-delay: 0.2s;">
-                {{-- Main Image Container --}}
-                {{-- <div class="relative"> --}}
                 {{-- Professional Medical Equipment Image --}}
                 <div class="relative rounded-3xl shadow-medical-2xl overflow-hidden bg-white">
-                    {{-- Image Container with fixed aspect ratio --}}
                     <div class="w-full" style="padding-bottom: 800px; position: relative;">
                         <img src="https://images.pexels.com/photos/7089013/pexels-photo-7089013.jpeg"
                             alt="معدات طبية حديثة" class="absolute inset-0 w-full h-full object-cover rounded-3xl"
@@ -124,17 +121,14 @@
                     document.getElementById('hero-fallback-svg').style.display='flex';" />
 
 
-                        {{-- Fallback SVG if image fails to load --}}
                         <div id="hero-fallback-svg"
                             style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; align-items: center; justify-content: center; padding: 2rem; background: linear-gradient(135deg, #EBF5FF 0%, #E8F5E9 100%);">
                             <svg style="width: 100%; height: 100%; max-width: 400px; max-height: 400px;"
                                 viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                {{-- Medical Cross --}}
                                 <rect x="160" y="80" width="80" height="240" rx="12" fill="#2563eb"
                                     opacity="0.2" />
                                 <rect x="80" y="160" width="240" height="80" rx="12" fill="#10b981"
                                     opacity="0.2" />
-                                {{-- Stethoscope Icon --}}
                                 <circle cx="200" cy="200" r="60" stroke="#2563eb" stroke-width="8"
                                     fill="none" opacity="0.3" />
                                 <text x="200" y="350" text-anchor="middle" fill="#666" font-size="16">Medical

@@ -154,7 +154,7 @@ class InvoiceController extends BaseController
             NotificationService::notifyAdmins(
                 '🧾 فاتورة جديدة',
                 "تم إنشاء فاتورة رقم {$invoice->invoice_number} بقيمة {$invoice->total_amount}.",
-                route('invoices.show', $invoice->id)
+                route('admin.invoices.show', $invoice->id)
             );
 
             // Send notification to buyer
@@ -163,7 +163,7 @@ class InvoiceController extends BaseController
                     $invoice->order->buyer->user,
                     '📄 فاتورة جديدة لطلبك',
                     "تم إصدار فاتورة جديدة للطلب رقم {$invoice->order->order_number}.",
-                    route('invoices.show', $invoice->id)
+                    route('admin.invoices.show', $invoice->id)
                 );
             }
 
@@ -173,7 +173,7 @@ class InvoiceController extends BaseController
                     $invoice->order->supplier->user,
                     '💰 فاتورة جديدة',
                     "تم إنشاء فاتورة متعلقة بطلبك رقم {$invoice->order->order_number}.",
-                    route('invoices.show', $invoice->id)
+                    route('admin.invoices.show', $invoice->id)
                 );
             }
 
@@ -269,14 +269,14 @@ class InvoiceController extends BaseController
                         $invoice->order->buyer->user,
                         '✅ تم تأكيد الدفع',
                         "تم تأكيد دفع الفاتورة رقم {$invoice->invoice_number}. شكراً لتعاملكم.",
-                        route('invoices.show', $invoice->id)
+                        route('admin.invoices.show', $invoice->id)
                     );
                 }
 
                 NotificationService::notifyAdmins(
                     '💰 فاتورة مدفوعة',
                     "تم سداد الفاتورة رقم {$invoice->invoice_number} بقيمة {$invoice->total_amount}.",
-                    route('invoices.show', $invoice->id)
+                    route('admin.invoices.show', $invoice->id)
                 );
             }
 
@@ -367,7 +367,7 @@ class InvoiceController extends BaseController
                     $invoice->order->buyer->user,
                     '✅ تم اعتماد الفاتورة',
                     "تم اعتماد الفاتورة رقم {$invoice->invoice_number} للطلب رقم {$invoice->order->order_number}.",
-                    route('invoices.show', $invoice->id)
+                    route('admin.invoices.show', $invoice->id)
                 );
             }
 
@@ -377,14 +377,14 @@ class InvoiceController extends BaseController
                     $invoice->order->supplier->user,
                     '✅ تم اعتماد الفاتورة',
                     "تم اعتماد الفاتورة رقم {$invoice->invoice_number} للطلب رقم {$invoice->order->order_number}.",
-                    route('invoices.show', $invoice->id)
+                    route('admin.invoices.show', $invoice->id)
                 );
             }
 
             NotificationService::notifyAdmins(
                 '✅ تم اعتماد فاتورة',
                 "تم اعتماد الفاتورة رقم {$invoice->invoice_number} بقيمة {$invoice->total_amount}.",
-                route('invoices.show', $invoice->id)
+                route('admin.invoices.show', $invoice->id)
             );
 
             DB::commit();
@@ -446,7 +446,7 @@ class InvoiceController extends BaseController
                     $invoice->order->buyer->user,
                     '❌ تم إلغاء الفاتورة',
                     "تم إلغاء الفاتورة رقم {$invoice->invoice_number} للطلب رقم {$invoice->order->order_number}.",
-                    route('invoices.show', $invoice->id)
+                    route('admin.invoices.show', $invoice->id)
                 );
             }
 
@@ -456,14 +456,14 @@ class InvoiceController extends BaseController
                     $invoice->order->supplier->user,
                     '❌ تم إلغاء الفاتورة',
                     "تم إلغاء الفاتورة رقم {$invoice->invoice_number} للطلب رقم {$invoice->order->order_number}.",
-                    route('invoices.show', $invoice->id)
+                    route('admin.invoices.show', $invoice->id)
                 );
             }
 
             NotificationService::notifyAdmins(
                 '❌ تم إلغاء فاتورة',
                 "تم إلغاء الفاتورة رقم {$invoice->invoice_number} بقيمة {$invoice->total_amount}.",
-                route('invoices.show', $invoice->id)
+                route('admin.invoices.show', $invoice->id)
             );
 
             DB::commit();

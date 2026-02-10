@@ -26,16 +26,42 @@ use Illuminate\View\View;
  */
 class AdminReportsController extends Controller
 {
+    /** Report type constants for filtering display. */
+    public const REPORT_ALL = 'all';
+    public const REPORT_SALES = 'sales';
+    public const REPORT_USERS = 'users';
+    public const REPORT_PRODUCTS = 'products';
+
+    /** Max date range in days (1 year). */
+    private const MAX_RANGE_DAYS = 365;
+
     /**
      * Display admin reports and analytics dashboard.
      */
     public function index(Request $request): View
     {
         // Permission check is handled by route middleware
-        
+
         // Date range (default to last 30 days)
         $fromDate = $request->input('from_date', now()->subDays(30)->format('Y-m-d'));
         $toDate = $request->input('to_date', now()->format('Y-m-d'));
+
+        // Validate and normalize dates
+        $from = \Carbon\Carbon::parse($fromDate)->startOfDay();
+        $to = \Carbon\Carbon::parse($toDate)->endOfDay();
+        if ($to->lt($from)) {
+            $to = $from->copy()->endOfDay();
+        }
+        if ($from->diffInDays($to) > self::MAX_RANGE_DAYS) {
+            $to = $from->copy()->addDays(self::MAX_RANGE_DAYS)->endOfDay();
+        }
+        $fromDate = $from->format('Y-m-d');
+        $toDate = $to->format('Y-m-d');
+
+        $reportType = $request->input('report_type', self::REPORT_ALL);
+        if (!in_array($reportType, [self::REPORT_ALL, self::REPORT_SALES, self::REPORT_USERS, self::REPORT_PRODUCTS], true)) {
+            $reportType = self::REPORT_ALL;
+        }
 
         // Platform Overview
         $platformOverview = $this->getPlatformOverview($fromDate, $toDate);
@@ -87,7 +113,68 @@ class AdminReportsController extends Controller
             'paymentStats',
             'deliveryStats',
             'fromDate',
-            'toDate'
+            'toDate',
+            'reportType'
+        ));
+    }
+
+    /**
+     * Display report in a new window for printing (standalone form, like invoices).
+     */
+    public function print(Request $request): View
+    {
+        $fromDate = $request->input('from_date', now()->subDays(30)->format('Y-m-d'));
+        $toDate = $request->input('to_date', now()->format('Y-m-d'));
+
+        $from = \Carbon\Carbon::parse($fromDate)->startOfDay();
+        $to = \Carbon\Carbon::parse($toDate)->endOfDay();
+        if ($to->lt($from)) {
+            $to = $from->copy()->endOfDay();
+        }
+        if ($from->diffInDays($to) > self::MAX_RANGE_DAYS) {
+            $to = $from->copy()->addDays(self::MAX_RANGE_DAYS)->endOfDay();
+        }
+        $fromDate = $from->format('Y-m-d');
+        $toDate = $to->format('Y-m-d');
+
+        $reportType = $request->input('report_type', self::REPORT_ALL);
+        if (!in_array($reportType, [self::REPORT_ALL, self::REPORT_SALES, self::REPORT_USERS, self::REPORT_PRODUCTS], true)) {
+            $reportType = self::REPORT_ALL;
+        }
+
+        $platformOverview = $this->getPlatformOverview($fromDate, $toDate);
+        $userStats = $this->getUserStatistics($fromDate, $toDate);
+        $orderStats = $this->getOrderStatistics($fromDate, $toDate);
+        $rfqStats = $this->getRfqStatistics($fromDate, $toDate);
+        $revenueTrends = $this->getRevenueTrends();
+        $topSuppliers = $this->getTopSuppliers($fromDate, $toDate);
+        $topBuyers = $this->getTopBuyers($fromDate, $toDate);
+        $topProducts = $this->getTopProducts($fromDate, $toDate);
+        $paymentStats = $this->getPaymentStatistics($fromDate, $toDate);
+        $deliveryStats = $this->getDeliveryStatistics($fromDate, $toDate);
+
+        $reportTypeLabels = [
+            'all' => 'جميع التقارير',
+            'sales' => 'المبيعات',
+            'users' => 'المستخدمين',
+            'products' => 'المنتجات',
+        ];
+
+        return view('admin.reports.print', compact(
+            'platformOverview',
+            'userStats',
+            'orderStats',
+            'rfqStats',
+            'revenueTrends',
+            'topSuppliers',
+            'topBuyers',
+            'topProducts',
+            'paymentStats',
+            'deliveryStats',
+            'fromDate',
+            'toDate',
+            'reportType',
+            'reportTypeLabels'
         ));
     }
 

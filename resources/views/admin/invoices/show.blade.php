@@ -8,8 +8,8 @@
                 <h1 class="text-3xl font-bold text-medical-gray-900 font-display">تفاصيل الفاتورة</h1>
                 <p class="mt-2 text-medical-gray-600">{{ $invoice->invoice_number }}</p>
             </div>
-            <div class="flex items-center gap-3">
-                @if($invoice->status === \App\Models\Invoice::STATUS_ISSUED && auth()->user()->can('approve', $invoice))
+            {{-- <div class="flex items-center gap-3">
+                @if ($invoice->status === \App\Models\Invoice::STATUS_ISSUED && auth()->user()->can('approve', $invoice))
                     <form action="{{ route('admin.invoices.approve', $invoice->id) }}" method="POST" class="inline">
                         @csrf
                         <button type="submit"
@@ -22,7 +22,7 @@
                         </button>
                     </form>
                 @endif
-                @if($invoice->status !== \App\Models\Invoice::STATUS_CANCELLED && auth()->user()->can('update', $invoice))
+                @if ($invoice->status !== \App\Models\Invoice::STATUS_CANCELLED && auth()->user()->can('update', $invoice))
                     <button type="button" onclick="showCancelModal()"
                         class="inline-flex items-center gap-2 px-6 py-3 bg-medical-red-600 text-white rounded-xl hover:bg-medical-red-700 transition-all duration-200 font-medium">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -47,7 +47,7 @@
                     </svg>
                     <span>العودة للقائمة</span>
                 </a>
-            </div>
+            </div> --}}
         </div>
     </div>
 
@@ -67,7 +67,8 @@
                     </div>
                     <div class="text-left">
                         <p class="text-sm text-medical-gray-600">تاريخ الإصدار</p>
-                        <p class="font-semibold text-medical-gray-900">{{ $invoice->invoice_date?->format('Y-m-d') }}</p>
+                        <p class="font-semibold text-medical-gray-900">{{ $invoice->invoice_date?->format('Y-m-d') }}
+                        </p>
                     </div>
                 </div>
 
@@ -75,7 +76,8 @@
                     {{-- From (Supplier) --}}
                     <div>
                         <p class="text-sm font-semibold text-medical-gray-600 mb-3">من:</p>
-                        <p class="font-bold text-medical-gray-900">{{ $invoice->order->supplier->company_name ?? 'غير محدد' }}</p>
+                        <p class="font-bold text-medical-gray-900">
+                            {{ $invoice->order->supplier->company_name ?? 'غير محدد' }}</p>
                         <p class="text-medical-gray-600 mt-1">{{ $invoice->order->supplier->address ?? '' }}</p>
                         <p class="text-medical-gray-600">{{ $invoice->order->supplier->contact_email ?? '' }}</p>
                         <p class="text-medical-gray-600">{{ $invoice->order->supplier->contact_phone ?? '' }}</p>
@@ -84,7 +86,8 @@
                     {{-- To (Buyer) --}}
                     <div>
                         <p class="text-sm font-semibold text-medical-gray-600 mb-3">إلى:</p>
-                        <p class="font-bold text-medical-gray-900">{{ $invoice->order->buyer->organization_name ?? 'غير محدد' }}</p>
+                        <p class="font-bold text-medical-gray-900">
+                            {{ $invoice->order->buyer->organization_name ?? 'غير محدد' }}</p>
                         <p class="text-medical-gray-600 mt-1">{{ $invoice->order->buyer->address ?? '' }}</p>
                         <p class="text-medical-gray-600">{{ $invoice->order->buyer->contact_email ?? '' }}</p>
                         <p class="text-medical-gray-600">{{ $invoice->order->buyer->contact_phone ?? '' }}</p>
@@ -102,21 +105,28 @@
                     <table class="min-w-full divide-y divide-medical-gray-200">
                         <thead class="bg-medical-gray-50">
                             <tr>
-                                <th class="px-6 py-4 text-right text-xs font-semibold text-medical-gray-600 uppercase">المنتج</th>
-                                <th class="px-6 py-4 text-right text-xs font-semibold text-medical-gray-600 uppercase">الكمية</th>
-                                <th class="px-6 py-4 text-right text-xs font-semibold text-medical-gray-600 uppercase">سعر الوحدة</th>
-                                <th class="px-6 py-4 text-right text-xs font-semibold text-medical-gray-600 uppercase">الإجمالي</th>
+                                <th class="px-6 py-4 text-right text-xs font-semibold text-medical-gray-600 uppercase">
+                                    المنتج</th>
+                                <th class="px-6 py-4 text-right text-xs font-semibold text-medical-gray-600 uppercase">
+                                    الكمية</th>
+                                <th class="px-6 py-4 text-right text-xs font-semibold text-medical-gray-600 uppercase">
+                                    سعر الوحدة</th>
+                                <th class="px-6 py-4 text-right text-xs font-semibold text-medical-gray-600 uppercase">
+                                    الإجمالي</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-medical-gray-200">
                             @forelse($invoice->order->items ?? [] as $item)
                                 <tr>
                                     <td class="px-6 py-4">
-                                        <p class="font-medium text-medical-gray-900">{{ $item->product?->name ?? $item->item_name ?? 'منتج' }}</p>
+                                        <p class="font-medium text-medical-gray-900">
+                                            {{ $item->product?->name ?? ($item->item_name ?? 'منتج') }}</p>
                                     </td>
                                     <td class="px-6 py-4 text-medical-gray-900">{{ $item->quantity }}</td>
-                                    <td class="px-6 py-4 text-medical-gray-900">{{ number_format($item->unit_price, 2) }} د.ل</td>
-                                    <td class="px-6 py-4 font-semibold text-medical-gray-900">{{ number_format($item->total_price, 2) }} د.ل</td>
+                                    <td class="px-6 py-4 text-medical-gray-900">
+                                        {{ number_format($item->unit_price, 2) }} د.ل</td>
+                                    <td class="px-6 py-4 font-semibold text-medical-gray-900">
+                                        {{ number_format($item->total_price, 2) }} د.ل</td>
                                 </tr>
                             @empty
                                 <tr>
@@ -136,19 +146,20 @@
                             <span>المجموع الفرعي:</span>
                             <span>{{ number_format($invoice->subtotal, 2) }} د.ل</span>
                         </div>
-                        @if($invoice->tax > 0)
+                        @if ($invoice->tax > 0)
                             <div class="flex justify-between text-medical-gray-600">
                                 <span>الضريبة:</span>
                                 <span>{{ number_format($invoice->tax, 2) }} د.ل</span>
                             </div>
                         @endif
-                        @if($invoice->discount > 0)
+                        @if ($invoice->discount > 0)
                             <div class="flex justify-between text-medical-green-600">
                                 <span>الخصم:</span>
                                 <span>-{{ number_format($invoice->discount, 2) }} د.ل</span>
                             </div>
                         @endif
-                        <div class="flex justify-between pt-3 border-t border-medical-gray-300 text-lg font-bold text-medical-gray-900">
+                        <div
+                            class="flex justify-between pt-3 border-t border-medical-gray-300 text-lg font-bold text-medical-gray-900">
                             <span>الإجمالي:</span>
                             <span>{{ number_format($invoice->total_amount, 2) }} د.ل</span>
                         </div>
@@ -157,7 +168,7 @@
             </div>
 
             {{-- Notes --}}
-            @if($invoice->notes)
+            @if ($invoice->notes)
                 <div class="bg-white rounded-2xl shadow-medical p-6">
                     <h3 class="text-lg font-semibold text-medical-gray-900 mb-4">ملاحظات</h3>
                     <p class="text-medical-gray-600">{{ $invoice->notes }}</p>
@@ -165,21 +176,24 @@
             @endif
 
             {{-- Payments --}}
-            @if($invoice->payments->isNotEmpty())
+            @if ($invoice->payments->isNotEmpty())
                 <div class="bg-white rounded-2xl shadow-medical p-6">
                     <h3 class="text-lg font-semibold text-medical-gray-900 mb-4 pb-3 border-b border-medical-gray-200">
                         المدفوعات
                     </h3>
 
                     <div class="space-y-3">
-                        @foreach($invoice->payments as $payment)
+                        @foreach ($invoice->payments as $payment)
                             <div class="flex items-center justify-between p-4 bg-medical-gray-50 rounded-xl">
                                 <div>
-                                    <p class="font-semibold text-medical-gray-900">{{ $payment->payment_reference ?? 'دفعة' }}</p>
-                                    <p class="text-sm text-medical-gray-500">{{ $payment->paid_at?->format('Y-m-d') }}</p>
+                                    <p class="font-semibold text-medical-gray-900">
+                                        {{ $payment->payment_reference ?? 'دفعة' }}</p>
+                                    <p class="text-sm text-medical-gray-500">{{ $payment->paid_at?->format('Y-m-d') }}
+                                    </p>
                                 </div>
                                 <div class="text-left">
-                                    <p class="font-bold text-medical-green-600">{{ number_format($payment->amount, 2) }} {{ $payment->currency }}</p>
+                                    <p class="font-bold text-medical-green-600">
+                                        {{ number_format($payment->amount, 2) }} {{ $payment->currency }}</p>
                                     <p class="text-xs text-medical-gray-500">{{ $payment->method ?? 'غير محدد' }}</p>
                                 </div>
                             </div>
@@ -215,7 +229,8 @@
                                 'cancelled' => 'ملغية',
                             ];
                         @endphp
-                        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium {{ $statusClasses[$invoice->status] ?? 'bg-medical-gray-100 text-medical-gray-700' }}">
+                        <span
+                            class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium {{ $statusClasses[$invoice->status] ?? 'bg-medical-gray-100 text-medical-gray-700' }}">
                             {{ $statusLabels[$invoice->status] ?? $invoice->status }}
                         </span>
                     </div>
@@ -235,7 +250,8 @@
                                 'unpaid' => 'غير مدفوعة',
                             ];
                         @endphp
-                        <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium {{ $paymentClasses[$invoice->payment_status] ?? 'bg-medical-gray-100 text-medical-gray-700' }}">
+                        <span
+                            class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium {{ $paymentClasses[$invoice->payment_status] ?? 'bg-medical-gray-100 text-medical-gray-700' }}">
                             {{ $paymentLabels[$invoice->payment_status] ?? $invoice->payment_status }}
                         </span>
                     </div>
@@ -259,13 +275,15 @@
 
                     <div>
                         <p class="text-sm text-medical-gray-600">تاريخ الطلب</p>
-                        <p class="font-semibold text-medical-gray-900 mt-1">{{ $invoice->order->order_date?->format('Y-m-d') }}</p>
+                        <p class="font-semibold text-medical-gray-900 mt-1">
+                            {{ $invoice->order->order_date?->format('Y-m-d') }}</p>
                     </div>
                 </div>
             </div>
 
             {{-- Amounts Summary --}}
-            <div class="bg-gradient-to-br from-medical-blue-500 to-medical-blue-600 rounded-2xl shadow-medical p-6 text-white">
+            <div
+                class="bg-gradient-to-br from-medical-blue-500 to-medical-blue-600 rounded-2xl shadow-medical p-6 text-white">
                 <h3 class="text-lg font-semibold mb-4 pb-3 border-b border-white/20">
                     ملخص المبالغ
                 </h3>
@@ -275,13 +293,13 @@
                         <span class="text-white/80">المجموع الفرعي:</span>
                         <span class="font-semibold">{{ number_format($invoice->subtotal, 2) }} د.ل</span>
                     </div>
-                    @if($invoice->tax > 0)
+                    @if ($invoice->tax > 0)
                         <div class="flex justify-between">
                             <span class="text-white/80">الضريبة:</span>
                             <span class="font-semibold">{{ number_format($invoice->tax, 2) }} د.ل</span>
                         </div>
                     @endif
-                    @if($invoice->discount > 0)
+                    @if ($invoice->discount > 0)
                         <div class="flex justify-between">
                             <span class="text-white/80">الخصم:</span>
                             <span class="font-semibold">-{{ number_format($invoice->discount, 2) }} د.ل</span>
@@ -297,12 +315,14 @@
     </div>
 
     {{-- Cancel Invoice Modal --}}
-    @if($invoice->status !== \App\Models\Invoice::STATUS_CANCELLED && auth()->user()->can('update', $invoice))
-        <div id="cancelModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" style="display: none;">
+    @if ($invoice->status !== \App\Models\Invoice::STATUS_CANCELLED && auth()->user()->can('update', $invoice))
+        <div id="cancelModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50"
+            style="display: none;">
             <div class="bg-white rounded-2xl shadow-medical p-8 max-w-md w-full mx-4">
                 <h3 class="text-xl font-bold text-medical-gray-900 mb-4">إلغاء الفاتورة</h3>
-                <p class="text-medical-gray-600 mb-6">هل أنت متأكد من إلغاء هذه الفاتورة؟ يمكنك إضافة سبب الإلغاء (اختياري).</p>
-                
+                <p class="text-medical-gray-600 mb-6">هل أنت متأكد من إلغاء هذه الفاتورة؟ يمكنك إضافة سبب الإلغاء
+                    (اختياري).</p>
+
                 <form action="{{ route('admin.invoices.cancel', $invoice->id) }}" method="POST">
                     @csrf
                     <div class="mb-6">
@@ -313,7 +333,7 @@
                             class="w-full px-4 py-3 border border-medical-gray-300 rounded-xl focus:ring-2 focus:ring-medical-blue-500 focus:border-transparent"
                             placeholder="أدخل سبب الإلغاء..."></textarea>
                     </div>
-                    
+
                     <div class="flex items-center gap-3">
                         <button type="submit"
                             class="flex-1 px-6 py-3 bg-medical-red-600 text-white rounded-xl hover:bg-medical-red-700 transition-all duration-200 font-medium">
@@ -332,11 +352,11 @@
             function showCancelModal() {
                 document.getElementById('cancelModal').style.display = 'flex';
             }
-            
+
             function hideCancelModal() {
                 document.getElementById('cancelModal').style.display = 'none';
             }
-            
+
             // Close modal when clicking outside
             document.getElementById('cancelModal').addEventListener('click', function(e) {
                 if (e.target === this) {
@@ -347,4 +367,3 @@
     @endif
 
 </x-dashboard.layout>
-

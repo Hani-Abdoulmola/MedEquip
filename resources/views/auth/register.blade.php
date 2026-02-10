@@ -1,4 +1,4 @@
-<br><x-auth-layout><br>
+<x-auth-layout>
     <x-slot name="title">إنشاء حساب جديد</x-slot>
 
     {{-- Page Title --}}
@@ -96,13 +96,14 @@
                         @enderror
                     </div>
 
-                    {{-- Email --}}
+                    {{-- Email (required - account login) --}}
                     <div>
                         <label for="buyer_email" class="block text-sm font-semibold text-medical-gray-700 mb-2">
-                            البريد الإلكتروني <span class="text-medical-red-500">*</span>
+                            البريد الإلكتروني (حساب الدخول) <span class="text-medical-red-500">*</span>
                         </label>
                         <input id="buyer_email" type="email" name="email" value="{{ old('email') }}" required
-                            class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:border-medical-blue-500 focus:ring-4 focus:ring-medical-blue-100 transition-all duration-300 @error('email') border-medical-red-500 @enderror">
+                            class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:border-medical-blue-500 focus:ring-4 focus:ring-medical-blue-100 transition-all duration-300 @error('email') border-medical-red-500 @enderror"
+                            placeholder="مثال: admin@hospital.com">
                         @error('email')
                             <p class="mt-2 text-sm text-medical-red-600">{{ $message }}</p>
                         @enderror
@@ -210,7 +211,7 @@
                         @enderror
                     </div>
 
-                    {{-- License Document Upload --}}
+                    {{-- License Document Upload (required) --}}
                     <div>
                         <label for="license_document" class="block text-sm font-semibold text-medical-gray-700 mb-2">
                             وثيقة الترخيص (PDF أو صورة) <span class="text-medical-red-500">*</span>
@@ -218,7 +219,7 @@
                         <input id="license_document" type="file" name="license_document" required
                             accept=".pdf,.jpg,.jpeg,.png"
                             class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:border-medical-blue-500 focus:ring-4 focus:ring-medical-blue-100 transition-all duration-300 @error('license_document') border-medical-red-500 @enderror">
-                        <p class="mt-1 text-xs text-medical-gray-500">PDF أو JPG أو PNG، حد أقصى 5 ميجابايت</p>
+                        <p class="mt-1 text-xs text-medical-gray-500">مطلوب: PDF أو JPG أو PNG، حد أقصى 5 ميجابايت</p>
                         @error('license_document')
                             <p class="mt-2 text-sm text-medical-red-600">{{ $message }}</p>
                         @enderror
@@ -339,14 +340,14 @@
                         @enderror
                     </div>
 
-                    {{-- Email --}}
+                    {{-- Email (required - account login) --}}
                     <div>
                         <label for="supplier_email" class="block text-sm font-semibold text-medical-gray-700 mb-2">
-                            البريد الإلكتروني <span class="text-medical-red-500">*</span>
+                            البريد الإلكتروني (حساب الدخول) <span class="text-medical-red-500">*</span>
                         </label>
-                        <input id="supplier_email" type="email" name="email" value="{{ old('email') }}"
-                            required
-                            class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:border-medical-green-500 focus:ring-4 focus:ring-medical-green-100 transition-all duration-300 @error('email') border-medical-red-500 @enderror">
+                        <input id="supplier_email" type="email" name="email" value="{{ old('email') }}" required
+                            class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:border-medical-green-500 focus:ring-4 focus:ring-medical-green-100 transition-all duration-300 @error('email') border-medical-red-500 @enderror"
+                            placeholder="مثال: contact@company.com">
                         @error('email')
                             <p class="mt-2 text-sm text-medical-red-600">{{ $message }}</p>
                         @enderror
@@ -443,7 +444,7 @@
                         </div>
                     </div>
 
-                    {{-- Verification Document Upload --}}
+                    {{-- Verification Document Upload (required) --}}
                     <div>
                         <label for="verification_document" class="block text-sm font-semibold text-medical-gray-700 mb-2">
                             وثيقة التحقق (رخصة أو سجل تجاري) <span class="text-medical-red-500">*</span>
@@ -451,7 +452,7 @@
                         <input id="verification_document" type="file" name="verification_document" required
                             accept=".pdf,.jpg,.jpeg,.png"
                             class="w-full px-4 py-3 border-2 border-medical-gray-300 rounded-xl focus:border-medical-green-500 focus:ring-4 focus:ring-medical-green-100 transition-all duration-300 @error('verification_document') border-medical-red-500 @enderror">
-                        <p class="mt-1 text-xs text-medical-gray-500">PDF أو JPG أو PNG، حد أقصى 5 ميجابايت</p>
+                        <p class="mt-1 text-xs text-medical-gray-500">مطلوب: PDF أو JPG أو PNG، حد أقصى 5 ميجابايت</p>
                         @error('verification_document')
                             <p class="mt-2 text-sm text-medical-red-600">{{ $message }}</p>
                         @enderror

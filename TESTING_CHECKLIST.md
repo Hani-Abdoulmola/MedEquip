@@ -108,24 +108,14 @@ This document provides a comprehensive testing checklist for the MedEquip B2B Me
 | 9.4 | View Supplier Products | Check products tab | Supplier's products listed | ⬜ |
 | 9.5 | View Supplier Rating | Check rating section | Average rating displayed | ⬜ |
 
-### 10. Reviews & Ratings
+### 10. Reports & Analytics
 
 | # | Test Case | Steps | Expected Result | Status |
 |---|-----------|-------|-----------------|--------|
-| 10.1 | View My Reviews | Navigate to `/buyer/reviews` | List of buyer's reviews | ⬜ |
-| 10.2 | Create Review | Click create, fill form | Review submitted for moderation | ⬜ |
-| 10.3 | Edit Pending Review | Edit review in pending status | Changes saved | ⬜ |
-| 10.4 | Rating Validation | Submit without overall rating | Validation error shown | ⬜ |
-| 10.5 | Duplicate Review | Try to review same supplier twice | Error message shown | ⬜ |
-
-### 11. Reports & Analytics
-
-| # | Test Case | Steps | Expected Result | Status |
-|---|-----------|-------|-----------------|--------|
-| 11.1 | View Reports | Navigate to `/buyer/reports` | Reports dashboard displayed | ⬜ |
-| 11.2 | Spending Trends | Check spending chart | Chart renders with data | ⬜ |
-| 11.3 | Top Suppliers | Check top suppliers section | List of suppliers by spending | ⬜ |
-| 11.4 | Date Filter | Change date range | Charts update accordingly | ⬜ |
+| 10.1 | View Reports | Navigate to `/buyer/reports` | Reports dashboard displayed | ⬜ |
+| 10.2 | Spending Trends | Check spending chart | Chart renders with data | ⬜ |
+| 10.3 | Top Suppliers | Check top suppliers section | List of suppliers by spending | ⬜ |
+| 10.4 | Date Filter | Change date range | Charts update accordingly | ⬜ |
 
 ---
 

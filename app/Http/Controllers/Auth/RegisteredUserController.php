@@ -60,6 +60,7 @@ class RegisteredUserController extends Controller
             ]);
 
             // 2️⃣ إنشاء ملف المشتري
+            $validated = $request->validated();
             $buyer = Buyer::create([
                 'user_id' => $user->id,
                 'organization_name' => $request->organization_name,
@@ -68,8 +69,8 @@ class RegisteredUserController extends Controller
                 'country' => $request->country,
                 'city' => $request->city,
                 'address' => $request->address,
-                'contact_email' => $request->contact_email ?? $request->email,
-                'contact_phone' => $request->contact_phone ?? $request->phone,
+                'contact_email' => $validated['contact_email'] ?? null,
+                'contact_phone' => $validated['contact_phone'] ?? null,
                 'is_verified' => false, // يحتاج موافقة الإدارة
             ]);
 
@@ -144,6 +145,7 @@ class RegisteredUserController extends Controller
             \Log::info('User created successfully:', ['user_id' => $user->id, 'email' => $user->email]);
 
             // 2️⃣ إنشاء ملف المورد
+            $validated = $request->validated();
             $supplier = Supplier::create([
                 'user_id' => $user->id,
                 'company_name' => $request->company_name,
@@ -152,8 +154,8 @@ class RegisteredUserController extends Controller
                 'country' => $request->country,
                 'city' => $request->city,
                 'address' => $request->address,
-                'contact_email' => $request->contact_email ?? $request->email,
-                'contact_phone' => $request->contact_phone ?? $request->phone,
+                'contact_email' => $validated['contact_email'] ?? null,
+                'contact_phone' => $validated['contact_phone'] ?? null,
                 'is_verified' => false, // يحتاج موافقة الإدارة
             ]);
             \Log::info('Supplier created successfully:', ['supplier_id' => $supplier->id, 'company_name' => $supplier->company_name]);

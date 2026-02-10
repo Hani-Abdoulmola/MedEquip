@@ -66,24 +66,35 @@ class SupplierRegistrationRequest extends FormRequest
         return [
             // رسائل بيانات المستخدم
             'name.required' => 'الاسم الكامل مطلوب.',
+            'name.string' => 'الاسم يجب أن يكون نصًا صالحًا.',
             'name.max' => 'الاسم لا يمكن أن يتجاوز 255 حرفًا.',
             
-            'email.required' => 'البريد الإلكتروني مطلوب.',
+            'email.required' => 'البريد الإلكتروني (حساب الدخول) مطلوب.',
+            'email.string' => 'البريد الإلكتروني يجب أن يكون نصًا صالحًا.',
             'email.email' => 'صيغة البريد الإلكتروني غير صحيحة.',
+            'email.max' => 'البريد الإلكتروني لا يمكن أن يتجاوز 255 حرفًا.',
             'email.unique' => 'هذا البريد الإلكتروني مستخدم بالفعل.',
             
+            'phone.string' => 'رقم الهاتف يجب أن يكون نصًا صالحًا.',
+            'phone.max' => 'رقم الهاتف لا يمكن أن يتجاوز 50 حرفًا.',
             'phone.regex' => 'صيغة رقم الهاتف غير صحيحة.',
             
             'password.required' => 'كلمة المرور مطلوبة.',
             'password.confirmed' => 'كلمة المرور غير متطابقة.',
+            'password.min' => 'كلمة المرور يجب أن تحتوي على 8 أحرف على الأقل.',
 
             // رسائل بيانات المورد
             'company_name.required' => 'اسم الشركة مطلوب.',
+            'company_name.string' => 'اسم الشركة يجب أن يكون نصًا صالحًا.',
             'company_name.max' => 'اسم الشركة لا يمكن أن يتجاوز 200 حرف.',
             'company_name.unique' => 'يوجد مورد بنفس اسم الشركة.',
 
             'commercial_register.required' => 'رقم السجل التجاري / رقم الترخيص مطلوب.',
+            'commercial_register.string' => 'رقم السجل التجاري يجب أن يكون نصًا صالحًا.',
             'commercial_register.max' => 'رقم السجل التجاري لا يمكن أن يتجاوز 100 حرف.',
+
+            'tax_number.string' => 'الرقم الضريبي يجب أن يكون نصًا صالحًا.',
+            'tax_number.max' => 'الرقم الضريبي لا يمكن أن يتجاوز 100 حرف.',
 
             'verification_document.required' => 'رفع وثيقة التحقق (رخصة أو سجل تجاري) مطلوب.',
             'verification_document.file' => 'يجب رفع ملف وثيقة التحقق.',
@@ -91,9 +102,20 @@ class SupplierRegistrationRequest extends FormRequest
             'verification_document.max' => 'حجم ملف وثيقة التحقق يجب ألا يتجاوز 5 ميجابايت.',
             
             'country.required' => 'الدولة مطلوبة.',
+            'country.string' => 'الدولة يجب أن تكون نصًا صالحًا.',
+            'country.max' => 'الدولة لا يمكن أن تتجاوز 100 حرف.',
+
+            'city.string' => 'المدينة يجب أن تكون نصًا صالحًا.',
+            'city.max' => 'المدينة لا يمكن أن تتجاوز 100 حرف.',
+
+            'address.string' => 'العنوان يجب أن يكون نصًا صالحًا.',
+            'address.max' => 'العنوان لا يمكن أن يتجاوز 255 حرفًا.',
             
             'contact_email.email' => 'صيغة البريد الإلكتروني للتواصل غير صحيحة.',
-            'contact_phone.regex' => 'صيغة رقم الهاتف غير صحيحة.',
+            'contact_email.max' => 'البريد الإلكتروني للتواصل لا يمكن أن يتجاوز 150 حرفًا.',
+            'contact_phone.string' => 'رقم الهاتف للتواصل يجب أن يكون نصًا صالحًا.',
+            'contact_phone.max' => 'رقم الهاتف للتواصل لا يمكن أن يتجاوز 50 حرفًا.',
+            'contact_phone.regex' => 'صيغة رقم الهاتف للتواصل غير صحيحة.',
         ];
     }
 
@@ -110,6 +132,7 @@ class SupplierRegistrationRequest extends FormRequest
             'company_name' => 'اسم الشركة',
             'commercial_register' => 'رقم السجل التجاري',
             'tax_number' => 'الرقم الضريبي',
+            'verification_document' => 'وثيقة التحقق',
             'country' => 'الدولة',
             'city' => 'المدينة',
             'address' => 'العنوان',

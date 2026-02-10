@@ -191,10 +191,13 @@
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-medical-gray-900">{{ $supplier->contact_email }}</div>
+                                        <div class="text-sm text-medical-gray-900">{{ $supplier->user?->email ?? '-' }}</div>
+                                        @if ($supplier->contact_email && $supplier->contact_email !== $supplier->user?->email)
+                                            <div class="text-xs text-medical-gray-500">تواصل: {{ $supplier->contact_email }}</div>
+                                        @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-medical-gray-900">{{ $supplier->contact_phone }}</div>
+                                        <div class="text-sm text-medical-gray-900">{{ $supplier->contact_phone ?? '-' }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm text-medical-gray-900">
@@ -334,10 +337,13 @@
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-medical-gray-900">{{ $buyer->contact_email }}</div>
+                                        <div class="text-sm text-medical-gray-900">{{ $buyer->user?->email ?? '-' }}</div>
+                                        @if ($buyer->contact_email && $buyer->contact_email !== $buyer->user?->email)
+                                            <div class="text-xs text-medical-gray-500">تواصل: {{ $buyer->contact_email }}</div>
+                                        @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-medical-gray-900">{{ $buyer->contact_phone }}</div>
+                                        <div class="text-sm text-medical-gray-900">{{ $buyer->contact_phone ?? '-' }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm text-medical-gray-900">

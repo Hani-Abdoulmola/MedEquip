@@ -66,36 +66,57 @@ class BuyerRegistrationRequest extends FormRequest
         return [
             // رسائل بيانات المستخدم
             'name.required' => 'الاسم الكامل مطلوب.',
+            'name.string' => 'الاسم يجب أن يكون نصًا صالحًا.',
             'name.max' => 'الاسم لا يمكن أن يتجاوز 255 حرفًا.',
-            
-            'email.required' => 'البريد الإلكتروني مطلوب.',
+
+            'email.required' => 'البريد الإلكتروني (حساب الدخول) مطلوب.',
+            'email.string' => 'البريد الإلكتروني يجب أن يكون نصًا صالحًا.',
             'email.email' => 'صيغة البريد الإلكتروني غير صحيحة.',
+            'email.max' => 'البريد الإلكتروني لا يمكن أن يتجاوز 255 حرفًا.',
             'email.unique' => 'هذا البريد الإلكتروني مستخدم بالفعل.',
-            
+
+            'phone.string' => 'رقم الهاتف يجب أن يكون نصًا صالحًا.',
+            'phone.max' => 'رقم الهاتف لا يمكن أن يتجاوز 50 حرفًا.',
             'phone.regex' => 'صيغة رقم الهاتف غير صحيحة.',
-            
+
             'password.required' => 'كلمة المرور مطلوبة.',
             'password.confirmed' => 'كلمة المرور غير متطابقة.',
+            'password.min' => 'كلمة المرور يجب أن تحتوي على 8 أحرف على الأقل.',
 
             // رسائل بيانات المشتري
             'organization_name.required' => 'اسم المؤسسة الصحية مطلوب.',
-            'organization_name.max' => 'اسم المؤسسة لا يمكن أن يتجاوز 200 حرف.',
-            
+            'organization_name.string' => 'اسم المؤسسة يجب أن يكون نصًا صالحًا.',
+            'organization_name.max' => 'اسم المؤسسة لا يمكن أن يتجاوز 200 حرفًا.',
+
             'organization_type.required' => 'نوع المؤسسة مطلوب.',
-            'organization_type.in' => 'نوع المؤسسة غير صحيح.',
+            'organization_type.string' => 'نوع المؤسسة يجب أن يكون نصًا صالحًا.',
+            'organization_type.in' => 'نوع المؤسسة غير صحيح. اختر من القائمة.',
 
             'license_number.required' => 'رقم الترخيص الصحي مطلوب.',
+            'license_number.string' => 'رقم الترخيص يجب أن يكون نصًا صالحًا.',
             'license_number.max' => 'رقم الترخيص لا يمكن أن يتجاوز 100 حرف.',
 
             'license_document.required' => 'رفع وثيقة الترخيص مطلوب.',
             'license_document.file' => 'يجب رفع ملف وثيقة الترخيص.',
             'license_document.mimes' => 'وثيقة الترخيص يجب أن تكون من نوع PDF أو JPG أو PNG.',
             'license_document.max' => 'حجم ملف وثيقة الترخيص يجب ألا يتجاوز 5 ميجابايت.',
-            
+
             'country.required' => 'الدولة مطلوبة.',
-            
+            'country.string' => 'الدولة يجب أن تكون نصًا صالحًا.',
+            'country.max' => 'الدولة لا يمكن أن تتجاوز 100 حرف.',
+
+            'city.string' => 'المدينة يجب أن تكون نصًا صالحًا.',
+            'city.max' => 'المدينة لا يمكن أن تتجاوز 100 حرف.',
+
+            'address.string' => 'العنوان يجب أن يكون نصًا صالحًا.',
+            'address.max' => 'العنوان لا يمكن أن يتجاوز 255 حرفًا.',
+
             'contact_email.email' => 'صيغة البريد الإلكتروني للتواصل غير صحيحة.',
-            'contact_phone.regex' => 'صيغة رقم الهاتف غير صحيحة.',
+            'contact_email.max' => 'البريد الإلكتروني للتواصل لا يمكن أن يتجاوز 150 حرفًا.',
+
+            'contact_phone.string' => 'رقم الهاتف للتواصل يجب أن يكون نصًا صالحًا.',
+            'contact_phone.max' => 'رقم الهاتف للتواصل لا يمكن أن يتجاوز 50 حرفًا.',
+            'contact_phone.regex' => 'صيغة رقم الهاتف للتواصل غير صحيحة.',
         ];
     }
 
@@ -112,6 +133,7 @@ class BuyerRegistrationRequest extends FormRequest
             'organization_name' => 'اسم المؤسسة',
             'organization_type' => 'نوع المؤسسة',
             'license_number' => 'رقم الترخيص',
+            'license_document' => 'وثيقة الترخيص',
             'country' => 'الدولة',
             'city' => 'المدينة',
             'address' => 'العنوان',

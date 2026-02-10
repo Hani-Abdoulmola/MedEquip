@@ -250,6 +250,7 @@ Route::middleware(['auth', 'maintenance.allow_admin'])->group(function () {
 
         // Reports
         Route::get('/reports', [AdminReportsController::class, 'index'])->middleware('permission:reports.view')->name('reports');
+        Route::get('/reports/print', [AdminReportsController::class, 'print'])->middleware('permission:reports.view')->name('reports.print');
 
         // Activity Log
         Route::get('/activity', [ActivityLogController::class, 'index'])->middleware('permission:activity_logs.view')->name('activity');
@@ -491,15 +492,6 @@ Route::middleware(['auth', 'maintenance.allow_admin'])->group(function () {
 
         // Buyer Reports
         Route::get('/reports', [\App\Http\Controllers\Web\Buyers\BuyerReportsController::class, 'index'])->name('reports.index');
-
-        // Buyer Reviews (Supplier Reviews)
-        Route::get('/reviews', [\App\Http\Controllers\Web\Buyers\BuyerReviewController::class, 'index'])->name('reviews.index');
-        Route::get('/reviews/create', [\App\Http\Controllers\Web\Buyers\BuyerReviewController::class, 'create'])->name('reviews.create');
-        Route::post('/reviews', [\App\Http\Controllers\Web\Buyers\BuyerReviewController::class, 'store'])->name('reviews.store');
-        Route::get('/reviews/{review}', [\App\Http\Controllers\Web\Buyers\BuyerReviewController::class, 'show'])->name('reviews.show');
-        Route::get('/reviews/{review}/edit', [\App\Http\Controllers\Web\Buyers\BuyerReviewController::class, 'edit'])->name('reviews.edit');
-        Route::put('/reviews/{review}', [\App\Http\Controllers\Web\Buyers\BuyerReviewController::class, 'update'])->name('reviews.update');
-        Route::delete('/reviews/{review}', [\App\Http\Controllers\Web\Buyers\BuyerReviewController::class, 'destroy'])->name('reviews.destroy');
 
         // Buyer Delivery Tracking & Disputes
         Route::get('/deliveries/{order}/tracking', [\App\Http\Controllers\Web\Buyers\BuyerDeliveryTrackingController::class, 'show'])->name('deliveries.tracking');
